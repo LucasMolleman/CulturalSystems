@@ -209,9 +209,9 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
 			for (mod in observedModels){
 				w<- 10^-8
 				ageDif<-popAge[mod]-popAge[ind]								
-#				if (ageDif >=0) w<- 0.5^ageDif
+				if (ageDif >=0) w<- 0.5^ageDif
 #				if (ageDif >=0) 
-				w<-(10^-8) + dnorm(ageDif, mean=olderPref, sd=1)
+#				w<-(10^-8) + dnorm(ageDif, mean=olderPref, sd=1)
 				wList<-c(wList, w)
 			}			
 		}	
@@ -302,6 +302,7 @@ tree_layers<-5
 branching_factor<-2
 alpha1<-1
 beta1<-1
+olderPref<-0
 
 
 # parameters for plotting (number of time steps per printing event frequencies)
