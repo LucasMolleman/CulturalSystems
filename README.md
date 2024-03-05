@@ -76,7 +76,7 @@ By pulling regularly, you reduce the likelihood of merge conflicts and stay upda
 - **Pull Regularly**: Especially in a team setting, pulling changes from the remote repository often helps catch integration issues early.
 - **Push At Logical Points**: Push your changes to GitHub once you reach a logical stopping point, such as completing a feature or fixing a bug, ensuring that the remote repository stays current with your local progress.
 
-### Working with Branches in Git
+## Working with Branches in Git
 
 Branching is a core concept in Git that allows you to diverge from the main line of development and work independently without affecting the main line. This is particularly useful in a team setting where different features or fixes can be worked on simultaneously.
 
