@@ -1,6 +1,6 @@
 ---
 title: "Constraints with branching"
-author: "Nanda Jafarian"
+author: "CulturalSystems"
 date: "2024-02-14"
 output: html_document
 ---
@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+## Load Packages and Functions
 
 ```{r}
 library(igraph)
@@ -19,11 +19,11 @@ library(matrixStats)
 library(doParallel)
 library(foreach)
 
-source("modelFunctions_new.R")
+source("simFunctions.R")
+source("loopFunctions.R")
 ```
 
-
-
+## Set Parameters
 
 ```{r simulation parameters}
 #### simulation parameters
@@ -32,37 +32,29 @@ params <- list(
   N = 100,                      # population size
   M = 10,                       # number of demonstrators
   timesteps = 5000,             # number of time steps in the simulation
-  replicateSimulations = 30,     # number of simulations per parameter setting
+  replicateSimulations = 30,    # number of simulations per parameter setting
   S = 0.99,                     # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.01,            # probability that an individual is replaced by a naive individual
-  tree_layers = 5,              # set some default values for parameters for bookkeeping 
-  branching_factor = 2,         # set some default values for parameters for bookkeeping 
-  alpha1 = 1,                   # set some default values for parameters for bookkeeping 
-  beta1 = 1,                    # set some default values for parameters for bookkeeping 
-  olderPref = 0,                # set some default values for parameters for bookkeeping 
-  windowSize = 1000             # parameters for plotting (number of time steps per printing event                                   frequencies)
+  alpha1 = 1,                   # Alpha parameter for the beta distribution used to generate the tree
+  beta1 = 1,                    # Beta parameter for the beta distribution used to generate the tree 
+  olderPref = 0,                
+  windowSize = 1000             # parameters for plotting (number of time steps per printing event frequencies)
 )
+
+
+``` 
+
+ ## Run Simulation
+
+```{r}
 
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 strategySuccess<-matrix(nrow=0, ncol=9)
-``` 
-
- 
-
-```{r}
 
 for (learningStrategy in c(0,1,2,3,4)){
   par(mfrow=c(4,3), mar=c(1,1,1,1), las=1, xaxs='i', yaxs='i')
   for (branching_factor in c(1,3,params$num_nodes)){
-    exampleTree <- generate_rooted_tree_branching(params, branching_factor)
-    plotTree(params = params, tree = exampleTree, repertoires = 0, showPopState = FALSE)
-    
-    ## bookkeeping for some plotting 
-    summmeanTraitsInSystem<-rep(0,params$timesteps)
-    summVarTraitsInSystem<-rep(0,params$timesteps)
-    summSLpay<-matrix(nrow=0, ncol=params$timesteps)
-    
       ## generate rooted tree to represent the cultural system
       tree <- generate_rooted_tree_branching(params, branching_factor)
       ## for some tracking the distribution of traits across depths we need to know the depth of each node			
@@ -70,140 +62,32 @@ for (learningStrategy in c(0,1,2,3,4)){
       maxNodeDepth<-max(nodeDepths)
       ## bookkeep the frequency of traits across tree depths (for checking stability over time)
       traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
+      
+
     
     ### start simulation
     numCores <- detectCores() - 1  # leave one core for other tasks
     cl <- makeCluster(numCores)
     registerDoParallel(cl)
-    initResults <- list(strategySuccess = matrix(numeric(0), ncol = 9), # Adjust as needed
-                    summSLpay = matrix(numeric(0), ncol = params$timesteps), # Assuming timesteps define the number of columns
-                    meanTraitsInSystem = numeric(0))
+    initResults <- matrix(numeric(0), ncol = 9) 
 
       results <- foreach(repl=1:params$replicateSimulations, .packages=c('igraph'), .combine='combineResults', .init=initResults) %dopar% {
-
-      ### define the cultural system ###
  
-      
-      ## derive square matrix of parent/child traits
-      adj_matrix <- as_adjacency_matrix(tree, sparse = FALSE)
-      ## root trait (at position 1,1) is its own parent
-      adj_matrix[1,1]<-1
-      
+      strategySuccess <- runsimulation(params, learningStrategy, repl, tree, nodeDepths, maxNodeDepth, traitsAtDepth)
 
-      
-      
-      ## bookkeeping for output
-      SLpay<-rep(NA,params$timesteps)				## payoff for social learning
-      meanTraitsInSystem<-rep(NA,params$timesteps) 	## number of traits in the system
-      varTraitsInSystem<-rep(NA, params$timesteps)
-      
-      # 		set payoffs for each trait
-
-      payoffs<-runif(params$num_nodes)	# random payoffs from uniform distribution
-
-      payoffs<-2*payoffs/max(payoffs)
-      ### SYSTEM AND NODE PAYOFFS ARE SET
-      
-      ####### INITIALIZE POPULATION #####
-      repertoires<-initializePopulation(params)
-      popAge<-assignAges(repertoires)
-      
-      ### population is now initialized... start running the model
-      for (t in 1:params$timesteps){
-        ## sample a random individual
-        ind<-sample(1:params$N,1)
-        ## will they learn individually or socially?
-        r<-runif(1)
-        
-        learnableTraits<-getLearnableTraits(repertoires, ind, adj_matrix)
-        SLpay[t]<-NA
-        if (length(learnableTraits)>0){  #only try to learn if there's anything to learn for this agent
-          if (r<params$S) {  # social learning
-            selectedTrait<-learnSocially(params, repertoires, ind, adj_matrix, learningStrategy, popAge, payoffs)														
-            if (length(selectedTrait)==1){
-              ######## calculate payoffs of learning
-              focalPay<-0
-              if (selectedTrait%in%learnableTraits) {
-                repertoires[ind,selectedTrait]<-1
-                focalPay<-payoffs[selectedTrait]
-              }
-              SLpay[t]<-focalPay
-            }
-            
-          }
-          else {	# individual learning (=innovation)
-            selectedTrait<- learnableTraits[1]
-            if (length(learnableTraits)>1) selectedTrait<-sample(learnableTraits,1)
-            repertoires[ind,selectedTrait]<-1									
-          }
-        }
-        ## each time step the agent was sampled, their age increases by 1
-        popAge[ind]<-popAge[ind]+1
-        
-        ## replace an individual with a naive one at random
-        ## NB this is not appropriate for evolutionary sims
-        if (runif(1) < params$reset_rate) {
-          repertoires[ind,]<-c(1,rep(0,params$num_nodes-1))
-          popAge[ind]<-0  ## reset the age of the agent to 0
-        }
-        
-        # BOOKKEEPING for each time step
-        # number of traits in the system
-        meanTraitsInSystem[t]<-sum(repertoires) / (params$num_nodes * params$N)
-        #		varTraitsInSystem[t]<-mean(colVars(repertoires))	
-        
-        # distribution of traits across the depths (layers) of the tree
-        trDepth<-rep(0,maxNodeDepth)
-        for (d in 1:maxNodeDepth){
-          x<-which(nodeDepths==d)
-          thisDepth<-sum(repertoires[,x], na.rm=TRUE)
-          trDepth[d]<-thisDepth
-        }
-        #This needs to be moved out of the loop
-        traitsAtDepth[t,]<-trDepth/sum(repertoires)
-      }
-
-      ### add summary statistics to the overall master matrix
-      ## number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-      ## characterize mean payoffs for a strategy as the last 10% of timesteps in the simulation
-      #summThisSimulation<-c(num_nodes, branching_factor, learningStrategy, 
-      #	repl, mean(SLpay[round(timesteps*0.9):timesteps], na.rm=TRUE))
-      
-      summThisSimulation<-c(params$num_nodes, 
-                            branching_factor, 
-                            params$tree_layers, 
-                            params$alpha1,
-                            params$beta1,
-                            learningStrategy,
-                            params$olderPref,
-                            repl,
-                            mean(SLpay[round(params$timesteps*0.9):params$timesteps], na.rm=TRUE))
-      
-      
-      
-      
+ 
       ## simulation replicate is done
-    
-    list(
-      strategySuccess = summThisSimulation,
-      summSLpay = SLpay,
-      meanTraitsInSystem = meanTraitsInSystem,
-      traitsatDepth = traitsAtDepth
-    )
+      strategySuccess
     }
     # Stopping the cluster after the parallelization step 
     stopCluster(cl)
      
-     
-     strategySuccess <- rbind(strategySuccess, results$strategySuccess)
-     summeanTraitsInSystem <- sum(results$meanTraitsInSystem)
-     summSLpay <- results$summSLpay
-     
+    # add the results to the summary matrix
+    strategySuccess <- rbind(strategySuccess, results)
   }
 }
 
 ```
-
 
 ```{r}
 ## give names to the columns of the simulation summary matrix: number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
@@ -213,7 +97,7 @@ rownames(strategySuccess) <- NULL
 strategySuccess
 
 stratCols<-c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')
-#dev.off()
+
 
 par(mfrow=c(1,3))
 for (alph in unique(strategySuccess$alpha)){
@@ -222,7 +106,7 @@ for (alph in unique(strategySuccess$alpha)){
   
   xx<-unique(b$beta)
   
-  #dev.new(width=150, height=150)
+
   ## create an overview plot
   plot(1:max(xx), 1:max(xx)*0+1, type='n', ylim=c(0,0.7), xlim=c(0,max(xx)),
        xlab='beta', ylab='Success of social learning strategy')
@@ -245,9 +129,7 @@ legend('bottomright', c('random', 'payoff', 'similarity', 'age', 'conformity'), 
 
 ## what are the relevant x values?
 xx<-unique(strategySuccess$branching_factor)
-#xx<-unique(strategySuccess$numNodes)
 
-#dev.new(width=150, height=150)
 ## create an overview plot
 par(mfrow=c(1,3), xaxs='r', mar=c(5,4,4,2),lend=1)
 
@@ -258,68 +140,7 @@ for (brf in unique(strategySuccess$branching_factor)){
   
   legend('bottomright', c('random', 'payoff', 'similarity', 'age', 'conformity'), col=stratCols, pch=15:19)
 }
-#legend('topright', c('random', 'payoff', 'similarity', 'age', 'conformity'), col=stratCols, pch=15:19)
 
 ```
 
-```{r}
-      ## do some plotting for inspecting the simulations
-    # for(repl in 1:params$replicateSimulations){  
-    #   if (repl==1) {plot(1:params$timesteps, summSLpay[repl,], type='n', ylim=c(0,1), col='red', 
-    #                        axes=FALSE)
-    #       axis(1, labels=F)
-    #       axis(2)
-    #       box()
-    #     }
-    #     
-    #     ## plot payoffs for social leraning for time windows (to smoothen)
-    #     cols<-c("green", "orange", "red")
-    #     for (w in 1:(params$timesteps/params$windowSize)){
-    #       wi<-summSLpay[repl,][1+((w-1)*params$windowSize):(w*params$windowSize)]			
-    #       meanPayBin<- mean(wi, na.rm=TRUE)
-    #       x<-(w-0.5)*params$windowSize
-    #       points(x, meanPayBin, col=adjustcolor("blue", alpha=0.5), pch=16, cex=0.5)
-    #     }
-    # }
-    
-    ## plot some summary statistics for this simulation setting
-    summSuc<-c()
-    for (w in 1:(params$timesteps/params$windowSize)){
-      wi<-1+((w-1)*params$windowSize):(w*params$windowSize)	
-      x<-c()
-      for (k in wi) {
-        if (k<=ncol(summSLpay)) x<-c(x,summSLpay[,k])
-      }
-      summSuc<-c(summSuc, mean(x,na.rm=TRUE))
-    }
-    
-    ## add lines to the plot with mean payoffs of social learning
-    ## and the number of traits in the system  (proportion of total)
-    lines((1:(params$timesteps/params$windowSize))*params$windowSize, summSuc, col='black', lwd=2)
-    lines(1:params$timesteps, summmeanTraitsInSystem/params$replicateSimulations, col='red', lwd=2)
-    #	lines(1:timesteps, summVarTraitsInSystem/replicateSimulations, col='purple', lwd=2)
-    
-    ## set the colours for each layer
-    colramp <- colorRampPalette(c("white", "blue","green","orange", "red"))
-    color_palette <- colramp(max(nodeDepths))
-    color <- color_palette[1:params$num_nodes]
-    
-    V(tree)$color <- color_palette[nodeDepths]
-    
-    ## add a plot for the distributions across layers
-    plot(1:params$timesteps, traitsAtDepth[,1], type='n', ylim=c(0,1))
-    ## calculate the areas for plotting
-    plotMatTraitDepth<-matrix(1,nrow=1,ncol=params$timesteps)
-    for (i in 1:ncol(traitsAtDepth)){
-      yy<- 0;
-      for (j in 1:i) yy<-yy+traitsAtDepth[,j]
-      plotMatTraitDepth<-rbind(plotMatTraitDepth, 1-yy)
-    }
-    ## do the plotting
-    for (i in 1:(nrow(plotMatTraitDepth)-1)){
-      yy0<-plotMatTraitDepth[i,]
-      yy1<-plotMatTraitDepth[i+1,]
-      polygon(c(1:params$timesteps, params$timesteps:1), c(yy0, rev(yy1)), col=unique(V(tree)$color)[i])
-    }
 
-```

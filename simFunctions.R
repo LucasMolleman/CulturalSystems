@@ -251,15 +251,4 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
   }
 }	
 
-combineResults <- function(accum, new) {
-  if (is.null(accum)) { # Check if accum is null (for the first combination)
-    return(new) # Simply return new if accum has not been initialized
-  } else {
-    # Your logic to combine accum and new
-    accum$strategySuccess <- rbind(accum$strategySuccess, new$strategySuccess)
-    accum$summSLpay <- rbind(accum$summSLpay, new$summSLpay)
-    accum$meanTraitsInSystem <- c(accum$meanTraitsInSystem, new$meanTraitsInSystem)
-    
-    return(accum)
-  }
-}
+
