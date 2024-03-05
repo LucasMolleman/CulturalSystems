@@ -3,6 +3,8 @@ library(colorRamps)
 library(extraDistr)
 library(matrixStats)
 
+#Nanda was here
+
 # function to create a rooted tree which represents a cultural system
 generate_rooted_tree_branching <- function(num_nodes, branching_factor) {
   g <- graph.empty(n = num_nodes, directed = TRUE)
