@@ -71,36 +71,77 @@ conformity_based <- function(){
     prob_teacher_select <- prob_teacher_select
     selected_teacher <<- sample(skilled_teacher, 1, prob = prob_teacher_select)
   }
-  } 
+} 
+
+successful <- function(individual = individual, skillset = skillset, overview = overview){
+  overview[individual, "Number_skills"] <- overview[individual, "Number_skills"]+1
+  skillset[skills_learner + 1,individual] <- 1
+  overview[individual, "Successful"] <<- overview[individual, "Successful"] +1
+  cat(overview[individual,"Learning_strat"], "Successful")
+  return(overview)
+}
+unsuccessful <- function(individual = individual, skillset = skillset, overview = overview){
+  overview[individual, "Unsuccessful"] <<- overview[individual, "Unsuccessful"] +1
+  cat(overview[individual,"Learning_strat"], "Unsuccessful")
+  return(overview)
+}
 learn_socially <- function (){
-  if (length(skilled_teacher) > 1){
   if (overview[individual,"Learning_strat"] == 1){
     payoff_based()
-  } else if(overview[individual,"Learning_strat"] == 2){
+    observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+    if(observed_behavior == skills_learner+1){
+      successful(individual, skillset, overview)
+      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] + 1
+    } else {
+      unsuccessful(individual, skillset, overview)
+      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] + 1
+  } }else if(overview[individual,"Learning_strat"] == 2){
     similarity_based()
+    observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+    if(observed_behavior == skills_learner+1){
+      successful(individual, skillset, overview)
+      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] + 1
+    } else {
+      unsuccessful(individual, skillset, overview)
+      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] + 1
+    }
   }else if(overview[individual,"Learning_strat"] == 3){
     age_based()
+    observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+    if(observed_behavior == skills_learner+1){
+      successful(individual, skillset, overview)
+      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] + 1
+    } else {
+      unsuccessful(individual, skillset, overview)
+      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] + 1
+    }
   } else if(overview[individual,"Learning_strat"] == 4){
     conformity_based()
-  }
-  observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
-  } else observed_behavior <- sample(seq(skills_learner+1, skills_steacher), 1)
-  if(observed_behavior == skills_learner+1){
-    overview[individual, "Number_skills"] <- overview[individual, "Number_skills"]+1
-    skillset[skills_learner + 1,individual] <- 1
-    overview[individual, "Successful"] <<- overview[individual, "Successful"] +1
-    cat(overview[individual,"Learning_strat"], observed_behavior, "Successful")
-  } else {
-    overview[individual, "Unsuccessful"] <<- overview[individual, "Unsuccessful"] +1
-    cat(overview[individual,"Learning_strat"], observed_behavior, "Unsuccessful")
-  }
+    observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+    if(observed_behavior == skills_learner+1){
+      successful(individual, skillset, overview)
+      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] + 1
+    } else {
+      unsuccessful(individual, skillset, overview)
+      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] + 1
+    }
+  } 
+  return(overview)
+  return(meta_overview)
 }
+bayesian_learner <- function(){
 
+  # check which learning strat used 
+  # check wheather successful or not 
+  # update in meta overview
+  # before deciding which learning strat check which one was most successful 
+}
 
 # set up population
 population <- c(seq(1:500))
 skills <- 20
-rounds <- 100
+timesteps <- 300
+rounds <- 30
 # give them first subskill
 skillset <- matrix(0, nrow = skills, ncol = length(population))
 skillset[1,] <- 1
@@ -117,7 +158,7 @@ for(i in 1: length(advanced_learners)){
 }
 
 # set ages
-overview <- matrix(nrow = length(population), ncol = 6, dimnames = list(c(), c("Number_skills", "Age", "Learning_strat", "Meta_strat", "Successful", "Unsuccessful")))
+overview <- matrix(nrow = length(population), ncol = 5, dimnames = list(c(), c("Number_skills", "Age", "Learning_strat", "Successful", "Unsuccessful")))
 overview[,"Age"] <- 1
 overview[,"Successful"] <- 0
 overview[,"Unsuccessful"] <- 0
@@ -125,11 +166,21 @@ for (i in 1: ncol(skillset)){
   overview[i, "Number_skills"] <- sum(skillset[,i])
 }
 # each individual gets one learning strat
-overview[,"Learning_strat"] <- sample(1:4, 1000, replace = TRUE, prob = c(0.25, 0.25,0.25,0.25))
+overview[,"Learning_strat"] <- sample(1:4, length(population), replace = TRUE, prob = c(0.25, 0.25,0.25,0.25))
 
+# build overview for meta strats
+meta_overview <- matrix(nrow = length(population) * 4, ncol = 5, dimnames = list(c(), c("ID", "Meta_strategy", "Learning_strat", "Successful", "Unsuccessful")))
+meta_overview[,1] <- rep(1:length(population),each = 4)
+meta_strat <- sample(1:3, length(population), replace = TRUE, prob = c(1/3, 1/3, 1/3))
+meta_overview[,2] <- rep(meta_strat, each = 4) 
+meta_overview[,3] <- rep(1:4)
+meta_overview[,4:5] <- 0
+meta_overview <- as.data.frame(meta_overview)
 
 # sample teacher 
 for (i in 1: rounds) {
+  for (t in 1:timesteps) {
+  #browser()
   individual <- sample(population, 1)
   skills_learner <- sum(skillset[,individual])
   if (skills_learner == 20){
@@ -137,25 +188,43 @@ for (i in 1: rounds) {
     while(new_learner == TRUE){
       individual <- sample(population, 1)
       skills_learner <- sum(skillset[,individual])
-      if (skills_learner == 20) new_learner <- FALSE
+      if (skills_learner < 20) new_learner <- FALSE
     }
   }
   rest_pop <- population[-individual]
-  teachers <- sample(rest_pop, 10, replace = FALSE)
-  select_teacher(skillset, teachers, skills_learner)
-  if_no_teacher() 
+  new_teacher <- TRUE
+  # have at least two skilled teachers to choose from
+  while(new_teacher == TRUE){
+    teachers <- sample(rest_pop, 10, replace = FALSE)
+    select_teacher(skillset, teachers, skills_learner)
+    if_no_teacher()
+    if(length(skilled_teacher) > 1) new_teacher <- FALSE
+  }
   # give them learning strat
   skills_steacher <- c(overview[skilled_teacher,"Number_skills"])
   prob_teacher_select <- rep(1/length(skilled_teacher), length(skilled_teacher))
   cat("round:", i, " ")
   learn_socially()
+  overview[individual,2] <- overview[individual,2] + 1 
 }
+  }
 
 
 
+## browser() to read it line by line
 
+colSums(overview)
+colSums(meta_overview)
+colMeans(overview)
 
+overview_dat <- as.data.frame(overview)
+overview_dat <- overview_dat %>%
+  mutate(Learning_strat = factor(Learning_strat))
+overview_dat %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(Number_skills), list(name = mean))
 
-  
+ggplot(data = overview_dat, aes(x = Number_skills, fill = Learning_strat)) +
+  geom_bar(position = position_dodge(width = 0.8))
 
 
