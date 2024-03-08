@@ -188,13 +188,16 @@ getLearnableTraits<-function(repertoires, ind, adj_matrix){
 
 
 
+
+
+
 learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs){
   M <- params$M
   olderPref <- params$olderPref
   ## sample M random other individuals
   poolOthers <- setdiff(1:nrow(repertoires), ind) # agents do not sample themselves
   models<-sample(poolOthers, M, replace=FALSE)
-  
+
   ## randomly pick 1 trait from each model
   ## only consider traits the learning agent do not know yet
   observedBehaviours<-c()
@@ -208,7 +211,6 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     }
   }
   
-  
   if(length(observedBehaviours) > 0){
     wList <- numeric(length = length(observedBehaviours))
     
@@ -220,7 +222,9 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     ###### STRATEGY 2: similarity based learning ######
     ## check for all agents how similar they are to self in skills
     else if(learningStrategy == 2){
-      wList <- sapply(observedModels, function(mod) sum(repertoires[ind, ] == repertoires[mod, ]))
+      wList <- sapply(observedModels, function(model) {
+        sum(repertoires[model,] == repertoires[ind,])
+      })
     }
     
     ######	STRATEGY 3: age-based social learning #####
@@ -233,8 +237,8 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     ######	STRATEGY 4: conformist social learning #####
     ## Count the selected behaviours and weigh common ones more
     else if(learningStrategy == 4){
-      w <- table(observedBehaviours)[as.character(observedBehaviours)]
-      wList <- as.numeric(w)
+      wList2 <- as.numeric(table(factor(observedBehaviours, levels = unique(observedBehaviours))))
+      wList <- table(observedBehaviours)[as.character(observedBehaviours)]
     }
     
     ###### STRATEGY 0: random learning benchmark
@@ -245,10 +249,6 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     
     ### MAKE CHOICE ###
     selectedTrait<-ifelse(length(observedBehaviours)==1, observedBehaviours[1], sample(observedBehaviours,1,prob=wList))
-    #		if (length(observedBehaviours)==1) {selectedTrait<-observedBehaviours[1]}
-    #		else {selectedTrait<-sample(observedBehaviours, 1, prob=wList)}
     return(selectedTrait)	
   }
-}	
-
-
+}

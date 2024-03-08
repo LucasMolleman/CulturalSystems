@@ -142,9 +142,9 @@ getLearnableTraits<-function(repertoires, ind, adj_matrix){
 	return(learnableTraits)
 }
 
-learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, popAge, olderPref){
+learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, N, popAge, olderPref){
 	## sample M random other individuals
-	pool<-1:N
+	pool<- 1:N
 	poolOthers<-pool[-ind] # agents do not sample themselves
 	models<-sample(poolOthers, M, replace=FALSE)
 	
@@ -394,7 +394,7 @@ for (learningStrategy in c(0,1,2,3,4)){
 					SLpay[t]<-NA
 					if (length(learnableTraits)>0){  #only try to learn if there's anything to learn for this agent
 						if (r<S) {  # social learning
-							selectedTrait<-learnSocially(repertoires, ind, adj_matrix, learningStrategy, M, popAge, olderPref)														
+							selectedTrait<-learnSocially(repertoires, ind, adj_matrix, learningStrategy, M, N, popAge, olderPref)														
 							
 							if (length(selectedTrait)==1){
 								######## calculate payoffs of learning
