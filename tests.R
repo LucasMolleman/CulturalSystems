@@ -1,25 +1,14 @@
-learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs){
-  M <- params$M
-  olderPref <- params$olderPref
-  ## sample M random other individuals
-  poolOthers <- setdiff(1:nrow(repertoires), ind) # agents do not sample themselves
-  models<-sample(poolOthers, M, replace=FALSE)
-  
-  ## randomly pick 1 trait from each model
-  ## only consider traits the learning agent do not know yet
-  observedBehaviours<-c()
-  observedModels<-c()
-  for (model in models){
-    newTraits<-which(repertoires[model,] == 1 & repertoires[ind,] == 0)
-    if(length(newTraits)>0){
-      tr<-sample(newTraits,1)
-      observedBehaviours<-c(observedBehaviours, tr)
-      observedModels<-c(observedModels, model)
-    }
-  }
-  
+library(igraph)
+
+learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedBehaviours, observedModels){
   if(length(observedBehaviours) > 0){
     wList <- numeric(length = length(observedBehaviours))
+    pList <- getTraitLearningProbability(repertoires, ind, tree, observedBehaviours)
+    
+    if(length(pList) == 0){
+      return(numeric(0))
+    }
+    
     
     ##### STRATEGY 1: payoff-based social learning #####
     if(learningStrategy == 1){
@@ -44,7 +33,6 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     ######	STRATEGY 4: conformist social learning #####
     ## Count the selected behaviours and weigh common ones more
     else if(learningStrategy == 4){
-      wList2 <- as.numeric(table(factor(observedBehaviours, levels = unique(observedBehaviours))))
       wList <- table(observedBehaviours)[as.character(observedBehaviours)]
     }
     
@@ -55,9 +43,20 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     }
     
     ### MAKE CHOICE ###
-    selectedTrait<-ifelse(length(observedBehaviours)==1, observedBehaviours[1], sample(observedBehaviours,1,prob=wList))
-    return(selectedTrait)	
+    
+    selectedTraitIndex <- sample(1:length(observedBehaviours), 1, prob = wList)
+    selectedTrait <- observedBehaviours[selectedTraitIndex]
+    pList <- pList[selectedTraitIndex]
+    
+    ## learn the trait with probability pList
+    
+    if(runif(1) < pList){
+      repertoires[ind, selectedTrait] <- 1
+      learnedTrait <- selectedTrait
+      return(learnedTrait)
+    } 
   }
+  return(numeric(0))
 }
 
 
@@ -171,7 +170,7 @@ adj_matrix[1, 1] <- 1
 repertoires <- matrix(0, nrow = params$N, ncol = params$num_nodes)
 for (ind in 1:params$N) {
   currentTraits <- c(1)
-  numTraits <- sample(2:10, 1)  # Decides on a random target trait count between 2 and 10
+  numTraits <- sample(2:12, 1)  # Decides on a random target trait count between 2 and 12 for initializing the test repertoire
   
   while (length(currentTraits) < numTraits) {
     # Find traits directly adjacent to the most recently added trait
@@ -202,15 +201,34 @@ payoffs <- runif(params$num_nodes)
 payoffs <- 2 * payoffs / max(payoffs)
 
 compareFunctions <- function(learningStrategy) {
-  ind <- 71
+  ind <- 76
   
   r <- runif(1)
   
   learnableTraits <- getLearnableTraits(repertoires, ind, adj_matrix)
   if (length(learnableTraits) > 0) {
     if (r < params$S) {
+      ## sample M random other individuals
+      poolOthers <- setdiff(1:nrow(repertoires), ind) # agents do not sample themselves
+      models<-sample(poolOthers, params$M, replace=FALSE)
+      
+      ## randomly pick 1 trait from each model
+      ## only consider traits the learning agent do not know yet
+      observedBehaviours<-c()
+      observedModels<-c()
+      for (model in models){
+        newTraits<-which(repertoires[model,] == 1 & repertoires[ind,] == 0)
+        if(length(newTraits)>0){
+          tr<-sample(newTraits,1)
+          observedBehaviours<-c(observedBehaviours, tr)
+          observedModels<-c(observedModels, model)
+        }
+      }
+      
+      
+      
       set.seed(1)
-      result1 <- learnSocially(params, repertoires, ind, adj_matrix, learningStrategy, popAge, payoffs)
+      result1 <- learnSocially(repertoires, ind, adj_matrix, learningStrategy, popAge, payoffs, observedBehaviours, observedModels)
       set.seed(1)
       result2 <- learnSocially_old(repertoires, ind, adj_matrix, learningStrategy, params$M, params$N, popAge)
       
@@ -229,6 +247,52 @@ compareFunctions <- function(learningStrategy) {
   }
 }
 
+
+
 for (learningStrategy in 0:4) {
   compareFunctions(learningStrategy)
 }
+
+
+
+
+
+
+
+
+
+
+## sample M random other individuals
+poolOthers <- setdiff(1:nrow(repertoires), ind) # agents do not sample themselves
+models<-sample(poolOthers, params$M, replace=FALSE)
+
+## randomly pick 1 trait from each model
+## only consider traits the learning agent do not know yet
+observedBehaviours<-c()
+observedModels<-c()
+for (model in models){
+  newTraits<-which(repertoires[model,] == 1 & repertoires[ind,] == 0)
+  if(length(newTraits)>0){
+    print(newTraits)
+    tr<-sample(newTraits,1)
+    observedBehaviours<-c(observedBehaviours, tr)
+    observedModels<-c(observedModels, model)
+  }
+}
+result1 <- learnSocially(repertoires, 76, adj_matrix, 1, popAge, payoffs, tree, observedBehaviours, observedModels)
+
+
+
+
+
+nodeDepths<-1+distances(tree,v=1,to=V(tree),mode="out")
+maxNodeDepth<-max(nodeDepths)
+## bookkeep the frequency of traits across tree depths (for checking stability over time)
+traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
+
+
+
+
+repl <- 1
+
+runsimulation(params, learningStrategy, repl, tree)

@@ -8,8 +8,7 @@ combineResults <- function(accum, new) {
   }
 }
 
-runsimulation <- function(params, learningStrategy, repl, tree, nodeDepths, maxNodeDepth, traitsAtDepth){  
-  
+runsimulation <- function(params, learningStrategy, repl, tree){  
   ### define the cultural system ###
   
   
@@ -39,28 +38,59 @@ runsimulation <- function(params, learningStrategy, repl, tree, nodeDepths, maxN
     ind<-sample(1:params$N,1)
     ## will they learn individually or socially?
     r<-runif(1)
-    
-    learnableTraits<-getLearnableTraits(repertoires, ind, adj_matrix)
+    unknownTraits <- which(repertoires[ind,] == 0) 
     SLpay[t]<-NA
-    if (length(learnableTraits)>0){  #only try to learn if there's anything to learn for this agent
+    if (sum(unknownTraits > 0)){  #only try to learn if there's anything to learn for this agent
+      
       if (r<params$S) {  # social learning
-        selectedTrait<-learnSocially(params, repertoires, ind, adj_matrix, learningStrategy, popAge, payoffs)														
-        if (length(selectedTrait)==1){
-          ######## calculate payoffs of learning
-          focalPay<-0
-          if (selectedTrait%in%learnableTraits) {
-            repertoires[ind,selectedTrait]<-1
-            focalPay<-payoffs[selectedTrait]
-          }
-          SLpay[t]<-focalPay
-        }
+        ## sample M random other individuals
+        poolOthers <- setdiff(1:nrow(repertoires), ind) # agents do not sample themselves
+        models<-sample(poolOthers, params$M, replace=FALSE)
         
+        ## randomly pick 1 trait from each model
+        ## only consider traits the learning agent do not know yet
+        observedTraits<-c()
+        observedModels<-c()
+        for (model in models){
+          newTraits<-which(repertoires[model,] == 1 & repertoires[ind,] == 0)
+          if(length(newTraits)>0){
+            tr<-sample(newTraits,1)
+            observedTraits<-c(observedTraits, tr)
+            observedModels<-c(observedModels, model)
+          }
+        }
+
+        learnedTrait <- learnSocially(repertoires,
+                                      ind,
+                                      adj_matrix,
+                                      learningStrategy, 
+                                      popAge,
+                                      payoffs,
+                                      tree,
+                                      observedTraits,
+                                      observedModels)														
+        
+        if (length(learnedTrait)==1){
+        ######## calculate payoffs of learning
+          repertoires[ind, learnedTrait] <- 1
+          focalPay <- payoffs[learnedTrait]
+          SLpay[t]<- focalPay
+        }
+        else{
+          SLpay[t] <- 0
+        }
+	
       }
-      else {	# individual learning (=innovation)
-        selectedTrait<- learnableTraits[1]
-        if (length(learnableTraits)>1) selectedTrait<-sample(learnableTraits,1)
-        repertoires[ind,selectedTrait]<-1									
-      }
+      else if(r >= params$S){	# individual learning (=innovation)
+        selectedTrait <- sample(unknownTraits,1)
+        # Calculate learning probability based on distance
+        pList <- unique(getTraitLearningProbability(repertoires, ind, tree, selectedTrait))
+        if(length(pList) > 0){
+          if (runif(1) < pList[1]){
+            repertoires[ind,selectedTrait]<-1
+          }
+        }
+      }							
     }
     ## each time step the agent was sampled, their age increases by 1
     popAge[ind]<-popAge[ind]+1
@@ -72,13 +102,7 @@ runsimulation <- function(params, learningStrategy, repl, tree, nodeDepths, maxN
       popAge[ind]<-0  ## reset the age of the agent to 0
     }
   }
-  ### add summary statistics to the overall master matrix
-  ## number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-  ## characterize mean payoffs for a strategy as the last 10% of timesteps in the simulation
-  #summThisSimulation<-c(num_nodes, branching_factor, learningStrategy, 
-  #	repl, mean(SLpay[round(timesteps*0.9):timesteps], na.rm=TRUE))
-  
-  summThisSimulation<-c(params$num_nodes, 
+  sumThisSimulation<-c(params$num_nodes, 
                         branching_factor, 
                         params$tree_layers, 
                         params$alpha1,
@@ -87,7 +111,7 @@ runsimulation <- function(params, learningStrategy, repl, tree, nodeDepths, maxN
                         params$olderPref,
                         repl,
                         mean(SLpay[round(params$timesteps*0.9):params$timesteps], na.rm=TRUE))
+
   
-  
-  return(summThisSimulation)
+  return(sumThisSimulation)
 }

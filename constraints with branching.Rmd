@@ -32,9 +32,10 @@ params <- list(
   N = 100,                      # population size
   M = 10,                       # number of demonstrators
   timesteps = 5000,             # number of time steps in the simulation
-  replicateSimulations = 30,    # number of simulations per parameter setting
+  replicateSimulations = 2 ,    # number of simulations per parameter setting
   S = 0.99,                     # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.01,            # probability that an individual is replaced by a naive individual
+  tree_layers = 5,              # number of layers in the tree
   alpha1 = 1,                   # Alpha parameter for the beta distribution used to generate the tree
   beta1 = 1,                    # Beta parameter for the beta distribution used to generate the tree 
   olderPref = 0,                
@@ -47,13 +48,11 @@ params <- list(
  ## Run Simulation
 
 ```{r}
-
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 strategySuccess<-matrix(nrow=0, ncol=9)
 
 for (learningStrategy in c(0,1,2,3,4)){
-  par(mfrow=c(4,3), mar=c(1,1,1,1), las=1, xaxs='i', yaxs='i')
   for (branching_factor in c(1,3,params$num_nodes)){
       ## generate rooted tree to represent the cultural system
       tree <- generate_rooted_tree_branching(params, branching_factor)
@@ -63,7 +62,6 @@ for (learningStrategy in c(0,1,2,3,4)){
       ## bookkeep the frequency of traits across tree depths (for checking stability over time)
       traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
       
-
     
     ### start simulation
     numCores <- detectCores() - 1  # leave one core for other tasks
@@ -73,7 +71,7 @@ for (learningStrategy in c(0,1,2,3,4)){
 
       results <- foreach(repl=1:params$replicateSimulations, .packages=c('igraph'), .combine='combineResults', .init=initResults) %dopar% {
  
-      strategySuccess <- runsimulation(params, learningStrategy, repl, tree, nodeDepths, maxNodeDepth, traitsAtDepth)
+      strategySuccess <- runsimulation(params, learningStrategy, repl, tree)
 
  
       ## simulation replicate is done
@@ -86,59 +84,54 @@ for (learningStrategy in c(0,1,2,3,4)){
     strategySuccess <- rbind(strategySuccess, results)
   }
 }
-
 ```
+## Non-Parallel Version
+For debugging and testing
+
+```{r}
+### define a summary matrix with success of learning strategies
+## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
+strategySuccess<-matrix(nrow=0, ncol=9)
+
+for (learningStrategy in c(1,2)){
+  print(learningStrategy)
+  for (branching_factor in c(1,3,params$num_nodes)){
+      ## generate rooted tree to represent the cultural system
+      tree <- generate_rooted_tree_branching(params, branching_factor)
+      ## for some tracking the distribution of traits across depths we need to know the depth of each node			
+      nodeDepths<-1+distances(tree,v=1,to=V(tree),mode="out")
+      maxNodeDepth<-max(nodeDepths)
+      ## bookkeep the frequency of traits across tree depths (for checking stability over time)
+      traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
+      
+      for(repl in 1:params$replicateSimulations){
+        print(repl)
+        sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree)
+        strategySuccess <- rbind(strategySuccess, sumThisSimulation)
+      }
+  }
+}
+```
+
 
 ```{r}
 ## give names to the columns of the simulation summary matrix: number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 strategySuccess<-data.frame(strategySuccess)
 names(strategySuccess)<-c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'meanPayoff')
 rownames(strategySuccess) <- NULL
-strategySuccess
 
 stratCols<-c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')
 
-
-par(mfrow=c(1,3))
-for (alph in unique(strategySuccess$alpha)){
-  ## what are the relevant x values?
-  b<-subset(strategySuccess, alpha==alph)
-  
-  xx<-unique(b$beta)
-  
-
-  ## create an overview plot
-  plot(1:max(xx), 1:max(xx)*0+1, type='n', ylim=c(0,0.7), xlim=c(0,max(xx)),
-       xlab='beta', ylab='Success of social learning strategy')
-  stratCols<-c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')	
-  
-  for (learnStrat in 0:4){
-    d<-subset(b, learningStrat==learnStrat)
-    
-    summM<-c()
-    for (bet in unique(d$beta)){
-      e<-subset(d, beta==bet)
-      m<-mean(e$meanPayoff)
-      summM<-c(summM, m)
-      points(bet,m, pch=15+learnStrat, cex=1.5, col=stratCols[learnStrat+1])
-    }
-    lines(xx, summM, col=stratCols[learnStrat+1])
-  }		
-}
-legend('bottomright', c('random', 'payoff', 'similarity', 'age', 'conformity'), col=stratCols, pch=15:19)
-
-## what are the relevant x values?
-xx<-unique(strategySuccess$branching_factor)
 
 ## create an overview plot
 par(mfrow=c(1,3), xaxs='r', mar=c(5,4,4,2),lend=1)
 
 
-for (brf in unique(strategySuccess$branching_factor)){
-  b<-subset(strategySuccess,branching_factor==brf)
-  boxplot(meanPayoff ~ learningStrat, data=b, col=stratCols, ylim=c(0,1.5))
+ for (brf in unique(strategySuccess$branching_factor)){
+   b<-subset(strategySuccess,branching_factor==brf)
+   boxplot(meanPayoff ~ learningStrat, data=b, col=stratCols, ylim=c(0,1.5))
   
-  legend('bottomright', c('random', 'payoff', 'similarity', 'age', 'conformity'), col=stratCols, pch=15:19)
+   legend('topright', c('random', 'payoff', 'similarity', 'age', 'conformity'), col=stratCols, pch=15:19)
 }
 
 ```

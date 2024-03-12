@@ -126,34 +126,25 @@ generate_rooted_tree_betaDistr <- function(params, tree_layers) {
 }
 
 
-initializePopulation<-function(params){
-  ## start with empty repertoires (but fill them up in the next step)
+initializePopulation <- function(params){
   N <- params$N
   num_nodes <- params$num_nodes
   adj_matrix <- params$adj_matrix
-  
   repertoires <- matrix(0, nrow = N, ncol = num_nodes)
-  
-  ## everyone has the root trait of the cultural system
   repertoires[, 1] <- 1
   
-  ### initialize the population with repertoires (all connected to the tree root) 
-  ### with sizes drawn from a uniform distribution between 1:num_nodes
   for (ind in 1:N){
-    numTraits <- sample(1:num_nodes, 1)               # number of traits of this agent
-    traitsToAdd <- sample(2:num_nodes, numTraits - 1) # add (randomly chosen) learnable traits
-    repertoires[ind, traitsToAdd] <- 1
-    # Ensure that only learnable traits based on the tree structure are added
-    for (trait in traitsToAdd){
-      if (!any(adj_matrix[trait, ] == 1 & repertoires[ind, ] == 1)){
-        repertoires[ind, trait] <- 0
+    numTraits <- sample(1:num_nodes, 1)
+    for (tr in 2:numTraits){
+      unknownTraits <- which(repertoires[ind, ] == 0)
+      learnableTraits <- unknownTraits[sapply(unknownTraits, function(trait) prod(repertoires[ind, which(adj_matrix[, trait] == 1)] == 1)) == 1]
+      if (length(learnableTraits) >= 1) {
+        repertoires[ind, sample(learnableTraits, 1)] <- 1
       }
     }
   }
   return(repertoires)
 }
-
-
 
 assignAges<-function(repertoires){
   ## for age-based social learning, we need to assume initial ages. 
@@ -185,46 +176,86 @@ getLearnableTraits<-function(repertoires, ind, adj_matrix){
   return(learnableTraits)
 }
 
+getDistances <- function(learnableTraits, knownTraits, tree) {
+  ### 
+  # Get Distances between known traits and learnable traits, creating
+  # duplicate columns if there are duplicates in learnable traits 
+  ###
+  uniqueLearnableTraits <- unique(learnableTraits)
+  distancesToUnique <- distances(tree, v = knownTraits, to = uniqueLearnableTraits)
+  
+  # Replicate distances based on the original 'learnableTraits' order and duplication
+  replicatedDistances <- distancesToUnique[,match(learnableTraits, uniqueLearnableTraits)]
+  
+  return(replicatedDistances)
+}
 
 
-
-
-
-
-learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs){
-  M <- params$M
-  olderPref <- params$olderPref
-  ## sample M random other individuals
-  poolOthers <- setdiff(1:nrow(repertoires), ind) # agents do not sample themselves
-  models<-sample(poolOthers, M, replace=FALSE)
-
-  ## randomly pick 1 trait from each model
-  ## only consider traits the learning agent do not know yet
-  observedBehaviours<-c()
-  observedModels<-c()
-  for (model in models){
-    newTraits<-which(repertoires[model,] == 1 & repertoires[ind,] == 0)
-    if(length(newTraits)>0){
-      tr<-sample(newTraits,1)
-      observedBehaviours<-c(observedBehaviours, tr)
-      observedModels<-c(observedModels, model)
+getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits, falloffFunction = "adjacent"){
+  if(length(learnableTraits) == 0){
+    return(numeric(0))
+  }
+  
+  knownTraits <- which(repertoires[ind,] == 1)
+  
+  trDistances <- getDistances(learnableTraits, knownTraits, tree)  
+  
+  
+  if(is.vector(trDistances)) {
+    if(length(knownTraits) == 1) {
+      trDistances <- matrix(trDistances, nrow = 1, byrow = TRUE)
+    } else if (length(learnableTraits) == 1) {
+      trDistances <- matrix(trDistances, ncol = 1)
     }
   }
   
-  if(length(observedBehaviours) > 0){
-    wList <- numeric(length = length(observedBehaviours))
-    
+  # Handle different falloff functions
+  if (falloffFunction == "adjacent") {
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
+  }
+  else if (falloffFunction == "reciprocal"){
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum(1/x))
+  }
+  else if (falloffFunction == "linear") {
+    maxDistance <- max(trDistances)
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) max(0, 1 - min(x) / maxDistance))
+  }
+  if(length(pList)!= length(learnableTraits)){
+    browser()
+  }
+  return(pList)
+}
+  
+
+
+learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
+  
+  unknownTraits <- which(repertoires[ind,] == 0)
+  
+  learnableTraits <- unlist(mapply(function(x, y) rep(x, sum(x == y)), unknownTraits, MoreArgs = list(y = observedTraits)))
+  
+  if(length(observedTraits) > 0){
+    wList <- numeric(length = length(learnableTraits))     
+    pList <- getTraitLearningProbability(repertoires, ind, tree, learnableTraits, falloffFunction = "reciprocal") 
+    if(length(wList) != length(pList)){
+      browser()
+    }
+    if(length(pList) == 0){
+      return(numeric(0))
+    }
+
     ##### STRATEGY 1: payoff-based social learning #####
     if(learningStrategy == 1){
-      wList <- payoffs[observedBehaviours] / sum(payoffs[observedBehaviours])
+      wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits])
     }
     
     ###### STRATEGY 2: similarity based learning ######
     ## check for all agents how similar they are to self in skills
     else if(learningStrategy == 2){
-      wList <- sapply(observedModels, function(model) {
-        sum(repertoires[model,] == repertoires[ind,])
-      })
+      wList <- numeric(length = length(observedModels))
+      for(model in observedModels){
+        wList[model] <- sum(repertoires[ind,] == repertoires[model,])/ncol(repertoires)
+      }
     }
     
     ######	STRATEGY 3: age-based social learning #####
@@ -237,18 +268,38 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     ######	STRATEGY 4: conformist social learning #####
     ## Count the selected behaviours and weigh common ones more
     else if(learningStrategy == 4){
-      wList2 <- as.numeric(table(factor(observedBehaviours, levels = unique(observedBehaviours))))
-      wList <- table(observedBehaviours)[as.character(observedBehaviours)]
+      wList <- table(learnableTraits)[as.character(learnableTraits)]
     }
     
     ###### STRATEGY 0: random learning benchmark
     ## Randomly select a trait that is not yet learned
     else if(learningStrategy == 0){
-      wList <- rep(1, length(observedBehaviours))
+      wList <- rep(1, length(learnableTraits))
     }
     
+    ## Temporary fix so that traits with 0 probability are not considered
+    
+    wList <- wList[pList > 0]
+    learnableTraits <- learnableTraits[pList > 0]
+    pList <- pList[pList > 0]
+    
+    
     ### MAKE CHOICE ###
-    selectedTrait<-ifelse(length(observedBehaviours)==1, observedBehaviours[1], sample(observedBehaviours,1,prob=wList))
-    return(selectedTrait)	
+    selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList)
+    selectedTrait <- observedTraits[selectedTraitIndex]
+    pList <- unique(pList[pList == selectedTrait])
+    
+    ## learn the trait with probability pList
+
+    if(length(pList) > 0){
+      if(runif(1) < pList){
+        repertoires[ind, selectedTrait] <- 1
+        learnedTrait <- selectedTrait
+        return(learnedTrait)
+      }
+    } 
   }
+  return(numeric(0))
 }
+
+
