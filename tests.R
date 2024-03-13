@@ -282,9 +282,6 @@ for (model in models){
 result1 <- learnSocially(repertoires, 76, adj_matrix, 1, popAge, payoffs, tree, observedBehaviours, observedModels)
 
 
-
-
-
 nodeDepths<-1+distances(tree,v=1,to=V(tree),mode="out")
 maxNodeDepth<-max(nodeDepths)
 ## bookkeep the frequency of traits across tree depths (for checking stability over time)
@@ -296,3 +293,6 @@ traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
 repl <- 1
 
 runsimulation(params, learningStrategy, repl, tree)
+
+
+

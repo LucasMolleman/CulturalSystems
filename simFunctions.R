@@ -214,7 +214,7 @@ getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits,
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
   }
   else if (falloffFunction == "reciprocal"){
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum(1/x))
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum(1/x^2))
   }
   else if (falloffFunction == "linear") {
     maxDistance <- max(trDistances)
@@ -229,14 +229,14 @@ getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits,
 
 
 learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
-  
   unknownTraits <- which(repertoires[ind,] == 0)
   
-  learnableTraits <- unlist(mapply(function(x, y) rep(x, sum(x == y)), unknownTraits, MoreArgs = list(y = observedTraits)))
-  
+  learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits)]
+
   if(length(observedTraits) > 0){
     wList <- numeric(length = length(learnableTraits))     
     pList <- getTraitLearningProbability(repertoires, ind, tree, learnableTraits, falloffFunction = "reciprocal") 
+    
     if(length(wList) != length(pList)){
       browser()
     }
@@ -252,16 +252,22 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAg
     ###### STRATEGY 2: similarity based learning ######
     ## check for all agents how similar they are to self in skills
     else if(learningStrategy == 2){
-      wList <- numeric(length = length(observedModels))
+      i <- 1
       for(model in observedModels){
-        wList[model] <- sum(repertoires[ind,] == repertoires[model,])/ncol(repertoires)
+        modelIndex <- which(observedModels == model)
+        trait <- observedTraits[modelIndex] 
+        if(trait %in% unknownTraits){
+          wList[i] <- sum(repertoires[ind,] == repertoires[model,])/ncol(repertoires)
+          i <- i + 1
+        } 
       }
     }
     
     ######	STRATEGY 3: age-based social learning #####
     ## check for all agents how similar they are to self in age
     else if(learningStrategy == 3){
-      ageDif <- popAge[observedModels] - popAge[ind]
+      usefulModels <- observedModels[observedTraits %in% unknownTraits]
+      ageDif <- popAge[usefulModels] - popAge[ind]
       wList <- ifelse(ageDif >= 0, 0.5 ^ ageDif, 10 ^ -8)
     }
     
@@ -278,21 +284,21 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAg
     }
     
     ## Temporary fix so that traits with 0 probability are not considered
-    
     wList <- wList[pList > 0]
     learnableTraits <- learnableTraits[pList > 0]
     pList <- pList[pList > 0]
     
     
+    
     ### MAKE CHOICE ###
     selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList)
     selectedTrait <- observedTraits[selectedTraitIndex]
-    pList <- unique(pList[pList == selectedTrait])
+    p <- pList[selectedTraitIndex]
     
     ## learn the trait with probability pList
 
     if(length(pList) > 0){
-      if(runif(1) < pList){
+      if(runif(1) < p){
         repertoires[ind, selectedTrait] <- 1
         learnedTrait <- selectedTrait
         return(learnedTrait)

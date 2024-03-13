@@ -92,9 +92,8 @@ For debugging and testing
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 strategySuccess<-matrix(nrow=0, ncol=9)
-
-for (learningStrategy in c(1,2)){
-  print(learningStrategy)
+set.seed(1)
+for (learningStrategy in c(0:4)){
   for (branching_factor in c(1,3,params$num_nodes)){
       ## generate rooted tree to represent the cultural system
       tree <- generate_rooted_tree_branching(params, branching_factor)
@@ -105,7 +104,7 @@ for (learningStrategy in c(1,2)){
       traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
       
       for(repl in 1:params$replicateSimulations){
-        print(repl)
+        print(paste("strat=", learningStrategy, "bf=", branching_factor, "repl=", repl))
         sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree)
         strategySuccess <- rbind(strategySuccess, sumThisSimulation)
       }
