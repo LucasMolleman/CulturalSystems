@@ -148,7 +148,7 @@ learnSocially_old <- function(repertoires, ind, adj_matrix, learningStrategy, M,
 set.seed(123)
 
 params <- list(
-  num_nodes = 16,
+  num_nodes = 64,
   N = 100,
   M = 10,
   timesteps = 5000,
@@ -294,5 +294,125 @@ repl <- 1
 
 runsimulation(params, learningStrategy, repl, tree)
 
+params$num_nodes <- 8
+branching_factor <- 3
+tree <- generate_rooted_tree_branching(params, branching_factor)
+plotTree(params, tree, repertoires)
+
+g <- tree
+plot(g)
+v_count <- vcount(g)
+all_pairs <- expand.grid(from = 1:v_count, to = 1:v_count)
+all_pairs <- subset(all_pairs, from != to)
+weights <- mapply(function(from, to) {
+  distance <- distances(g, v = from, to = to)
+  if(distance > 0) 1 / distance^2 else 0
+}, from = all_pairs$from, to = all_pairs$to)
+all_pairs$weight <- weights
+g_full <- graph_from_data_frame(all_pairs, directed = FALSE)
+plot(g_full, edge.width = E(g_full)$weight * 10)
+
+plotTree <- function(params, tree) {
+  num_nodes <- params$num_nodes
+  
+  layout <- layout_as_tree(tree, root = 1, rootlevel = 0)
+  
+  levels <- distances(tree, v = 1, to = V(tree), mode = "out")
+  level_widths <- table(levels)
+  
+  total_width <- max(level_widths)
+  mid_x <- total_width / 2
+  x_coordinates <- numeric(length = num_nodes)
+  used <- numeric(length = max(levels) + 1)
+  
+  for(i in seq_along(levels)) {
+    level <- levels[i] + 1
+    x_coordinates[i] <- (used[level] + 0.5) * (total_width / level_widths[as.character(level - 1)]) - mid_x
+    used[level] <- used[level] + 1
+  }
+  
+  layout[, 1] <- x_coordinates
+  
+  nodeDepths <- 1 + distances(tree, v = 1, to = V(tree), mode = "out")
+  colramp <- colorRampPalette(c("white", "blue", "green", "orange", "red"))
+  color_palette <- colramp(max(nodeDepths))
+  
+  plot(tree, layout = layout, edge.arrow.size = 0.5, edge.color = 'black',
+       vertex.color = color_palette[nodeDepths], vertex.label = NA)
+}
+
+params <- list(num_nodes = 10)
+branching_factor = 2
+g <- generate_rooted_tree_branching(params, branching_factor)
+plotTree(params, g)
+
+
+generate_full_connection_with_weights <- function(tree) {
+  v_count <- vcount(tree)
+  all_pairs <- expand.grid(from = 1:v_count, to = 1:v_count)
+  all_pairs <- subset(all_pairs, from != to)
+  weights <- mapply(function(from, to) {
+    distance <- distances(tree, v = from, to = to)
+    if(distance > 0) return(1 / distance^2) else return(0)
+  }, from = all_pairs$from, to = all_pairs$to)
+  all_pairs$weight <- weights
+  
+  tree_full <- graph_from_data_frame(all_pairs, directed = FALSE)
+  E(tree_full)$weight <- all_pairs$weight
+  return(tree_full)
+}
+
+library(igraph)
+library(dplyr)
+
+plotFullTreeUniqueConnections <- function(original_tree) {
+  # Assuming 'original_tree' is already provided and correctly defined outside this function.
+  
+  # Generate positions using the tree layout
+  layout <- layout_as_tree(original_tree)
+  
+  # Calculate distances within the original tree for direct connections
+  distances_matrix <- distances(original_tree)
+  
+  # Generate a graph representing full connections between nodes
+  g_full <- graph.full(vcount(original_tree))
+  
+  # Prepare edge attributes
+  E(g_full)$weight <- mapply(function(from, to) { 
+    if(distances_matrix[from, to] == 1) { # Direct edge
+      return(1) 
+    } else { # Indirect edge
+      distance <- distances_matrix[from, to]
+      return(1 / distance^2) 
+    }
+  }, from = ends(g_full, E(g_full))[,1], to = ends(g_full, E(g_full))[,2])
+  
+  edge_colors <- ifelse(E(g_full)$weight == 1, "black", "grey")
+  edge_widths <- ifelse(E(g_full)$weight == 1, 2, 1)
+  edge_labels <- ifelse(E(g_full)$weight == 1, "1", sprintf("%.2f", E(g_full)$weight))
+  
+  # Set vertex color according to the depth
+  node_depths <- distances(original_tree, v = 1, to = V(original_tree), mode = "out")
+  colramp <- colorRampPalette(c("white", "blue", "green", "orange", "red"))
+  color_palette <- colramp(max(node_depths))
+  vertex_colors <- color_palette[as.numeric(node_depths) + 1]
+  
+  # Plot
+  plot(g_full, layout = layout, edge.label = edge_labels, edge.label.color = "red", edge.label.cex = 0.6,
+       edge.arrow.size = 0, edge.color = edge_colors, edge.width = edge_widths,
+       vertex.color = vertex_colors, vertex.label = NA, 
+       main = "Full Tree with Direct and Weighted Indirect Connections")
+  
+  # Highlight direct edges by overplotting to ensure their labels ("1") are placed correctly
+  direct_edges <- which(E(g_full)$weight == 1)
+  with(E(g_full)[direct_edges], {
+    plot(g_full, layout = layout, edge.label = "1", edge.label.color = "black", edge.label.cex = 0.6,
+         edge.arrow.size = 0, edge.color = "black", edge.width = 2,
+         vertex.color = vertex_colors, vertex.label = NA, add = TRUE)
+  })
+}
+
+# Parameters and original_tree definition assumed to be done as before
+plotFullTreeUniqueConnections(original_tree)
 
 

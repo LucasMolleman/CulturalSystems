@@ -68,7 +68,8 @@ runsimulation <- function(params, learningStrategy, repl, tree){
                                       payoffs,
                                       tree,
                                       observedTraits,
-                                      observedModels)														
+                                      observedModels,
+                                      params$falloffFunction)														
         
         if (length(learnedTrait)==1){
         ######## calculate payoffs of learning

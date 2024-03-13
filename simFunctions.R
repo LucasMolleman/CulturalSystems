@@ -208,7 +208,6 @@ getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits,
       trDistances <- matrix(trDistances, ncol = 1)
     }
   }
-  
   # Handle different falloff functions
   if (falloffFunction == "adjacent") {
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
@@ -228,19 +227,17 @@ getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits,
   
 
 
-learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
+learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels, falloffFunction){
   unknownTraits <- which(repertoires[ind,] == 0)
   
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits)]
 
   if(length(observedTraits) > 0){
     wList <- numeric(length = length(learnableTraits))     
-    pList <- getTraitLearningProbability(repertoires, ind, tree, learnableTraits, falloffFunction = "reciprocal") 
+    pList <- getTraitLearningProbability(repertoires, ind, tree, learnableTraits, falloffFunction = falloffFunction) 
     
-    if(length(wList) != length(pList)){
-      browser()
-    }
-    if(length(pList) == 0){
+    # Exit if the probability of learning any trait is zero
+    if(sum(pList) == 0){
       return(numeric(0))
     }
 
@@ -252,14 +249,10 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAg
     ###### STRATEGY 2: similarity based learning ######
     ## check for all agents how similar they are to self in skills
     else if(learningStrategy == 2){
-      i <- 1
-      for(model in observedModels){
-        modelIndex <- which(observedModels == model)
-        trait <- observedTraits[modelIndex] 
-        if(trait %in% unknownTraits){
-          wList[i] <- sum(repertoires[ind,] == repertoires[model,])/ncol(repertoires)
-          i <- i + 1
-        } 
+      usefulModels <- observedModels[observedTraits %in% unknownTraits]
+      for(model in usefulModels){
+        modelIndex <- which(usefulModels == model)
+        wList[modelIndex] <- sum(repertoires[ind,] == repertoires[model,])/ncol(repertoires)
       }
     }
     
@@ -282,16 +275,18 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAg
     else if(learningStrategy == 0){
       wList <- rep(1, length(learnableTraits))
     }
-    
+
     ## Temporary fix so that traits with 0 probability are not considered
-    wList <- wList[pList > 0]
-    learnableTraits <- learnableTraits[pList > 0]
-    pList <- pList[pList > 0]
+    # browser()
+    # wList <- wList[pList > 0]
+    # learnableTraits <- learnableTraits[pList > 0]
+    # pList <- pList[pList > 0]
+    pList <- pmin(pList, 1)
     
     
-    
+    if(sum(pList) == 0) browser()
     ### MAKE CHOICE ###
-    selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList)
+    selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList * pList)
     selectedTrait <- observedTraits[selectedTraitIndex]
     p <- pList[selectedTraitIndex]
     
