@@ -86,6 +86,9 @@ unsuccessful <- function(individual = individual, skillset = skillset, overview 
   return(overview)
 }
 learn_socially <- function (){
+  if (meta_overview$Meta_strategy == 1){
+    
+  }
   if (overview[individual,"Learning_strat"] == 1){
     payoff_based()
     observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
@@ -130,12 +133,23 @@ learn_socially <- function (){
   return(meta_overview)
 }
 bayesian_learner <- function(){
-
-  # check which learning strat used 
-  # check wheather successful or not 
-  # update in meta overview
-  # before deciding which learning strat check which one was most successful 
+  successes_l <- c(meta_overview[meta_overview$ID == individual, 4:5])
+  probs_learningstrat <- c()
+  for(learningstrat in 1:4){
+    a <- successes_l$Successful[learningstrat]
+    b <- successes_l$Unsuccessful[learningstrat]
+    distr_bayesian <- rbeta(n = 1000, shape1 = 1 + a, shape2 = 1 + b)
+    probs_learningstrat <- append(probs_learningstrat, sample(distr_bayesian, 1))
+  }
+  which.max(probs_learningstrat)
 }
+
+
+# Q-learning successful 
+# Q(t+1, a)=Q(t , a)+α δ (t , a)
+# δ (t , a)=r (t , a)−Q(t , a)
+# reward = 1
+# delta = reward - success 
 
 # set up population
 population <- c(seq(1:500))
@@ -226,5 +240,9 @@ overview_dat %>%
 
 ggplot(data = overview_dat, aes(x = Number_skills, fill = Learning_strat)) +
   geom_bar(position = position_dodge(width = 0.8))
+
+meta_overview[meta_overview$ID == individual, 4:5]
+successes_l <- c(meta_overview[meta_overview$ID == 1, 4:5])
+successes_l
 
 
