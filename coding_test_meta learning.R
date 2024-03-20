@@ -85,49 +85,47 @@ unsuccessful <- function(individual = individual, skillset = skillset, overview 
   cat(overview[individual,"Learning_strat"], "Unsuccessful")
   return(overview)
 }
-learn_socially <- function (){
-  if (meta_overview$Meta_strategy == 1){
-    
-  }
-  if (overview[individual,"Learning_strat"] == 1){
-    payoff_based()
-    observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
-    if(observed_behavior == skills_learner+1){
-      successful(individual, skillset, overview)
-      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] + 1
-    } else {
-      unsuccessful(individual, skillset, overview)
-      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] + 1
-  } }else if(overview[individual,"Learning_strat"] == 2){
-    similarity_based()
-    observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
-    if(observed_behavior == skills_learner+1){
-      successful(individual, skillset, overview)
-      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] + 1
-    } else {
-      unsuccessful(individual, skillset, overview)
-      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] + 1
-    }
-  }else if(overview[individual,"Learning_strat"] == 3){
-    age_based()
-    observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
-    if(observed_behavior == skills_learner+1){
-      successful(individual, skillset, overview)
-      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] + 1
-    } else {
-      unsuccessful(individual, skillset, overview)
-      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] + 1
-    }
-  } else if(overview[individual,"Learning_strat"] == 4){
-    conformity_based()
-    observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
-    if(observed_behavior == skills_learner+1){
-      successful(individual, skillset, overview)
-      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] + 1
-    } else {
-      unsuccessful(individual, skillset, overview)
-      meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] + 1
-    }
+strategy_for_life <- function (learningstrat){
+    if (learningstrat == 1){
+      payoff_based()
+      observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+      if(observed_behavior == skills_learner+1){
+        successful(individual, skillset, overview)
+        meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] + 1
+      } else {
+        unsuccessful(individual, skillset, overview)
+        meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] + 1
+      } }else if(learningstrat == 2){
+        similarity_based()
+        observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+        if(observed_behavior == skills_learner+1){
+          successful(individual, skillset, overview)
+          meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] + 1
+        } else {
+          unsuccessful(individual, skillset, overview)
+          meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] + 1
+        }
+      }else if(learningstrat == 3){
+        age_based()
+        observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+        if(observed_behavior == skills_learner+1){
+          successful(individual, skillset, overview)
+          meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] + 1
+        } else {
+          unsuccessful(individual, skillset, overview)
+          meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] + 1
+        }
+      } else if(learningstrat == 4){
+        conformity_based()
+        observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+        if(observed_behavior == skills_learner+1){
+          successful(individual, skillset, overview)
+          meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] + 1
+        } else {
+          unsuccessful(individual, skillset, overview)
+          meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] + 1
+        }
+  
   } 
   return(overview)
   return(meta_overview)
@@ -143,13 +141,78 @@ bayesian_learner <- function(){
   }
   which.max(probs_learningstrat)
 }
+mixture_of_experts <- function(meta_overview = meta_overview){
+  # sort teachers by fit for each learningstrat
+  score_payoff <- skilled_teacher[order(skills_steacher, decreasing = FALSE)]
+  similarity_score <- c(skills_steacher - skills_learner)
+  score_similarity <- skilled_teacher[order(similarity_score, decreasing = TRUE)]
+  teacher_age <- c(overview[skilled_teacher,"Age"])
+  learner_age <- overview[individual, "Age"]
+  age_difference <- c(abs(teacher_age - learner_age))
+  score_age <- skilled_teacher[order(age_difference, decreasing = TRUE)]
+  teacher_conf <- c()
+  for (i in 1: length(skills_steacher)){
+    same <- length(which(skills_steacher==skills_steacher[i]))
+    if (same > 1) {
+      if(!(skilled_teacher[i] %in% teacher_conf)) {
+        teacher_conf <- append(teacher_conf, skilled_teacher[skills_steacher == skills_steacher[i]])
+      }
+    }
+  }
+  if (length(teacher_conf) > 1) {
+    score_conformity <- skilled_teacher[order(teacher_conf, decreasing = FALSE)]
+  } else score_conformity <- c(rep(1, length(skilled_teacher)))
+  # find out how well each learning strat performed before for the individual
+  successes_l <- c(meta_overview[meta_overview$ID == individual, 4:5])
+  probs_learningstrat <- c()
+  for(learningstrat in 1:4){
+    a <- successes_l$Successful[learningstrat]
+    b <- successes_l$Unsuccessful[learningstrat]
+    distr_bayesian <- rbeta(n = 1000, shape1 = 1 + a, shape2 = 1 + b)
+    probs_learningstrat <- append(probs_learningstrat, sample(distr_bayesian, 1))
+  }
+  weighted_payoff_score <- c()
+  weighted_similiarity_score <- c()
+  weighted_age_score <- c()
+  weighted_conformity_score <- c()
+  overall_score <- c()
+  for (i in 1:length(skilled_teacher)){
+    weighted_payoff_score[i] <- (1*match(skilled_teacher[i], score_payoff)) * probs_learningstrat[1]
+    weighted_similiarity_score[i] <- (1*match(skilled_teacher[i], score_similarity)) * probs_learningstrat[2]
+    weighted_age_score[i] <- (1*match(skilled_teacher[i], score_age)) * probs_learningstrat[3]
+    if(match(skilled_teacher[i], score_conformity) != NA){
+      weighted_conformity_score[i] <- match(skilled_teacher[i], score_conformity) * probs_learningstrat[4]
+      } else weighted_conformity_score[i] <- 1*probs_learningstrat[4]
+    overall_score[i] <- weighted_payoff_score[i] + weighted_similiarity_score[i] + weighted_age_score[i] + weighted_conformity_score[i]
+  }
+  selected_teacher <- skilled_teacher[overall_score == max(overall_score)] 
+  observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
+  if(observed_behavior == skills_learner+1){
+    successful(individual, skillset, overview)
+    meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] + (weighted_payoff_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
+    meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] + (weighted_similiarity_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
+    meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] + (weighted_age_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
+    meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] + (weighted_conformity_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
+  } else {
+    unsuccessful(individual, skillset, overview)
+    meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] + (weighted_payoff_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
+    meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] + (weighted_similiarity_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
+    meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] + (weighted_age_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
+    meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] + (weighted_conformity_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
+  }
+}
 
 
-# Q-learning successful 
-# Q(t+1, a)=Q(t , a)+α δ (t , a)
-# δ (t , a)=r (t , a)−Q(t , a)
-# reward = 1
-# delta = reward - success 
+meta_learning <- function(){
+if (meta_overview[individual, 2] == 1) strategy_for_life(learningstrat = overview[individual,"Learning_strat"])
+else if (meta_overview[individual, 2] == 2) {
+    learningstrat <- bayesian_learner()
+    strategy_for_life(learningstrat = learningstrat)
+} else mixture_of_experts(meta_overview = meta_overview)
+    }
+
+
+###
 
 # set up population
 population <- c(seq(1:500))
@@ -218,7 +281,7 @@ for (i in 1: rounds) {
   skills_steacher <- c(overview[skilled_teacher,"Number_skills"])
   prob_teacher_select <- rep(1/length(skilled_teacher), length(skilled_teacher))
   cat("round:", i, " ")
-  learn_socially()
+  meta_learning()
   overview[individual,2] <- overview[individual,2] + 1 
 }
   }
@@ -238,11 +301,13 @@ overview_dat %>%
   group_by(Learning_strat) %>%
   summarise_at(vars(Number_skills), list(name = mean))
 
+meta_overview %>%
+  group_by(Meta_strategy) %>%
+  summarise_at(vars(3:4), list(name = mean))
+
 ggplot(data = overview_dat, aes(x = Number_skills, fill = Learning_strat)) +
   geom_bar(position = position_dodge(width = 0.8))
 
-meta_overview[meta_overview$ID == individual, 4:5]
-successes_l <- c(meta_overview[meta_overview$ID == 1, 4:5])
-successes_l
-
+meta_overview %>%
+  filter(Meta_strategy == 3) 
 
