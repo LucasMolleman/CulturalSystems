@@ -416,3 +416,22 @@ plotFullTreeUniqueConnections <- function(original_tree) {
 plotFullTreeUniqueConnections(original_tree)
 
 
+get_payoffs <- function(g, strength = 1) {
+  distances_from_root <- distances(g, v = 1, mode = "out")
+  max_distance <- max(distances_from_root)
+  payoffs <- runif(vcount(g))
+  
+  adjusted_payoffs <- (1 - strength) * (2 * payoffs / max(payoffs)) + 
+    strength * (distances_from_root / max_distance)
+  
+  adjusted_payoffs
+}
+
+# Example usage:
+params <- list(num_nodes = 31)
+branching_factor = 2
+g <- generate_rooted_tree_branching(params, branching_factor)
+payoffs <- get_payoffs(g, strength = 1)
+
+
+plotTree(params, g)

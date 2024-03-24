@@ -1,5 +1,5 @@
 ## if showPopState==1, vary node size with portion of agents with that trait
-plotTree <- function(params, tree, repertoires, showPopState = FALSE) {
+plotTree <- function(params, tree, repertoires = NULL, showPopState = FALSE) {
   num_nodes <- params$num_nodes
   # Use layout_as_tree to create a tree layout
   layout <- layout_as_tree(tree, root=1, rootlevel=0)
@@ -38,7 +38,7 @@ plotTree <- function(params, tree, repertoires, showPopState = FALSE) {
   }
   else {
     plot(tree, layout = layout, edge.arrow.size = 0.5, edge.color='black',
-         vertex.color = V(tree)$color, vertex.label=NA)
+         vertex.color = V(tree)$color, vertex.label = V(tree)$name)
   }
 }
 
@@ -225,11 +225,20 @@ getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits,
   return(pList)
 }
   
-
+getPayoffs <- function(tree, params) {
+  strength <- params$payoff_scaling
+  distances_from_root <- distances(tree, v = 1, mode = "out")
+  max_distance <- max(distances_from_root)
+  payoffs <- runif(vcount(tree))
+  
+  adjusted_payoffs <- (1 - strength) * (2 * payoffs / max(payoffs)) + 
+    strength * (distances_from_root / max_distance)
+  
+  adjusted_payoffs
+}
 
 learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels, falloffFunction){
   unknownTraits <- which(repertoires[ind,] == 0)
-  
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits)]
 
   if(length(observedTraits) > 0){

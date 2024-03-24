@@ -23,9 +23,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
   
   # 		set payoffs for each trait
   
-  payoffs<-runif(params$num_nodes)	# random payoffs from uniform distribution
-  
-  payoffs<-2*payoffs/max(payoffs)
+  payoffs <- getPayoffs(tree, params)
   ### SYSTEM AND NODE PAYOFFS ARE SET
   
   ####### INITIALIZE POPULATION #####
@@ -111,6 +109,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
                         learningStrategy,
                         params$olderPref,
                         repl,
+                        params$payoff_scaling,
                         mean(SLpay[round(params$timesteps*0.9):params$timesteps], na.rm=TRUE))
 
   
