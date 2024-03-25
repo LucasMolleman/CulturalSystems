@@ -28,7 +28,7 @@ source("loopFunctions.R")
 ```{r simulation parameters}
 #### simulation parameters
 params <- list(
-  num_nodes = 31,                 # size of the cultural systems (number of nodes)
+  num_nodes = 32,                 # size of the cultural systems (number of nodes)
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
   timesteps = 5000,               # number of time steps in the simulation
@@ -61,7 +61,7 @@ for (learningStrategy in c(0,1,2,3,4)){
   for (scaling in c(0,0.3, 0.5,0.7, 1)){
     params$payoff_scaling <- scaling
       ## generate rooted tree to represent the cultural system
-      tree <- generate_rooted_tree_branching(params, branching_factor)
+      tree <- generate_rooted_tree_branching(params, branching_factor = 3)
       ## for some tracking the distribution of traits across depths we need to know the depth of each node			
       nodeDepths<-1+distances(tree,v=1,to=V(tree),mode="out")
       maxNodeDepth<-max(nodeDepths)
@@ -91,6 +91,7 @@ for (learningStrategy in c(0,1,2,3,4)){
   }
 }
 ```
+
 ## Non-Parallel Version
 For debugging and testing
 

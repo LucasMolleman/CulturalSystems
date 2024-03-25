@@ -435,3 +435,162 @@ payoffs <- get_payoffs(g, strength = 1)
 
 
 plotTree(params, g)
+
+
+generate_converging_tree <- function(num_nodes, branch_factor) {
+  if (num_nodes <= 1) {
+    return(graph.empty(n = 1, directed = TRUE)) # Handle trivial case separately.
+  }
+  
+  # Initially create a graph with vertices but no edges.
+  g <- graph.empty(n = num_nodes, directed = TRUE)
+  already_added_nodes <- 1
+  current_layer <- c(1) # Start with just the root node.
+  
+  while (already_added_nodes < num_nodes) {
+    new_layer <- c()
+    for (parent in current_layer) {
+      children_to_add <- min(num_nodes - already_added_nodes, branch_factor)
+      children <- (already_added_nodes + 1):(already_added_nodes + children_to_add)
+      already_added_nodes <- already_added_nodes + children_to_add
+      
+      # Add edges from current parent to new children.
+      edges_to_add <- cbind(rep(parent, length(children)), children)
+      g <- add_edges(g, as.vector(t(edges_to_add)))
+      
+      if (already_added_nodes >= num_nodes) {
+        break
+      }
+      
+      new_layer <- c(new_layer, children)
+    }
+    current_layer <- new_layer # Prepare for next layer
+  }
+  
+  # Reverse graph edges to achieve converging pattern.
+  reversed_edges <- t(apply(get.edgelist(g), 1, rev))
+  g_reversed <- graph.empty(n = num_nodes + 1, directed = TRUE) # Include new root
+  new_root <- num_nodes + 1
+  
+  # Connect new root to all nodes in what was the last layer of the original graph.
+  edges_to_new_root <- cbind(rep(new_root, length(current_layer)), current_layer)
+  g_reversed <- add_edges(g_reversed, as.vector(t(edges_to_new_root)))
+  
+  # Add reversed edges from the original graph.
+  if (nrow(reversed_edges) > 0) {
+    g_reversed <- add_edges(g_reversed, as.vector(t(reversed_edges)))
+  }
+  
+  return(g_reversed)
+}
+
+generate_converging_tree <- function(num_nodes, branch_factor) {
+  if (num_nodes <= 1) {
+    return(graph.empty(n = 1, directed = TRUE)) # Handle trivial case separately.
+  }
+  
+  # Initially create a graph with vertices but no edges.
+  g <- graph.empty(n = num_nodes, directed = TRUE)
+  already_added_nodes <- 1
+  current_layer <- c(1) # Start with just the root node.
+  
+  while (already_added_nodes < num_nodes) {
+    new_layer <- c()
+    for (parent in current_layer) {
+      children_to_add <- min(num_nodes - already_added_nodes, branch_factor)
+      children <- (already_added_nodes + 1):(already_added_nodes + children_to_add)
+      already_added_nodes <- already_added_nodes + children_to_add
+      
+      # Add edges from current parent to new children.
+      edges_to_add <- cbind(rep(parent, length(children)), children)
+      g <- add_edges(g, as.vector(t(edges_to_add)))
+      
+      if (already_added_nodes >= num_nodes) {
+        break
+      }
+      
+      new_layer <- c(new_layer, children)
+    }
+    current_layer <- new_layer # Prepare for next layer
+  }
+  
+  # Now, create a new graph including the new root with no edges initially
+  g_reversed <- graph.empty(n = num_nodes + 1, directed = TRUE)
+  new_root <- num_nodes + 1
+  
+  # Iterate over the original graph to add reversed edges
+  orig_edges <- get.edgelist(g)
+  for (edge in seq_len(nrow(orig_edges))) {
+    g_reversed <- add_edges(g_reversed, c(orig_edges[edge, 2], orig_edges[edge, 1]))
+  }
+  
+  # Identify nodes with an in-degree of 0 and connect the new root to these nodes
+  nodes_with_no_in_edges <- V(g_reversed)[degree(g_reversed, mode="in") == 0 & V(g_reversed) != new_root]
+  for (node in nodes_with_no_in_edges) {
+    g_reversed <- add_edges(g_reversed, c(new_root, node))
+  }
+  
+  return(g_reversed)
+}
+
+
+plotConvergentTree <- function(params, tree, repertoires = NULL, showPopState = FALSE) {
+  num_nodes <- params$num_nodes + 1
+  # Use layout_as_tree to initially place nodes
+  layout <- layout_as_tree(tree, root = num_nodes, rootlevel = 0)
+  
+  # Calculate levels
+  levels <- distances(tree, v = num_nodes, to = V(tree), mode = "out")
+  level_widths <- table(levels)
+  
+  # Determine the widest layer to set as the basis for horizontal spacing
+  widest_layer_width <- max(level_widths)
+  
+  # Calculate x-coordinates to center the tree horizontally
+  x_coordinates <- numeric(num_nodes)
+  
+  for (depth in unique(levels)) {
+    nodes_in_level <- which(levels == depth)
+    num_nodes_at_level <- length(nodes_in_level)
+    
+    # Calculate starting x-coordinate for this layer to center it
+    start_x <- (widest_layer_width - num_nodes_at_level) / 2 + 1
+    x_coords_level <- start_x + seq_len(num_nodes_at_level) - 1
+    
+    # Assign calculated x-coordinates
+    x_coordinates[nodes_in_level] <- x_coords_level
+  }
+  
+  # Update layout with new x-coordinates while keeping existing y-coordinates
+  layout[, 1] <- x_coordinates
+  
+  # Node coloring by depth
+  nodeDepths <- 1 + levels
+  colramp <- colorRampPalette(c("white", "blue", "green", "orange", "red"))
+  color_palette <- colramp(max(nodeDepths))
+  V(tree)$color <- color_palette[nodeDepths]
+  
+  if (showPopState) {
+    # Apply additional properties if showing population state
+    V(tree)$propAdopted <- ifelse(is.null(repertoires), rep(0, num_nodes), rowMeans(repertoires, na.rm = TRUE))
+    plot(tree, layout = layout, vertex.size = 30 * V(tree)$propAdopted + 5, edge.arrow.size = 0.5, edge.color = 'black',
+         vertex.color = V(tree)$color, vertex.label = NA)
+  } else {
+    plot(tree, layout = layout, vertex.size = 15, edge.arrow.size = 0.5, edge.color = 'black',
+         vertex.color = V(tree)$color, vertex.label = NA)
+  }
+}
+
+plotTree(list(num_nodes = 32), tree)
+
+
+
+plotTreeWithCorrectedLayers(tree)
+
+tree <- generate_converging_tree(31, 3)
+
+
+plot(tree)
+plotTree(list(num_nodes = 32), tree)
+vcount(tree)
+plotTreeWithHorizontalLayers(tree)
