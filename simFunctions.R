@@ -293,7 +293,10 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
 }
 
 
-getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits, falloffFunction = "adjacent"){
+getTraitLearningProbability <- function(params, repertoires, ind, tree, learnableTraits){
+  probDelta <- params$probDelta
+  falloffFunction <- params$falloffFunction
+
   if(length(learnableTraits) == 0){
     return(numeric(0))
   }
@@ -315,7 +318,7 @@ getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits,
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
   }
   else if (falloffFunction == "reciprocal"){
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum(1/x^1.2))
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum(1/x^probDelta))
   }
   else if (falloffFunction == "linear") {
     maxDistance <- max(trDistances)
@@ -340,16 +343,16 @@ getPayoffs <- function(tree, params) {
   return(adjusted_payoffs)
 }
 
-learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels, falloffFunction){
+learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
   unknownTraits <- which(repertoires[ind,] == 0)
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits)]
 
   if(length(observedTraits) > 0){
     wList <- numeric(length = length(learnableTraits))     
-    pList <- getTraitLearningProbability(repertoires, ind, tree, learnableTraits, falloffFunction = falloffFunction) 
+    pList <- getTraitLearningProbability(params, repertoires, ind, tree, learnableTraits) 
     
-    #temporary fix
-    root_node <- which(diag(adj_matrix) == 1)
+    
+    root_node <- params$root_node
     # Exit if the probability of learning any trait is zero
     if(sum(pList,na.rm = T ) == 0 | all(learnableTraits == root_node)){
       return(numeric(0))
@@ -357,7 +360,9 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAg
 
     ##### STRATEGY 1: payoff-based social learning #####
     if(learningStrategy == 1){
-      wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits])
+      if(sum(payoffs[learnableTraits], na.rm = T) != 0){ #handle case where all payoffs are zero
+        wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits], na.rm = T)
+      }
     }
     
     ###### STRATEGY 2: similarity based learning ######
@@ -389,18 +394,30 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAg
     else if(learningStrategy == 0){
       wList <- rep(1, length(learnableTraits))
     }
-
-    ## Temporary fix so that traits with 0 probability are not considered
-    # browser()
-    # wList <- wList[pList > 0]
-    # learnableTraits <- learnableTraits[pList > 0]
-    # pList <- pList[pList > 0]
-    pList <- pmax(pList, 1)
-    
+    if(sum(wList, na.rm = T) == 0){
+      return(numeric(0))
+    }
+    pList <- pmin(pmax(pList,0), 1)
+    if(sum(wList, na.rm = T) > 0) {
+      if(max(wList) == min(wList)) {
+        wList <- wList
+      } else {
+        wList <- (wList - min(wList)) / (max(wList) - min(wList))
+      }
+    }
     if(any(is.na(wList * pList))) {
+      print("NA in wList * pList")
       browser()  
     }
-    if(sum(pList) == 0) browser()
+    #browser if any is negative
+    if(any(wList * pList < 0)){
+      print("Negative value in wList * pList")
+      browser()
+    }
+    if(sum(pList) == 0){
+      print("Sum of pList is zero")
+      browser()
+    }
     ### MAKE CHOICE ###
     selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList * pList)
     selectedTrait <- observedTraits[selectedTraitIndex]

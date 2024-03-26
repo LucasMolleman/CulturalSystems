@@ -59,7 +59,8 @@ runsimulation <- function(params, learningStrategy, repl, tree){
           }
         }
 
-        learnedTrait <- learnSocially(repertoires,
+        learnedTrait <- learnSocially(params,
+                                      repertoires,
                                       ind,
                                       adj_matrix,
                                       learningStrategy, 
@@ -67,8 +68,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
                                       payoffs,
                                       tree,
                                       observedTraits,
-                                      observedModels,
-                                      params$falloffFunction)														
+                                      observedModels)														
         
         if (length(learnedTrait)==1){
         ######## calculate payoffs of learning
@@ -84,7 +84,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
       else if(r >= params$S){	# individual learning (=innovation)
         selectedTrait <- sample(unknownTraits,1)
         # Calculate learning probability based on distance
-        pList <- unique(getTraitLearningProbability(repertoires, ind, tree, selectedTrait))
+        pList <- unique(getTraitLearningProbability(params, repertoires, ind, tree, selectedTrait))
         if(length(pList) > 0){
           if (runif(1) < pList[1]){
             repertoires[ind,selectedTrait]<-1
