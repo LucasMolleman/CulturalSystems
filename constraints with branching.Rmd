@@ -32,17 +32,19 @@ params <- list(
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
   timesteps = 5000,               # number of time steps in the simulation
-  replicateSimulations = 2 ,      # number of simulations per parameter setting
+  replicateSimulations = 30,      # number of simulations per parameter setting
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.01,              # probability that an individual is replaced by a naive individual
   tree_layers = 5,                # number of layers in the tree
   alpha1 = 1,                     # Alpha parameter for the beta distribution used to generate the tree
   beta1 = 1,                      # Beta parameter for the beta distribution used to generate the tree 
   olderPref = 0,
-  payoff_scaling = 0.7,           # How much the payoff depends on randomness vs distance from the root node (0 for random, 1 for fully deterministic))
+  payoff_scaling = 0.7,           # Constant that is added/subtracted for each step away from the root node
+  payoff_weight = 1,              # How much the payoff depends on randomness vs distance from the root node (0 for random, 1 for fully deterministic))
   falloffFunction = "reciprocal", # "reciprocal" or "adjacent" 
-  windowSize = 1000               # parameters for plotting (number of time steps per printing event frequencies)
-)
+  windowSize = 1000,              # parameters for plotting (number of time steps per printing event frequencies)
+  root_node = 32                  # root node of the tree, should be equal to num_nodes when using converging tree, else 1
+  )
 
 
 ``` 
@@ -57,13 +59,13 @@ params <- list(
 strategySuccess<-matrix(nrow=0, ncol=10)
 
 for (learningStrategy in c(0,1,2,3,4)){
-  branching_factor <- 2
+  branching_factor <- 3
   for (scaling in c(0,0.3, 0.5,0.7, 1)){
     params$payoff_scaling <- scaling
       ## generate rooted tree to represent the cultural system
-      tree <- generate_rooted_tree_branching(params, branching_factor = 3)
+      tree <- generate_converging_tree(params, branching_factor)
       ## for some tracking the distribution of traits across depths we need to know the depth of each node			
-      nodeDepths<-1+distances(tree,v=1,to=V(tree),mode="out")
+      nodeDepths<-1+distances(tree,v=params$root_node,to=V(tree),mode="out")
       maxNodeDepth<-max(nodeDepths)
       ## bookkeep the frequency of traits across tree depths (for checking stability over time)
       traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
@@ -98,20 +100,24 @@ For debugging and testing
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=9)
+strategySuccess<-matrix(nrow=0, ncol=10)
 set.seed(1)
 for (learningStrategy in c(0:4)){
-  for (branching_factor in c(1,3,params$num_nodes)){
+  branching_factor <- 3
+  for (scaling in c(0,0.5, 1)){
+    params$payoff_scaling <- scaling
       ## generate rooted tree to represent the cultural system
-      tree <- generate_rooted_tree_branching(params, branching_factor)
+      tree <- generate_converging_tree(params, branching_factor)
+      #plot(tree, layout = layout.reingold.tilford(tree, root=params$root_node))
       ## for some tracking the distribution of traits across depths we need to know the depth of each node			
-      nodeDepths<-1+distances(tree,v=1,to=V(tree),mode="out")
+      nodeDepths<-1+distances(tree,v=params$root_node,to=V(tree),mode="out")
       maxNodeDepth<-max(nodeDepths)
       ## bookkeep the frequency of traits across tree depths (for checking stability over time)
       traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
       
+      
       for(repl in 1:params$replicateSimulations){
-        print(paste("strat=", learningStrategy, "bf=", branching_factor, "repl=", repl))
+        print(paste("strat=", learningStrategy, "bf=", branching_factor, "scaling=",scaling, "repl=", repl))
         sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree)
         strategySuccess <- rbind(strategySuccess, sumThisSimulation)
       }
@@ -121,31 +127,49 @@ for (learningStrategy in c(0:4)){
 
 
 ```{r}
+plotPayoffScaling(strategySuccess)
+```
+
+
+```{r}
 ## give names to the columns of the simulation summary matrix: number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-data.frame(strategySuccess)
-names(strategySuccess)<-c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'meanPayoff')
-rownames(strategySuccess) <- NULL
 
-par(mfrow=c(1,5), mar=c(5,4,4,2) + 0.1)
+plotPayoffScaling <- function(strategySuccess){
+  strategySuccess <- data.frame(strategySuccess)
+  names(strategySuccess) <- c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'meanPayoff')
+  rownames(strategySuccess) <- NULL
+  stratCols <- c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')
+  stratNames <- c('random', 'payoff', 'similarity', 'age', 'conformity')
 
-for (ps in sort(unique(strategySuccess$payoff_scaling))[1:5]) {
-  b <- subset(strategySuccess, payoff_scaling == ps)
-  boxplot(meanPayoff ~ learningStrat, data=b, main=ps, col=stratCols, ylim=c(0,1.5), xaxt='n')
-  axis(1, at=1:length(unique(b$learningStrat)), labels=FALSE)
-  if(ps == sort(unique(strategySuccess$payoff_scaling))[1]) {
-    axis(1, at=1:length(unique(b$learningStrat)), labels=names(stratCols), las=2)
+  # Update mar to provide more space at the bottom for the legend
+  par(mfrow=c(1,5), mar=c(7, 4, 4, 2) + 0.1) # Increase the bottom margin substantially
+
+  for (ps in sort(unique(strategySuccess$payoff_scaling))[1:length(unique(strategySuccess$payoff_scaling))]) {
+    b <- subset(strategySuccess, payoff_scaling == ps)
+    boxplot(meanPayoff ~ learningStrat, data=b, main=ps, col=stratCols, ylim=c(0,1.5), xaxt='n',xlab="")
+    axis(1, at=1:length(unique(b$learningStrat)), labels=FALSE)
+    if(ps == min(unique(strategySuccess$payoff_scaling))) { # changed condition for clarity
+      axis(1, at=1:length(unique(b$learningStrat)), labels=names(stratCols), las=2)
+    }
   }
-}
-legend("bottom", inset=c(0,-0.4), legend=c('Random', 'Payoff', 'Similarity', 'Age', 'Conformity'), fill=stratCols, horiz=TRUE, xpd=NA)
 
-legend("topright", c('random', 'payoff', 'similarity', 'age', 'conformity'), fill=stratCols)
+  # Add the legend after restoring default par settings best suited for overall plot characteristics
+  # For placing legend, might need adjustment or use more specific settings
+  par(mfrow=c(1,1), mar=c(5, 4, 4, 2) + 0.1, xpd=TRUE)
+  legend("bottom", inset=c(-3,-0.25), legend=stratNames, fill=stratCols, horiz=TRUE, xpd=NA)
+}
+
+
+```
+
+```{r}
 ## create an overview plot
 par(mfrow=c(1,3), xaxs='r', mar=c(5,4,4,2),lend=1)
 
 
  for (brf in unique(strategySuccess$branching_factor)){
    b<-subset(strategySuccess,branching_factor==brf)
-   boxplot(meanPayoff ~ learningStrat, data=b, col=stratCols, ylim=c(0,1.5))
+   boxplot(meanPayoff ~ learningStrat, data=b, col=stratCols, ylim=c(0,1))
   
    legend('topright', c('random', 'payoff', 'similarity', 'age', 'conformity'), col=stratCols, pch=15:19)
 }

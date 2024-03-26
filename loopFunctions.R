@@ -15,7 +15,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
   ## derive square matrix of parent/child traits
   adj_matrix <- as_adjacency_matrix(tree, sparse = FALSE)
   ## root trait (at position 1,1) is its own parent
-  adj_matrix[1,1]<-1 
+  adj_matrix[params$root_node,params$root_node]<-1 
   
   ## bookkeeping for output
   SLpay<-rep(NA,params$timesteps)				## payoff for social learning
@@ -34,11 +34,12 @@ runsimulation <- function(params, learningStrategy, repl, tree){
   for (t in 1:params$timesteps){
     ## sample a random individual
     ind<-sample(1:params$N,1)
+    
     ## will they learn individually or socially?
     r<-runif(1)
     unknownTraits <- which(repertoires[ind,] == 0) 
     SLpay[t]<-NA
-    if (sum(unknownTraits > 0)){  #only try to learn if there's anything to learn for this agent
+    if (length(unknownTraits > 0)){  #only try to learn if there's anything to learn for this agent
       
       if (r<params$S) {  # social learning
         ## sample M random other individuals

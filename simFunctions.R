@@ -42,13 +42,14 @@ plotTree <- function(params, tree, repertoires = NULL, showPopState = FALSE) {
   }
 }
 
-plotConvergentTree <- function(params, tree, repertoires = NULL, showPopState = FALSE) {
+plotConvergingTree <- function(params, tree, repertoires = NULL, showPopState = FALSE) {
   num_nodes <- params$num_nodes 
+  root_node <- num_nodes
   # Use layout_as_tree to initially place nodes
-  layout <- layout_as_tree(tree, root = num_nodes, rootlevel = 0)
+  layout <- layout_as_tree(tree, root = root_node, rootlevel = 0)
   
   # Calculate levels
-  levels <- distances(tree, v = num_nodes, to = V(tree), mode = "out")
+  levels <- distances(tree, v = root_node, to = V(tree), mode = "out")
   level_widths <- table(levels)
   
   # Determine the widest layer to set as the basis for horizontal spacing
@@ -90,7 +91,7 @@ plotConvergentTree <- function(params, tree, repertoires = NULL, showPopState = 
 }
 
 generate_converging_tree <- function(params, branch_factor) {
-  num_nodes <- params$num_nodes
+  num_nodes <- params$num_nodes - 1 #Subtract 1 to account for the root node.
   if (num_nodes <= 1) {
     return(graph.empty(n = 1, directed = TRUE)) # Handle trivial case separately.
   }
@@ -229,9 +230,10 @@ generate_rooted_tree_betaDistr <- function(params, tree_layers) {
 initializePopulation <- function(params){
   N <- params$N
   num_nodes <- params$num_nodes
+  root_node <- params$root_node
   adj_matrix <- params$adj_matrix
   repertoires <- matrix(0, nrow = N, ncol = num_nodes)
-  repertoires[, num_nodes] <- 1
+  repertoires[, root_node] <- 1
   
   for (ind in 1:N){
     numTraits <- sample(1:num_nodes, 1)
@@ -313,7 +315,7 @@ getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits,
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
   }
   else if (falloffFunction == "reciprocal"){
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum(1/x^2))
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum(1/x^1.2))
   }
   else if (falloffFunction == "linear") {
     maxDistance <- max(trDistances)
@@ -324,17 +326,18 @@ getTraitLearningProbability <- function(repertoires, ind, tree, learnableTraits,
   }
   return(pList)
 }
-  
+
+
 getPayoffs <- function(tree, params) {
-  strength <- params$payoff_scaling
-  distances_from_root <- distances(tree, v = 1, mode = "out")
-  max_distance <- max(distances_from_root)
-  payoffs <- runif(vcount(tree))
+  weight <- params$payoff_weight # Determines how random the effect of distance on a trait is
+  root_node <- params$root_node
+  payoff_scaling <- params$payoff_scaling # Determines how much distance affects payoff
+  distances_from_root <- distances(tree, v = root_node, mode = "out")
+  random_payoffs <- runif(vcount(tree))
+  distance_payoffs <- 1 + (distances_from_root - 1) * payoff_scaling
+  adjusted_payoffs <- (1 - weight) * (2 * random_payoffs/max(random_payoffs)) + weight * distance_payoffs
   
-  adjusted_payoffs <- (1 - strength) * (2 * payoffs / max(payoffs)) + 
-    strength * (distances_from_root / max_distance)
-  
-  adjusted_payoffs
+  return(adjusted_payoffs)
 }
 
 learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels, falloffFunction){
@@ -345,8 +348,10 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAg
     wList <- numeric(length = length(learnableTraits))     
     pList <- getTraitLearningProbability(repertoires, ind, tree, learnableTraits, falloffFunction = falloffFunction) 
     
+    #temporary fix
+    root_node <- which(diag(adj_matrix) == 1)
     # Exit if the probability of learning any trait is zero
-    if(sum(pList) == 0){
+    if(sum(pList,na.rm = T ) == 0 | all(learnableTraits == root_node)){
       return(numeric(0))
     }
 
@@ -390,9 +395,11 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy,  popAg
     # wList <- wList[pList > 0]
     # learnableTraits <- learnableTraits[pList > 0]
     # pList <- pList[pList > 0]
-    pList <- pmin(pList, 1)
+    pList <- pmax(pList, 1)
     
-    
+    if(any(is.na(wList * pList))) {
+      browser()  
+    }
     if(sum(pList) == 0) browser()
     ### MAKE CHOICE ###
     selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList * pList)
