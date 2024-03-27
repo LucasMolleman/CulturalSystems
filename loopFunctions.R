@@ -103,7 +103,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
     }
   }
   sumThisSimulation<-c(params$num_nodes, 
-                        branching_factor, 
+                        params$branching_factor, 
                         params$tree_layers, 
                         params$alpha1,
                         params$beta1,

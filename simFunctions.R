@@ -140,10 +140,6 @@ generate_converging_tree <- function(params, branch_factor) {
   return(g_reversed)
 }
 
-
-
-
-
 # function to create a rooted tree which represents a cultural system
 generate_rooted_tree_branching <- function(params, branching_factor) {
   num_nodes <- params$num_nodes
@@ -167,7 +163,6 @@ generate_rooted_tree_branching <- function(params, branching_factor) {
   g<-add_edges(g, c(edgeList))
   return(g)
 }
-
 
 # Function to create a rooted tree which represents a cultural system
 generate_rooted_tree_betaDistr <- function(params, tree_layers) {
@@ -225,7 +220,6 @@ generate_rooted_tree_betaDistr <- function(params, tree_layers) {
   g<-add_edges(g, c(edgeList))
   return(g)
 }
-
 
 initializePopulation <- function(params){
   N <- params$N
@@ -292,11 +286,10 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
   return(replicatedDistances)
 }
 
-
 getTraitLearningProbability <- function(params, repertoires, ind, tree, learnableTraits){
   probDelta <- params$probDelta
   falloffFunction <- params$falloffFunction
-
+  branching_factor <- params$branching_factor
   if(length(learnableTraits) == 0){
     return(numeric(0))
   }
@@ -318,7 +311,7 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
   }
   else if (falloffFunction == "reciprocal"){
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum(1/x^probDelta))
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/branching_factor)/x^probDelta))
   }
   else if (falloffFunction == "linear") {
     maxDistance <- max(trDistances)
@@ -329,7 +322,6 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
   }
   return(pList)
 }
-
 
 getPayoffs <- function(tree, params) {
   weight <- params$payoff_weight # Determines how random the effect of distance on a trait is
@@ -435,5 +427,3 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
   }
   return(numeric(0))
 }
-
-
