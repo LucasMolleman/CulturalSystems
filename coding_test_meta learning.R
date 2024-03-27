@@ -249,7 +249,7 @@ if(sum(meta_overview[meta_overview$ID == individual, 2]) == 12) mixture_of_exper
 population <- c(seq(1:500))
 skills <- 20
 timesteps <- 25000
-rounds <- 3
+rounds <- 10
 # learning_rate <- 30
 
 # sample teacher 
@@ -361,6 +361,55 @@ overview_dat3 %>%
   group_by(Learning_strat) %>%
   summarise_at(vars(Number_skills), list(name = mean))
 
+overview_dat4 <- as.data.frame(overview4)
+overview_dat4 <- overview_dat4 %>%
+  mutate(Learning_strat = factor(Learning_strat))
+overview_dat4 %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(Number_skills), list(name = mean))
+
+overview_dat5 <- as.data.frame(overview5)
+overview_dat5 <- overview_dat5 %>%
+  mutate(Learning_strat = factor(Learning_strat))
+overview_dat5 %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(Number_skills), list(name = mean))
+
+overview_dat6 <- as.data.frame(overview6)
+overview_dat6 <- overview_dat6 %>%
+  mutate(Learning_strat = factor(Learning_strat))
+overview_dat6 %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(Number_skills), list(name = mean))
+
+overview_dat7 <- as.data.frame(overview7)
+overview_dat7 <- overview_dat7 %>%
+  mutate(Learning_strat = factor(Learning_strat))
+overview_dat7 %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(Number_skills), list(name = mean))
+
+overview_dat8 <- as.data.frame(overview8)
+overview_dat8 <- overview_dat8 %>%
+  mutate(Learning_strat = factor(Learning_strat))
+overview_dat8 %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(Number_skills), list(name = mean))
+
+overview_dat9 <- as.data.frame(overview9)
+overview_dat9 <- overview_dat9 %>%
+  mutate(Learning_strat = factor(Learning_strat))
+overview_dat9 %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(Number_skills), list(name = mean))
+
+overview_dat10 <- as.data.frame(overview10)
+overview_dat10 <- overview_dat10 %>%
+  mutate(Learning_strat = factor(Learning_strat))
+overview_dat10 %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(Number_skills), list(name = mean))
+
 meta_overview1 %>%
   group_by(Meta_strategy) %>%
   summarise_at(vars(3:4), list(name = mean))
@@ -387,17 +436,64 @@ ID_strat1_run3 <- meta_overview3 %>%
   filter(Meta_strategy == 1) %>%
   select(ID) %>%
   unique()
+ID_strat1_run4 <- meta_overview4 %>%
+  filter(Meta_strategy == 1) %>%
+  select(ID) %>%
+  unique()
+ID_strat1_run5 <- meta_overview5 %>%
+  filter(Meta_strategy == 1) %>%
+  select(ID) %>%
+  unique()
+ID_strat1_run6 <- meta_overview6 %>%
+  filter(Meta_strategy == 1) %>%
+  select(ID) %>%
+  unique()
+ID_strat1_run7 <- meta_overview7 %>%
+  filter(Meta_strategy == 1) %>%
+  select(ID) %>%
+  unique()
+ID_strat1_run8 <- meta_overview8 %>%
+  filter(Meta_strategy == 1) %>%
+  select(ID) %>%
+  unique()
+ID_strat1_run9 <- meta_overview9 %>%
+  filter(Meta_strategy == 1) %>%
+  select(ID) %>%
+  unique()
+ID_strat1_run10 <- meta_overview10 %>%
+  filter(Meta_strategy == 1) %>%
+  select(ID) %>%
+  unique()
 
 ID_strat1_run1 <- c(ID_strat1_run1$ID)
 ID_strat1_run2 <- c(ID_strat1_run2$ID)
 ID_strat1_run3 <- c(ID_strat1_run3$ID)
+ID_strat1_run4 <- c(ID_strat1_run4$ID)
+ID_strat1_run5 <- c(ID_strat1_run5$ID)
+ID_strat1_run6 <- c(ID_strat1_run6$ID)
+ID_strat1_run7 <- c(ID_strat1_run7$ID)
+ID_strat1_run8 <- c(ID_strat1_run8$ID)
+ID_strat1_run9 <- c(ID_strat1_run9$ID)
+ID_strat1_run10 <- c(ID_strat1_run10$ID)
 
 values_meta1_run1 <- overview_dat1[ID_strat1_run1, "Number_skills"]
 values_meta1_run2 <- overview_dat2[ID_strat1_run2, "Number_skills"]
 values_meta1_run3 <- overview_dat3[ID_strat1_run3, "Number_skills"]
-values_meta1 <- c(values_meta1_run1, values_meta1_run2, values_meta1_run3)
-mean_meta1 <- (mean(values_meta1_run1) + mean(values_meta1_run2) + mean(values_meta1_run3)) / 3
-var_meta1 <- (var(values_meta1_run1) + var(values_meta1_run2) + var(values_meta1_run3)) / 3
+values_meta1_run4 <- overview_dat4[ID_strat1_run4, "Number_skills"]
+values_meta1_run5 <- overview_dat5[ID_strat1_run5, "Number_skills"]
+values_meta1_run6 <- overview_dat6[ID_strat1_run6, "Number_skills"]
+values_meta1_run7 <- overview_dat7[ID_strat1_run7, "Number_skills"]
+values_meta1_run8 <- overview_dat8[ID_strat1_run8, "Number_skills"]
+values_meta1_run9 <- overview_dat9[ID_strat1_run9, "Number_skills"]
+values_meta1_run10 <- overview_dat10[ID_strat1_run10, "Number_skills"]
+
+
+values_meta1 <- c(values_meta1_run1, values_meta1_run2, values_meta1_run3, values_meta1_run4, values_meta1_run5,
+                  values_meta1_run6, values_meta1_run7, values_meta1_run8, values_meta1_run9, values_meta1_run10)
+mean_meta1 <- sum(mean(values_meta1_run1), mean(values_meta1_run2), mean(values_meta1_run3), mean(values_meta1_run4), mean(values_meta1_run5),
+                  mean(values_meta1_run6), mean(values_meta1_run7), mean(values_meta1_run8), mean(values_meta1_run9), mean(values_meta1_run10)) / 10
+var_meta1 <- sum(var(values_meta1_run1), var(values_meta1_run2), var(values_meta1_run3), var(values_meta1_run4), var(values_meta1_run5),
+                 var(values_meta1_run6), var(values_meta1_run7), var(values_meta1_run8), var(values_meta1_run9), var(values_meta1_run10)) / 10
 
 ID_strat2_run1 <- meta_overview1 %>%
   filter(Meta_strategy == 2) %>%
@@ -411,17 +507,64 @@ ID_strat2_run3 <- meta_overview3 %>%
   filter(Meta_strategy == 2) %>%
   select(ID) %>%
   unique()
+ID_strat2_run4 <- meta_overview4 %>%
+  filter(Meta_strategy == 2) %>%
+  select(ID) %>%
+  unique()
+ID_strat2_run5 <- meta_overview5 %>%
+  filter(Meta_strategy == 2) %>%
+  select(ID) %>%
+  unique()
+ID_strat2_run6 <- meta_overview6 %>%
+  filter(Meta_strategy == 2) %>%
+  select(ID) %>%
+  unique()
+ID_strat2_run7 <- meta_overview7 %>%
+  filter(Meta_strategy == 2) %>%
+  select(ID) %>%
+  unique()
+ID_strat2_run8 <- meta_overview8 %>%
+  filter(Meta_strategy == 2) %>%
+  select(ID) %>%
+  unique()
+ID_strat2_run9 <- meta_overview9 %>%
+  filter(Meta_strategy == 2) %>%
+  select(ID) %>%
+  unique()
+ID_strat2_run10 <- meta_overview10 %>%
+  filter(Meta_strategy == 2) %>%
+  select(ID) %>%
+  unique()
 
 ID_strat2_run1 <- c(ID_strat2_run1$ID)
 ID_strat2_run2 <- c(ID_strat2_run2$ID)
 ID_strat2_run3 <- c(ID_strat2_run3$ID)
+ID_strat2_run4 <- c(ID_strat2_run4$ID)
+ID_strat2_run5 <- c(ID_strat2_run5$ID)
+ID_strat2_run6 <- c(ID_strat2_run6$ID)
+ID_strat2_run7 <- c(ID_strat2_run7$ID)
+ID_strat2_run8 <- c(ID_strat2_run8$ID)
+ID_strat2_run9 <- c(ID_strat2_run9$ID)
+ID_strat2_run10 <- c(ID_strat2_run10$ID)
 
 values_meta2_run1 <- overview_dat1[ID_strat2_run1, "Number_skills"]
 values_meta2_run2 <- overview_dat2[ID_strat2_run2, "Number_skills"]
 values_meta2_run3 <- overview_dat3[ID_strat2_run3, "Number_skills"]
-values_meta2 <- c(values_meta2_run1, values_meta2_run2, values_meta2_run3)
-mean_meta2 <- (mean(values_meta2_run1) + mean(values_meta2_run2) + mean(values_meta2_run3)) / 3
-var_meta2 <- (var(values_meta2_run1) + var(values_meta2_run2) + var(values_meta2_run3)) / 3
+values_meta2_run4 <- overview_dat4[ID_strat2_run4, "Number_skills"]
+values_meta2_run5 <- overview_dat5[ID_strat2_run5, "Number_skills"]
+values_meta2_run6 <- overview_dat6[ID_strat2_run6, "Number_skills"]
+values_meta2_run7 <- overview_dat7[ID_strat2_run7, "Number_skills"]
+values_meta2_run8 <- overview_dat8[ID_strat2_run8, "Number_skills"]
+values_meta2_run9 <- overview_dat9[ID_strat2_run9, "Number_skills"]
+values_meta2_run10 <- overview_dat10[ID_strat2_run10, "Number_skills"]
+
+
+values_meta2 <- c(values_meta2_run1, values_meta2_run2, values_meta2_run3, values_meta2_run4, values_meta2_run5,
+                  values_meta2_run6, values_meta2_run7, values_meta2_run8, values_meta2_run9, values_meta2_run10)
+mean_meta2 <- sum(mean(values_meta2_run1), mean(values_meta2_run2), mean(values_meta2_run3), mean(values_meta2_run4), mean(values_meta2_run5),
+                  mean(values_meta2_run6), mean(values_meta2_run7), mean(values_meta2_run8), mean(values_meta2_run9), mean(values_meta2_run10)) / 10
+var_meta2 <- sum(var(values_meta2_run1), var(values_meta2_run2), var(values_meta2_run3), var(values_meta2_run4), var(values_meta2_run5),
+                 var(values_meta2_run6), var(values_meta2_run7), var(values_meta2_run8), var(values_meta2_run9), var(values_meta2_run10)) / 10
 
 ID_strat3_run1 <- meta_overview1 %>%
   filter(Meta_strategy == 3) %>%
@@ -435,17 +578,65 @@ ID_strat3_run3 <- meta_overview3 %>%
   filter(Meta_strategy == 3) %>%
   select(ID) %>%
   unique()
+ID_strat3_run4 <- meta_overview4 %>%
+  filter(Meta_strategy == 3) %>%
+  select(ID) %>%
+  unique()
+ID_strat3_run5 <- meta_overview5 %>%
+  filter(Meta_strategy == 3) %>%
+  select(ID) %>%
+  unique()
+ID_strat3_run6 <- meta_overview6 %>%
+  filter(Meta_strategy == 3) %>%
+  select(ID) %>%
+  unique()
+ID_strat3_run7 <- meta_overview7 %>%
+  filter(Meta_strategy == 3) %>%
+  select(ID) %>%
+  unique()
+ID_strat3_run8 <- meta_overview8 %>%
+  filter(Meta_strategy == 3) %>%
+  select(ID) %>%
+  unique()
+ID_strat3_run9 <- meta_overview9 %>%
+  filter(Meta_strategy == 3) %>%
+  select(ID) %>%
+  unique()
+ID_strat3_run10 <- meta_overview10 %>%
+  filter(Meta_strategy == 3) %>%
+  select(ID) %>%
+  unique()
 
 ID_strat3_run1 <- c(ID_strat3_run1$ID)
 ID_strat3_run2 <- c(ID_strat3_run2$ID)
 ID_strat3_run3 <- c(ID_strat3_run3$ID)
+ID_strat3_run4 <- c(ID_strat3_run4$ID)
+ID_strat3_run5 <- c(ID_strat3_run5$ID)
+ID_strat3_run6 <- c(ID_strat3_run6$ID)
+ID_strat3_run7 <- c(ID_strat3_run7$ID)
+ID_strat3_run8 <- c(ID_strat3_run8$ID)
+ID_strat3_run9 <- c(ID_strat3_run9$ID)
+ID_strat3_run10 <- c(ID_strat3_run10$ID)
 
 values_meta3_run1 <- overview_dat1[ID_strat3_run1, "Number_skills"]
 values_meta3_run2 <- overview_dat2[ID_strat3_run2, "Number_skills"]
 values_meta3_run3 <- overview_dat3[ID_strat3_run2, "Number_skills"]
-values_meta3 <- c(values_meta3_run1, values_meta3_run2, values_meta3_run3)
-mean_meta3 <- (mean(values_meta3_run1) + mean(values_meta3_run2) + mean(values_meta3_run3)) / 3
-var_meta3 <- (var(values_meta3_run1) + var(values_meta3_run2) + var(values_meta3_run3)) / 3
+values_meta3_run4 <- overview_dat4[ID_strat3_run4, "Number_skills"]
+values_meta3_run5 <- overview_dat5[ID_strat3_run5, "Number_skills"]
+values_meta3_run6 <- overview_dat6[ID_strat3_run6, "Number_skills"]
+values_meta3_run7 <- overview_dat7[ID_strat3_run7, "Number_skills"]
+values_meta3_run8 <- overview_dat8[ID_strat3_run8, "Number_skills"]
+values_meta3_run9 <- overview_dat9[ID_strat3_run9, "Number_skills"]
+values_meta3_run10 <- overview_dat10[ID_strat3_run10, "Number_skills"]
+
+values_meta3 <- c(values_meta3_run1, values_meta3_run2, values_meta3_run3, values_meta3_run4, values_meta3_run5,
+                  values_meta3_run6, values_meta3_run7, values_meta3_run8, values_meta3_run9, values_meta3_run10)
+mean_meta3 <- sum(mean(values_meta3_run1), mean(values_meta3_run2), mean(values_meta3_run3), mean(values_meta3_run4), mean(values_meta3_run5),
+                  mean(values_meta3_run6), mean(values_meta3_run7), mean(values_meta3_run8), mean(values_meta3_run9), mean(values_meta3_run10)) / 10
+var_meta3 <- sum(var(values_meta3_run1), var(values_meta3_run2), var(values_meta3_run3), var(values_meta3_run4), var(values_meta3_run5),
+                 var(values_meta3_run6), var(values_meta3_run7), var(values_meta3_run8), var(values_meta3_run9), var(values_meta3_run10)) / 10
+
+###
 
 mean_values <- c(mean_meta1, mean_meta2, mean_meta3)
 variance_values <- c(var_meta1, var_meta2, var_meta3)
