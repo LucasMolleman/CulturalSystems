@@ -230,17 +230,26 @@ mixture_of_experts <- function(meta_overview = meta_overview){
   }
 }
 meta_learning <- function(){
-if (sum(meta_overview[meta_overview$ID == individual, 2]) == 4) {
+r <- runif(1)
+if (r >= reset_rate){
+  if (sum(meta_overview[meta_overview$ID == individual, 2]) == 4) {
   strategy_for_life(learningstrat = overview[individual,"Learning_strat"])
-} 
-if (sum(meta_overview[meta_overview$ID == individual, 2]) == 8) {
+    } 
+  if (sum(meta_overview[meta_overview$ID == individual, 2]) == 8) {
     learningstrat <- bayesian_learner()
     strategy_for_life(learningstrat = learningstrat)
     age_ind <- as.numeric(overview[individual,2])
     over_time <<- append(over_time, c(individual, age_ind, learningstrat))
-} 
-if(sum(meta_overview[meta_overview$ID == individual, 2]) == 12) mixture_of_experts(meta_overview = meta_overview)
-    }
+    } 
+  if(sum(meta_overview[meta_overview$ID == individual, 2]) == 12) mixture_of_experts(meta_overview = meta_overview)
+} else {
+  overview[individual, "Number_skills"] <- 1
+  skillset[2: skills_learner,individual] <- 0
+  overview[individual, "Successful"] <- 0
+  overview[individual, "Unsuccessful"] <- 0
+  meta_overview[meta_overview$ID == individual,4:5] <- 0 
+}
+  }
 
 
 ###
@@ -250,27 +259,31 @@ population <- c(seq(1:500))
 skills <- 20
 timesteps <- 25000
 rounds <- 10
+reset_rate<- 0.01	
 # learning_rate <- 30
 
 # sample teacher 
 for (r in 1: rounds) {
   # give them first subskill
   skillset <- matrix(0, nrow = skills, ncol = length(population))
-  skillset[1,] <- 1
+  for (i in 1:length(population)){
+  number_skills <- round(sample(runif(10000, 1, 20), 1), 0) 
+  skillset[1:number_skills, i] <- 1
+  } 
   
-  # learners who start with level > 1
-  advanced_learners <- sample(population, (length(population)/10))
-  random_skill_level <- sample(skills, 100, replace = TRUE)
-  for(i in 1: length(advanced_learners)){
-    x <- random_skill_level[i]
-    while (x > 1) {
-      skillset[x,advanced_learners[i]] <- 1
-      x <- x-1
-    }
-  }
+  # # learners who start with level > 1
+  # advanced_learners <- sample(population, (length(population)/10))
+  # random_skill_level <- sample(skills, 100, replace = TRUE)
+  # for(i in 1: length(advanced_learners)){
+  #   x <- random_skill_level[i]
+  #   while (x > 1) {
+  #     skillset[x,advanced_learners[i]] <- 1
+  #     x <- x-1
+  #   }
+  # }
   # set ages
   overview <- matrix(nrow = length(population), ncol = 5, dimnames = list(c(), c("Number_skills", "Age", "Learning_strat", "Successful", "Unsuccessful")))
-  overview[,"Age"] <- 1
+  overview[,"Age"] <- 0
   overview[,"Successful"] <- 0
   overview[,"Unsuccessful"] <- 0
   for (i in 1: ncol(skillset)){
@@ -710,4 +723,14 @@ meta_overview1 %>%
   group_by(Learning_strat) %>%
   summarise_at(vars(Successful, Unsuccessful), list(Mean = mean))
   
+mean(overview_dat1$Number_skills)
+min(overview_dat1$Number_skills)
+median(overview_dat1$Number_skills)
+plot(density(overview_dat1$Number_skills))
 
+
+# use runif for everyone to skill up 
+# define proportion learnable for each learning strat
+# include fixed death rate 
+# play around with payoffs
+# animate pop skill level over time
