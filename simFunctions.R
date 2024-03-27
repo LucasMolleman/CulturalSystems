@@ -418,11 +418,11 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     ## learn the trait with probability pList
 
     if(length(pList) > 0){
-      if(runif(1) < p){
+      #if(runif(1) < p){
         repertoires[ind, selectedTrait] <- 1
         learnedTrait <- selectedTrait
         return(learnedTrait)
-      }
+      #}
     } 
   }
   return(numeric(0))

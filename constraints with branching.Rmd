@@ -146,7 +146,7 @@ plotPayoffScaling <- function(strategySuccess){
 
   for (ps in sort(unique(strategySuccess$payoff_scaling))[1:length(unique(strategySuccess$payoff_scaling))]) {
     b <- subset(strategySuccess, payoff_scaling == ps)
-    boxplot(meanPayoff ~ learningStrat, data=b, main=ps, col=stratCols, ylim=c(0,2), xaxt='n',xlab="")
+    boxplot(meanPayoff ~ learningStrat, data=b, main=ps, col=stratCols, ylim=c(0,3), xaxt='n',xlab="")
     axis(1, at=1:length(unique(b$learningStrat)), labels=FALSE)
     if(ps == min(unique(strategySuccess$payoff_scaling))) { # changed condition for clarity
       axis(1, at=1:length(unique(b$learningStrat)), labels=names(stratCols), las=2)
