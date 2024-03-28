@@ -1,3 +1,5 @@
+source("functions_and_libs_for_meta_strategies.R")
+
 # set up population
 population <- c(seq(1:500))
 skills <- 20
@@ -15,11 +17,18 @@ for (r in 1: rounds) {
   skillset[1:number_skills, i] <- 1
   } 
   skillset_start <- skillset
+  
+  payoffs <- c()
+  for (s in 1:skills){
+  payoffs_skill<-runif(n = 1) * s
+  payoffs <- append(payoffs, payoffs_skill)
+  }
+  
 
   # set ages
-  overview <- matrix(nrow = length(population), ncol = 9, dimnames = list(c(), c("Number_skills", "Age", "Learning_strat", "Successful", "Unsuccessful", "Number_skills_start", "Ind_Learning_success", "Ind_Learning_failure","resets")))
+  overview <- matrix(nrow = length(population), ncol = 10, dimnames = list(c(), c("Number_skills", "Age", "Learning_strat", "Successful", "Unsuccessful", "Number_skills_start", "Ind_Learning_success", "Ind_Learning_failure","resets", "Payoff")))
   overview[,"Age"] <- 0
-  overview[,3:9] <- 0
+  overview[,3:10] <- 0
   for (i in 1: ncol(skillset)){
     overview[i, "Number_skills"] <- sum(skillset[,i])
     overview[i, "Number_skills_start"] <- sum(skillset[,i])
@@ -116,6 +125,7 @@ mean(overall_overview$Number_skills_start)
 mean(overall_overview$resets)
 mean(overall_overview$Ind_Learning_success)
 mean(overall_overview$Ind_Learning_failure)
+mean(overall_overview$Payoff)
 
 sum(overall_overview$Ind_Learning_success, overall_overview$Ind_Learning_failure)
 sum(overall_overview$Ind_Learning_failure)/sum(overall_overview$Ind_Learning_success, overall_overview$Ind_Learning_failure)
@@ -374,7 +384,101 @@ points(1:3, mean_values, col = "red", pch = 19)
 arrows(1:3, mean_values - sqrt(variance_values), 1:3, mean_values + sqrt(variance_values), 
        angle = 90, code = 3, length = 0.1, col = "blue")
 
+### for payoff
+payoff_meta1_run1 <- overview_dat1[ID_strat1_run1, "Payoff"]
+payoff_meta1_run2 <- overview_dat2[ID_strat1_run2, "Payoff"]
+payoff_meta1_run3 <- overview_dat3[ID_strat1_run3, "Payoff"]
+payoff_meta1_run4 <- overview_dat4[ID_strat1_run4, "Payoff"]
+payoff_meta1_run5 <- overview_dat5[ID_strat1_run5, "Payoff"]
+payoff_meta1_run6 <- overview_dat6[ID_strat1_run6, "Payoff"]
+payoff_meta1_run7 <- overview_dat7[ID_strat1_run7, "Payoff"]
+payoff_meta1_run8 <- overview_dat8[ID_strat1_run8, "Payoff"]
+payoff_meta1_run9 <- overview_dat9[ID_strat1_run9, "Payoff"]
+payoff_meta1_run10 <- overview_dat10[ID_strat1_run10, "Payoff"]
 
+payoffs_meta1 <- c(
+  payoff_meta1_run1, 
+  payoff_meta1_run2,
+  payoff_meta1_run3,
+  payoff_meta1_run4,
+  payoff_meta1_run5,
+  payoff_meta1_run6,
+  payoff_meta1_run7, 
+  payoff_meta1_run8,
+  payoff_meta1_run9, 
+  payoff_meta1_run10
+)
+
+mean_payoffs_meta1 <- mean(payoffs_meta1)
+var_payoffs_meta1 <- var(payoffs_meta1)
+
+payoff_meta2_run1 <- overview_dat1[ID_strat2_run1, "Payoff"]
+payoff_meta2_run2 <- overview_dat2[ID_strat2_run2, "Payoff"]
+payoff_meta2_run3 <- overview_dat3[ID_strat2_run3, "Payoff"]
+payoff_meta2_run4 <- overview_dat4[ID_strat2_run4, "Payoff"]
+payoff_meta2_run5 <- overview_dat5[ID_strat2_run5, "Payoff"]
+payoff_meta2_run6 <- overview_dat6[ID_strat2_run6, "Payoff"]
+payoff_meta2_run7 <- overview_dat7[ID_strat2_run7, "Payoff"]
+payoff_meta2_run8 <- overview_dat8[ID_strat2_run8, "Payoff"]
+payoff_meta2_run9 <- overview_dat9[ID_strat2_run9, "Payoff"]
+payoff_meta2_run10 <- overview_dat10[ID_strat2_run10, "Payoff"]
+
+payoffs_meta2 <- c(
+  payoff_meta2_run1, 
+  payoff_meta2_run2,
+  payoff_meta2_run3,
+  payoff_meta2_run4,
+  payoff_meta2_run5,
+  payoff_meta2_run6,
+  payoff_meta2_run7, 
+  payoff_meta2_run8,
+  payoff_meta2_run9, 
+  payoff_meta2_run10
+)
+
+mean_payoffs_meta2 <- mean(payoffs_meta2)
+var_payoffs_meta2 <- var(payoffs_meta2)
+
+payoff_meta3_run1 <- overview_dat1[ID_strat3_run1, "Payoff"]
+payoff_meta3_run2 <- overview_dat2[ID_strat3_run2, "Payoff"]
+payoff_meta3_run3 <- overview_dat3[ID_strat3_run2, "Payoff"]
+payoff_meta3_run4 <- overview_dat4[ID_strat3_run4, "Payoff"]
+payoff_meta3_run5 <- overview_dat5[ID_strat3_run5, "Payoff"]
+payoff_meta3_run6 <- overview_dat6[ID_strat3_run6, "Payoff"]
+payoff_meta3_run7 <- overview_dat7[ID_strat3_run7, "Payoff"]
+payoff_meta3_run8 <- overview_dat8[ID_strat3_run8, "Payoff"]
+payoff_meta3_run9 <- overview_dat9[ID_strat3_run9, "Payoff"]
+payoff_meta3_run10 <- overview_dat10[ID_strat3_run10, "Payoff"]
+
+payoffs_meta3 <- c(
+  payoff_meta3_run1, 
+  payoff_meta3_run2,
+  payoff_meta3_run3,
+  payoff_meta3_run4,
+  payoff_meta3_run5,
+  payoff_meta3_run6,
+  payoff_meta3_run7, 
+  payoff_meta3_run8,
+  payoff_meta3_run9, 
+  payoff_meta3_run10
+)
+
+mean_payoffs_meta3 <- mean(payoffs_meta3)
+var_payoffs_meta3 <- var(payoffs_meta3)
+
+payoff_means <- c(mean_payoffs_meta1, mean_payoffs_meta2, mean_payoffs_meta3)
+payoff_vars <- c(var_payoffs_meta1, var_payoffs_meta2, var_payoffs_meta3)
+
+boxplot(payoffs_meta1, payoffs_meta2, payoffs_meta3, names = c("Strat for life", "Bayesian Learner", "MoE"), 
+        main = "Payoffs",
+        ylab = "Payoff")
+
+# Add mean points to the plot
+points(1:3, payoff_means, col = "red", pch = 19)
+
+# Add error bars representing variance
+arrows(1:3, payoff_means - sqrt(payoff_vars), 1:3, payoff_means + sqrt(payoff_vars), 
+       angle = 90, code = 3, length = 0.1, col = "blue")
 
 ### plot bayesian learner development over time
 # plot the usage of learning strategies over time
