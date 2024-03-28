@@ -92,6 +92,7 @@ conformity_based <- function(){
 
 successful <- function(individual = individual, skillset = skillset, overview = overview){
   overview[individual, "Number_skills"] <<- overview[individual, "Number_skills"]+1
+  overview[individual,10] <<- overview[individual,10] + payoffs[skills_learner + 1]
   skillset[skills_learner + 1,individual] <<- 1
   overview[individual, "Successful"] <<- overview[individual, "Successful"] +1
   return(overview)
