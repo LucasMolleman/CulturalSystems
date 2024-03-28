@@ -90,8 +90,8 @@ conformity_based <- function(){
 } 
 
 successful <- function(individual = individual, skillset = skillset, overview = overview){
-  overview[individual, "Number_skills"] <- overview[individual, "Number_skills"]+1
-  skillset[skills_learner + 1,individual] <- 1
+  overview[individual, "Number_skills"] <<- overview[individual, "Number_skills"]+1
+  skillset[skills_learner + 1,individual] <<- 1
   overview[individual, "Successful"] <<- overview[individual, "Successful"] +1
   return(overview)
 }
@@ -236,8 +236,9 @@ mixture_of_experts <- function(meta_overview = meta_overview){
   }
 }
 meta_learning <- function(){
-r <- runif(1)
-if (r >= reset_rate){
+s <- runif(1)
+if (runif(1) >= reset_rate){
+  if (s < social_learning){
   print("no reset")
   if (sum(meta_overview[meta_overview$ID == individual, 2]) == 4) {
     print("Meta Strategy 1")
@@ -257,11 +258,27 @@ if (r >= reset_rate){
     mixture_of_experts(meta_overview = meta_overview)
     overview[individual,2] <<- overview[individual,2] + 1
   }
+  } else if (s >= social_learning){ # individual learning
+    learnable_traits<- c(which(skillset[,individual] == 0))
+    if (length(learnable_traits)>1) {
+      selected_trait<-sample(learnable_traits,1)
+    } else  selected_trait <- learnable_traits
+    if (selected_trait == (sum(skillset[,individual])+1)){
+      skillset[selected_trait, individual] <<- 1
+      overview[individual, "Ind_Learning_success"] <<- overview[individual, "Ind_Learning_success"] + 1
+      overview[individual,2] <<- overview[individual,2] + 1
+      overview[individual, "Number_skills"] <- overview[individual, "Number_skills"]+1
+    } else{
+      overview[individual, "Ind_Learning_failure"] <<- overview[individual, "Ind_Learning_failure"] + 1
+      overview[individual,2] <<- overview[individual,2] + 1
+    }
+  }
 } else {
   overview[individual, "Number_skills"] <<- 1
   skillset[2: skills_learner,individual] <<- 0
   overview[individual, "Successful"] <<- 0
   overview[individual, "Unsuccessful"] <<- 0
+  overview[individual, "resets"] <<- overview[individual, "resets"] + 1
   meta_overview[meta_overview$ID == individual,4:5] <<- 0 
   print("reset")
 }
@@ -275,8 +292,8 @@ population <- c(seq(1:500))
 skills <- 20
 timesteps <- 25000
 rounds <- 10
-reset_rate<- 0.01	
-# learning_rate <- 30
+reset_rate<- 0.05	
+social_learning <- 0.99
 
 # sample teacher 
 for (r in 1: rounds) {
@@ -286,14 +303,15 @@ for (r in 1: rounds) {
   number_skills <- round(sample(runif(10000, 1, 20), 1), 0) 
   skillset[1:number_skills, i] <- 1
   } 
+  skillset_start <- skillset
 
   # set ages
-  overview <- matrix(nrow = length(population), ncol = 5, dimnames = list(c(), c("Number_skills", "Age", "Learning_strat", "Successful", "Unsuccessful")))
+  overview <- matrix(nrow = length(population), ncol = 9, dimnames = list(c(), c("Number_skills", "Age", "Learning_strat", "Successful", "Unsuccessful", "Number_skills_start", "Ind_Learning_success", "Ind_Learning_failure","resets")))
   overview[,"Age"] <- 0
-  overview[,"Successful"] <- 0
-  overview[,"Unsuccessful"] <- 0
+  overview[,3:9] <- 0
   for (i in 1: ncol(skillset)){
     overview[i, "Number_skills"] <- sum(skillset[,i])
+    overview[i, "Number_skills_start"] <- sum(skillset[,i])
   }
   # each individual gets one learning strat
   overview[,"Learning_strat"] <- sample(1:4, length(population), replace = TRUE, prob = c(0.25, 0.25,0.25,0.25))
@@ -345,6 +363,7 @@ assign(paste0("skillset", r), skillset, envir = .GlobalEnv)
 assign(paste0("overview", r), overview, envir = .GlobalEnv)
 assign(paste0("meta_overview", r), meta_overview, envir = .GlobalEnv)
 assign(paste0("over_time", r), over_time, envir = .GlobalEnv)
+assign(paste0("skillset_start", r), skillset_start, envir = .GlobalEnv)
   }
 
 
@@ -367,6 +386,25 @@ overview_dat7 <- as.data.frame(overview7)
 overview_dat8 <- as.data.frame(overview8)
 overview_dat9 <- as.data.frame(overview9)
 overview_dat10 <- as.data.frame(overview10)
+
+overall_overview <- rbind.data.frame(
+  overview_dat1,
+  overview_dat2,
+  overview_dat3,
+  overview_dat4,
+  overview_dat5,
+  overview_dat6,
+  overview_dat7,
+  overview_dat8,
+  overview_dat9,
+  overview_dat10
+)
+
+mean(overall_overview$Number_skills)
+mean(overall_overview$Number_skills_start)
+median(overall_overview$resets)
+sum(overall_overview$Ind_Learning_success)
+sum(overall_overview$Ind_Learning_failure)
 
 overall_meta_overview <- rbind.data.frame(
   meta_overview1,
@@ -667,23 +705,64 @@ ggplot(df_time, aes(x = Age, y = percent, color = as.factor(Strategy))) +
   theme_classic() +
   scale_color_discrete(name="Learning strategy")
 
-# overview how much each learning strategy is used by the bayesian learners
-meta_overview3 %>% 
-  filter(Meta_strategy == 2) %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Successful, Unsuccessful), list(sum = sum))
-
-
-meta_overview1 %>%
-  filter(Meta_strategy == 3) %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Successful, Unsuccessful), list(Mean = mean))
   
-mean(overview_dat1$Number_skills)
-min(overview_dat1$Number_skills)
-median(overview_dat1$Number_skills)
-plot(density(overview_dat10$Number_skills))
+plot(density(overall_overview$Number_skills_start))
+plot(density(overall_overview$Number_skills))
 
+### 
+skill_overview_meta1 <- rbind(
+  overview_dat1[ID_strat1_run1, ],
+  overview_dat2[ID_strat1_run2, ],
+  overview_dat3[ID_strat1_run3, ],
+  overview_dat4[ID_strat1_run4, ],
+  overview_dat5[ID_strat1_run5, ],
+  overview_dat6[ID_strat1_run6, ],
+  overview_dat7[ID_strat1_run7, ],
+  overview_dat8[ID_strat1_run8, ],
+  overview_dat9[ID_strat1_run9, ],
+  overview_dat10[ID_strat1_run10, ]
+)
+
+skill_overview_meta1 <- skill_overview_meta1 %>%
+  select(Number_skills, Number_skills_start) %>%
+  mutate(difference = skill_overview_meta1$Number_skills - skill_overview_meta1$Number_skills_start) %>%
+  colMeans(difference)
+
+skill_overview_meta2 <- rbind(
+  overview_dat1[ID_strat2_run1, ],
+  overview_dat2[ID_strat2_run2, ],
+  overview_dat3[ID_strat2_run3, ],
+  overview_dat4[ID_strat2_run4, ],
+  overview_dat5[ID_strat2_run5, ],
+  overview_dat6[ID_strat2_run6, ],
+  overview_dat7[ID_strat2_run7, ],
+  overview_dat8[ID_strat2_run8, ],
+  overview_dat9[ID_strat2_run9, ],
+  overview_dat10[ID_strat2_run10, ]
+)
+
+skill_overview_meta2 <- skill_overview_meta2 %>%
+  select(Number_skills, Number_skills_start) %>%
+  mutate(difference = skill_overview_meta2$Number_skills - skill_overview_meta2$Number_skills_start) %>%
+  colMeans(difference)
+
+skill_overview_meta3 <- rbind(
+  overview_dat1[ID_strat3_run1, ],
+  overview_dat2[ID_strat3_run2, ],
+  overview_dat3[ID_strat3_run3, ],
+  overview_dat4[ID_strat3_run4, ],
+  overview_dat5[ID_strat3_run5, ],
+  overview_dat6[ID_strat3_run6, ],
+  overview_dat7[ID_strat3_run7, ],
+  overview_dat8[ID_strat3_run8, ],
+  overview_dat9[ID_strat3_run9, ],
+  overview_dat10[ID_strat3_run10, ]
+)
+
+skill_overview_meta3 <- skill_overview_meta3 %>%
+  select(Number_skills, Number_skills_start) %>%
+  mutate(difference = skill_overview_meta3$Number_skills - skill_overview_meta3$Number_skills_start) %>%
+  colMeans(difference)
 
 # use runif for everyone to skill up 
 # define proportion learnable for each learning strat
