@@ -8,8 +8,6 @@ select_teacher <- function(skillset, teachers, skills_learner){
   skilled_teacher <- c() 
   for (i in 1:length(teachers)) {
     skills_teacher <- sum(skillset[,teachers[i]])
-    cat("teacher:", teachers[i])
-    print(skills_teacher)
     if(skills_teacher > skills_learner){
       skilled_teacher <- append(skilled_teacher, teachers[i]) 
     }
@@ -95,12 +93,10 @@ successful <- function(individual = individual, skillset = skillset, overview = 
   overview[individual, "Number_skills"] <- overview[individual, "Number_skills"]+1
   skillset[skills_learner + 1,individual] <- 1
   overview[individual, "Successful"] <<- overview[individual, "Successful"] +1
-  cat(overview[individual,"Learning_strat"], "Successful")
   return(overview)
 }
 unsuccessful <- function(individual = individual, skillset = skillset, overview = overview){
   overview[individual, "Unsuccessful"] <<- overview[individual, "Unsuccessful"] +1
-  cat(overview[individual,"Learning_strat"], "Unsuccessful")
   return(overview)
 }
 strategy_for_life <- function (learningstrat){
@@ -109,18 +105,22 @@ strategy_for_life <- function (learningstrat){
       observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
       if(observed_behavior == skills_learner+1){
         successful(individual, skillset, overview)
+        cat("Learning Strategy: 1 ", "Successful")
         meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] + 1
       } else {
         unsuccessful(individual, skillset, overview)
+        cat("Learning Strategy: 1 ", "Unsuccessful")
         meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] + 1
       } }else if(learningstrat == 2){
         similarity_based()
         observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
         if(observed_behavior == skills_learner+1){
           successful(individual, skillset, overview)
+          cat("Learning Strategy: 2 ", "Successful")
           meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] + 1
         } else {
           unsuccessful(individual, skillset, overview)
+          cat("Learning Strategy: 2 ", "Unsuccessful")
           meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] + 1
         }
       }else if(learningstrat == 3){
@@ -128,9 +128,11 @@ strategy_for_life <- function (learningstrat){
         observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
         if(observed_behavior == skills_learner+1){
           successful(individual, skillset, overview)
+          cat("Learning Strategy: 3 ", "Successful")
           meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] + 1
         } else {
           unsuccessful(individual, skillset, overview)
+          cat("Learning Strategy: 3 ", "Unsuccessful")
           meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] + 1
         }
       } else if(learningstrat == 4){
@@ -138,9 +140,11 @@ strategy_for_life <- function (learningstrat){
         observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
         if(observed_behavior == skills_learner+1){
           successful(individual, skillset, overview)
+          cat("Learning Strategy: 4 ", "Successful")
           meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] + 1
         } else {
           unsuccessful(individual, skillset, overview)
+          cat("Learning Strategy: 4 ", "Unsuccessful")
           meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 5] + 1
         }
   
@@ -158,7 +162,7 @@ bayesian_learner <- function(){
     #probs_learningstrat <- append(probs_learningstrat, sample(distr_bayesian, 1))
     mean_bayesian <- mean(rbeta(n = 100, shape1 = 1 + a, shape2 = 1 + b))
     probs_learningstrat <- append(probs_learningstrat, mean_bayesian)
-    
+    print(probs_learningstrat)
   }
   which.max(probs_learningstrat)
 }
@@ -217,12 +221,14 @@ mixture_of_experts <- function(meta_overview = meta_overview){
   observed_behavior <- sample(seq(skills_learner+1, skills_steacher[skilled_teacher == selected_teacher]), 1)
   if(observed_behavior == skills_learner+1){
     successful(individual, skillset, overview)
+    print("Successful")
     meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 4] + (weighted_payoff_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
     meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 4] + (weighted_similiarity_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
     meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 4] + (weighted_age_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
     meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 4, 4] + (weighted_conformity_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
   } else {
     unsuccessful(individual, skillset, overview)
+    print("Unsuccessful")
     meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 1, 5] + (weighted_payoff_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
     meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 2, 5] + (weighted_similiarity_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
     meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] <<- meta_overview[meta_overview$ID == individual & meta_overview$Learning_strat == 3, 5] + (weighted_age_score[overall_score == max(overall_score)]/overall_score[overall_score == max(overall_score)])
@@ -232,22 +238,32 @@ mixture_of_experts <- function(meta_overview = meta_overview){
 meta_learning <- function(){
 r <- runif(1)
 if (r >= reset_rate){
+  print("no reset")
   if (sum(meta_overview[meta_overview$ID == individual, 2]) == 4) {
-  strategy_for_life(learningstrat = overview[individual,"Learning_strat"])
+    print("Meta Strategy 1")
+    strategy_for_life(learningstrat = overview[individual,"Learning_strat"])
+    overview[individual,2] <<- overview[individual,2] + 1
     } 
   if (sum(meta_overview[meta_overview$ID == individual, 2]) == 8) {
+    print("Meta Strategy 2")
     learningstrat <- bayesian_learner()
     strategy_for_life(learningstrat = learningstrat)
     age_ind <- as.numeric(overview[individual,2])
     over_time <<- append(over_time, c(individual, age_ind, learningstrat))
+    overview[individual,2] <<- overview[individual,2] + 1
     } 
-  if(sum(meta_overview[meta_overview$ID == individual, 2]) == 12) mixture_of_experts(meta_overview = meta_overview)
+  if(sum(meta_overview[meta_overview$ID == individual, 2]) == 12) {
+    print("Meta Strategy 3")
+    mixture_of_experts(meta_overview = meta_overview)
+    overview[individual,2] <<- overview[individual,2] + 1
+  }
 } else {
-  overview[individual, "Number_skills"] <- 1
-  skillset[2: skills_learner,individual] <- 0
-  overview[individual, "Successful"] <- 0
-  overview[individual, "Unsuccessful"] <- 0
-  meta_overview[meta_overview$ID == individual,4:5] <- 0 
+  overview[individual, "Number_skills"] <<- 1
+  skillset[2: skills_learner,individual] <<- 0
+  overview[individual, "Successful"] <<- 0
+  overview[individual, "Unsuccessful"] <<- 0
+  meta_overview[meta_overview$ID == individual,4:5] <<- 0 
+  print("reset")
 }
   }
 
@@ -270,17 +286,7 @@ for (r in 1: rounds) {
   number_skills <- round(sample(runif(10000, 1, 20), 1), 0) 
   skillset[1:number_skills, i] <- 1
   } 
-  
-  # # learners who start with level > 1
-  # advanced_learners <- sample(population, (length(population)/10))
-  # random_skill_level <- sample(skills, 100, replace = TRUE)
-  # for(i in 1: length(advanced_learners)){
-  #   x <- random_skill_level[i]
-  #   while (x > 1) {
-  #     skillset[x,advanced_learners[i]] <- 1
-  #     x <- x-1
-  #   }
-  # }
+
   # set ages
   overview <- matrix(nrow = length(population), ncol = 5, dimnames = list(c(), c("Number_skills", "Age", "Learning_strat", "Successful", "Unsuccessful")))
   overview[,"Age"] <- 0
@@ -333,9 +339,7 @@ for (r in 1: rounds) {
   # give them learning strat
   skills_steacher <- c(overview[skilled_teacher,"Number_skills"])
   prob_teacher_select <- rep(1/length(skilled_teacher), length(skilled_teacher))
-  cat("round:", i, " ")
   meta_learning()
-  overview[individual,2] <- overview[individual,2] + 1 
   }
 assign(paste0("skillset", r), skillset, envir = .GlobalEnv)
 assign(paste0("overview", r), overview, envir = .GlobalEnv)
@@ -354,84 +358,36 @@ colSums(overview3)
 colSums(meta_overview3)
 
 overview_dat1 <- as.data.frame(overview1)
-overview_dat1 <- overview_dat1 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat1 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat2 <- as.data.frame(overview2)
-overview_dat2 <- overview_dat2 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat2 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat3 <- as.data.frame(overview3)
-overview_dat3 <- overview_dat3 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat3 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat4 <- as.data.frame(overview4)
-overview_dat4 <- overview_dat4 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat4 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat5 <- as.data.frame(overview5)
-overview_dat5 <- overview_dat5 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat5 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat6 <- as.data.frame(overview6)
-overview_dat6 <- overview_dat6 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat6 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat7 <- as.data.frame(overview7)
-overview_dat7 <- overview_dat7 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat7 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat8 <- as.data.frame(overview8)
-overview_dat8 <- overview_dat8 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat8 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat9 <- as.data.frame(overview9)
-overview_dat9 <- overview_dat9 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat9 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
-
 overview_dat10 <- as.data.frame(overview10)
-overview_dat10 <- overview_dat10 %>%
-  mutate(Learning_strat = factor(Learning_strat))
-overview_dat10 %>%
-  group_by(Learning_strat) %>%
-  summarise_at(vars(Number_skills), list(name = mean))
 
-meta_overview1 %>%
+overall_meta_overview <- rbind.data.frame(
+  meta_overview1,
+  meta_overview2,
+  meta_overview3,
+  meta_overview4,
+  meta_overview5, 
+  meta_overview6,
+  meta_overview7,
+  meta_overview8,
+  meta_overview9,
+  meta_overview10
+)
+
+overall_meta_overview %>%
+  group_by(Learning_strat) %>%
+  summarise_at(vars(3:4), list(Mean = mean))
+overall_meta_overview %>%
   group_by(Meta_strategy) %>%
-  summarise_at(vars(3:4), list(name = mean))
-meta_overview2 %>%
-  group_by(Meta_strategy) %>%
-  summarise_at(vars(3:4), list(name = mean))
-meta_overview3 %>%
-  group_by(Meta_strategy) %>%
-  summarise_at(vars(3:4), list(name = mean))
+  summarise_at(vars(3:4), list(Mean = mean))
+
 
 ggplot(data = overview_dat1, aes(x = Number_skills, fill = Learning_strat)) +
   geom_bar(position = position_dodge(width = 0.8))
@@ -726,7 +682,7 @@ meta_overview1 %>%
 mean(overview_dat1$Number_skills)
 min(overview_dat1$Number_skills)
 median(overview_dat1$Number_skills)
-plot(density(overview_dat1$Number_skills))
+plot(density(overview_dat10$Number_skills))
 
 
 # use runif for everyone to skill up 
