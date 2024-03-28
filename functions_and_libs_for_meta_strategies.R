@@ -39,7 +39,8 @@ if_no_teacher <- function(){
   } 
 }
 payoff_based <- function(){
-  teacher_highest_payoff <- c(skilled_teacher[skills_steacher == max(skills_steacher)])
+  payoff_teachers <- payoffs[skills_steacher]
+  teacher_highest_payoff <- c(skilled_teacher[payoff_teachers == max(payoff_teachers)])
   if (length(teacher_highest_payoff) > 1){
     teacher_highest_payoff <- sample(teacher_highest_payoff,1)
   }
