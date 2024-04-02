@@ -160,10 +160,10 @@ bayesian_learner <- function(){
   for(learningstrat in 1:4){
     a <- successes_l$Successful[learningstrat]
     b <- successes_l$Unsuccessful[learningstrat]
-    # distr_bayesian <- rbeta(n = 10, shape1 = 1 + a, shape2 = 1 + b)
-    #probs_learningstrat <- append(probs_learningstrat, sample(distr_bayesian, 1))
-    mean_bayesian <- mean(rbeta(n = 100, shape1 = 1 + a, shape2 = 1 + b))
-    probs_learningstrat <- append(probs_learningstrat, mean_bayesian)
+    distr_bayesian <- rbeta(n = 10, shape1 = 1 + a, shape2 = 1 + b)
+    probs_learningstrat <- append(probs_learningstrat, sample(distr_bayesian, 1))
+    # mean_bayesian <- mean(rbeta(n = 100, shape1 = 1 + a, shape2 = 1 + b))
+    # probs_learningstrat <- append(probs_learningstrat, mean_bayesian)
     print(probs_learningstrat)
   }
   which.max(probs_learningstrat)
@@ -195,10 +195,10 @@ mixture_of_experts <- function(meta_overview = meta_overview){
   for(learningstrat in 1:4){
     a <- successes_l$Successful[learningstrat]
     b <- successes_l$Unsuccessful[learningstrat]
-    # distr_bayesian <- rbeta(n = 10, shape1 = 1 + a, shape2 = 1 + b)
-    # probs_learningstrat <- append(probs_learningstrat, sample(distr_bayesian, 1))
-    mean_bayesian <- mean(rbeta(n = 100, shape1 = 1 + a, shape2 = 1 + b))
-    probs_learningstrat <- append(probs_learningstrat, mean_bayesian)
+    distr_bayesian <- rbeta(n = 10, shape1 = 1 + a, shape2 = 1 + b)
+    probs_learningstrat <- append(probs_learningstrat, sample(distr_bayesian, 1))
+    # mean_bayesian <- mean(rbeta(n = 100, shape1 = 1 + a, shape2 = 1 + b))
+    # probs_learningstrat <- append(probs_learningstrat, mean_bayesian)
   }
   weighted_payoff_score <- c()
   weighted_similiarity_score <- c()
@@ -261,9 +261,19 @@ meta_learning <- function(){
         overview[individual,2] <<- overview[individual,2] + 1
       }
     } else if (s >= social_learning){ # individual learning
+      if(overview[individual, "Number_skills"] == 20){
+        practice_sucess <- sample(seq(1:10), 1)
+        if (practice_sucess < 5){
+          overview[individual, "Number_skills"] <<- 19
+          overview[individual,2] <<- overview[individual,2] + 1
+          skillset[20,individual] <<- 0
+        } else {
+          overview[individual,2] <<- overview[individual,2] + 1
+        }
+      } else {
       learnable_traits<- c(which(skillset[,individual] == 0))
       if (length(learnable_traits)>1) {
-        selected_trait<-sample(learnable_traits,1)
+        selected_trait <- sample(learnable_traits,1)
       } else  selected_trait <- learnable_traits
       if (selected_trait == (sum(skillset[,individual])+1)){
         skillset[selected_trait, individual] <<- 1
@@ -273,6 +283,7 @@ meta_learning <- function(){
       } else{
         overview[individual, "Ind_Learning_failure"] <<- overview[individual, "Ind_Learning_failure"] + 1
         overview[individual,2] <<- overview[individual,2] + 1
+      }
       }
     }
   } else {
