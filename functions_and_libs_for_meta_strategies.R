@@ -44,7 +44,7 @@ payoff_based <- function(){
   if (length(teacher_highest_payoff) > 1){
     teacher_highest_payoff <- sample(teacher_highest_payoff,1)
   }
-  prob_teacher_select[skilled_teacher == teacher_highest_payoff] <- prob_teacher_select[skilled_teacher == teacher_highest_payoff] * 3
+  prob_teacher_select[skilled_teacher == teacher_highest_payoff] <- prob_teacher_select[skilled_teacher == teacher_highest_payoff] * selection_bonus
   selected_teacher <<- sample(skilled_teacher, 1, prob = prob_teacher_select)
 }
 # similar traits
@@ -54,7 +54,7 @@ similarity_based <- function(){
   if (length(similar_teacher) > 1){
     similar_teacher <- sample(similar_teacher,1)
   }
-  prob_teacher_select[skilled_teacher == similar_teacher] <- prob_teacher_select[skilled_teacher == similar_teacher] * 3
+  prob_teacher_select[skilled_teacher == similar_teacher] <- prob_teacher_select[skilled_teacher == similar_teacher] * selection_bonus
   selected_teacher <<- sample(skilled_teacher, 1, prob = prob_teacher_select)
 }
 # similar age
@@ -62,11 +62,17 @@ age_based <- function(){
   teacher_age <- c(overview[skilled_teacher,"Age"])
   learner_age <- overview[individual, "Age"]
   age_difference <- c(teacher_age - learner_age)
-  similar_age_teacher <- c(skilled_teacher[age_difference == min(age_difference)])
+  w <- c()
+  for (i in 1:length(skilled_teacher)){
+    if (age_difference[i] >= 0) w[i] <- 0.5^age_difference[i]
+    if (age_difference[i] < 0) w[i] <- 10^-8
+  }
+  similar_age_teacher <- c(skilled_teacher[w == max(w)])
+  # similar_age_teacher <- c(skilled_teacher[age_difference == min(age_difference)])
   if (length(similar_age_teacher) > 1){
     similar_age_teacher <- sample(similar_age_teacher,1)
   }
-  prob_teacher_select[skilled_teacher == similar_age_teacher] <- prob_teacher_select[skilled_teacher == similar_age_teacher] * 3
+  prob_teacher_select[skilled_teacher == similar_age_teacher] <- prob_teacher_select[skilled_teacher == similar_age_teacher] * selection_bonus
   selected_teacher <<- sample(skilled_teacher, 1, prob = prob_teacher_select)
 }
 # conformity, weigh common traits 
@@ -82,7 +88,7 @@ conformity_based <- function(){
   }
   if (length(teacher_conf) > 1){
     teacher_conf <- sample(teacher_conf,1)
-    prob_teacher_select[skilled_teacher == teacher_conf] <- prob_teacher_select[skilled_teacher == teacher_conf] * 3
+    prob_teacher_select[skilled_teacher == teacher_conf] <- prob_teacher_select[skilled_teacher == teacher_conf] * selection_bonus
     selected_teacher <<- sample(skilled_teacher, 1, prob = prob_teacher_select)
   }else if (length(teacher_conf) == 0){
     prob_teacher_select <- prob_teacher_select
@@ -292,7 +298,20 @@ meta_learning <- function(){
     overview[individual, "Successful"] <<- 0
     overview[individual, "Unsuccessful"] <<- 0
     overview[individual, "resets"] <<- overview[individual, "resets"] + 1
+    overview[individual, "Age"] <<- 0
     meta_overview[meta_overview$ID == individual,4:5] <<- 0 
     print("reset")
   }
 }
+
+
+
+
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+#  
