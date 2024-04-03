@@ -27,7 +27,8 @@ runsimulation <- function(params, learningStrategy, repl, tree){
   ### SYSTEM AND NODE PAYOFFS ARE SET
   
   ####### INITIALIZE POPULATION #####
-  repertoires<-initializePopulation(params)
+  blockers <- initializeBlockers(params)
+  repertoires<-initializePopulation(params, blockers)
   popAge<-assignAges(repertoires)
   
   ### population is now initialized... start running the model
@@ -102,6 +103,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
       popAge[ind]<-0  ## reset the age of the agent to 0
     }
   }
+  
   sumThisSimulation<-c(params$num_nodes, 
                         params$branching_factor, 
                         params$tree_layers, 
@@ -111,7 +113,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
                         params$olderPref,
                         repl,
                         params$payoff_scaling,
-                        mean(SLpay[round(params$timesteps*0.9):params$timesteps], na.rm=TRUE))
+                        sum(SLpay, na.rm=TRUE))
 
   
   return(sumThisSimulation)

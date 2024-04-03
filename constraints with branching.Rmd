@@ -45,15 +45,17 @@ params <- list(
   probDelta = 2.5,                # parameter for the falloff function
   windowSize = 1000,              # parameters for plotting (number of time steps per printing event frequencies)
   root_node = 32,                 # root node of the tree, should be equal to num_nodes when using converging tree, else 1
-  branching_factor = 3            # branching factor of the tree
+  branching_factor = 3,           # branching factor of the tree
+  blockedLayer = 1,               # layer at which tree blockages occur
+  numBlocked = 2,                 # number of blocked traits in the model
+  propBlocked = 0.1               # proportion of individuals that have blocked traits
   )
-
 
 ``` 
 
 
 
- ## Run Simulation
+## Run Simulation
 
 ```{r}
 ### define a summary matrix with success of learning strategies
@@ -124,7 +126,7 @@ for (learningStrategy in c(1:4)){
   }
 }
 ```
-
+## Plot Results
 
 ```{r}
 plotPayoffScaling(strategySuccess)
@@ -138,8 +140,9 @@ plotPayoffScaling <- function(strategySuccess){
   strategySuccess <- data.frame(strategySuccess)
   names(strategySuccess) <- c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'meanPayoff')
   rownames(strategySuccess) <- NULL
-  stratCols <- c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')
-  stratNames <- c('random','payoff', 'similarity')
+  strats <- unique(strategySuccess$learningStrat) + 1
+  stratCols <- c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')[strats]
+  stratNames <- c('random','payoff', 'similarity', 'age-based', 'conformity')[strats]
 
   # Update mar to provide more space at the bottom for the legend
   par(mfrow=c(1,5), mar=c(7, 4, 4, 2) + 0.1) # Increase the bottom margin substantially

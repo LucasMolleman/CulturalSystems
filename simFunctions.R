@@ -221,23 +221,50 @@ generate_rooted_tree_betaDistr <- function(params, tree_layers) {
   return(g)
 }
 
-initializePopulation <- function(params){
+initializeBlockers(params){
+  N <- params$N
+  num_nodes <- params$num_nodes
+  root_node <- params$root_node
+  blockedLayer <- params$blockedLayer
+  numBlocked <- params$numBlockedTraits
+  propBlocked <- params$propBlocked
+
+  blockedTraits <- matrix(0, nrow = N, ncol = num_nodes)
+  
+  blockedInds <- sample(1:N, round(N*propBlocked))
+  trDistances <- distances(tree, v = root_node, mode = "out")
+  
+  blockableTraits <- which(trDistances == blockedLayer)
+  
+  for(ind in blockedInds){
+    blockedTraits[ind, sample(blockableTraits, numBlocked)] <- 1
+  }
+  
+  return(blockedTraits)
+}
+
+initializePopulation <- function(params, blockers){
   N <- params$N
   num_nodes <- params$num_nodes
   root_node <- params$root_node
   adj_matrix <- params$adj_matrix
   repertoires <- matrix(0, nrow = N, ncol = num_nodes)
-  repertoires[, root_node] <- 1
+  
+  trDistances <- distances(tree, v = root_node, to = setdiff(V(tree), root_node))
+  pList <- unlist(lapply(trDistances, function(x) 1/x))
+  which(colnames(repertoires) == learnableTraits)
   
   for (ind in 1:N){
-    numTraits <- sample(1:num_nodes, 1)
-    for (tr in 2:numTraits){
-      unknownTraits <- which(repertoires[ind, ] == 0)
-      learnableTraits <- unknownTraits[sapply(unknownTraits, function(trait) prod(repertoires[ind, which(adj_matrix[, trait] == 1)] == 1)) == 1]
-      if (length(learnableTraits) >= 1) {
-        repertoires[ind, sample(learnableTraits, 1)] <- 1
+    blockedTraits <- which(blockers[ind,] == 1)
+    numTraits <- sample(1:num_nodes-length(blockedTraits)-1, 1)
+      for (tr in 1:numTraits){
+        unknownTraits <- which(repertoires[ind, ] == 0)
+        learnableTraits <- setdiff(unknownTraits, blockedTraits)
+        if (length(learnableTraits) >= 1) {
+          pList <- pList[which(1:ncol(repertoires) %in% learnableTraits)]
+          repertoires[ind, sample(learnableTraits, 1, prob = pList)] <- 1
+        }
       }
-    }
   }
   return(repertoires)
 }
@@ -250,24 +277,13 @@ assignAges<-function(repertoires){
   return (popAge)
 }
 
-getLearnableTraits<-function(repertoires, ind, adj_matrix){
+getLearnableTraits<-function(repertoires, blockers, ind){
   # Identify traits not known by the individual
-  unknownTraits <- which(repertoires[ind,] == 0)
+  unknownTraits <- which(repertoires[ind, ] == 0)
   
-  # Determine parents present in the individual's repertoire for each trait
-  parentMatches <- colSums(adj_matrix == 1 & repertoires[ind,] == 1)
+  blockedTraits <- which(blockers[ind, ] == 1)
   
-  # Identify traits that are learnable based on parent presence
-  learnableTraits <- which(parentMatches > 0 & !is.na(parentMatches))
-  
-  # Filter learnable traits to include only those that are unknown
-  learnableTraits <- learnableTraits[learnableTraits %in% unknownTraits]
-  
-  # Identify traits that cannot be learned due to negative relationships
-  blockers <- which(colSums(adj_matrix == -1 & repertoires[ind,]) > 0)
-  
-  # Remove blocked traits from the list of learnable traits
-  learnableTraits <- setdiff(learnableTraits, blockers)
+  learnableTraits <- setdiff(unknownTraits, blockedTraits)
   
   return(learnableTraits)
 }
@@ -281,9 +297,17 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
   distancesToUnique <- distances(tree, v = knownTraits, to = uniqueLearnableTraits)
   
   # Replicate distances based on the original 'learnableTraits' order and duplication
-  replicatedDistances <- distancesToUnique[,match(learnableTraits, uniqueLearnableTraits)]
+  trDistances <- distancesToUnique[,match(learnableTraits, uniqueLearnableTraits)]
   
-  return(replicatedDistances)
+  # Handle edge cases where 'trDistances' is a vector
+  if(is.vector(trDistances)) {
+    if(length(knownTraits) == 1) {
+      trDistances <- matrix(trDistances, nrow = 1, byrow = TRUE)
+    } else if (length(learnableTraits) == 1) {
+      trDistances <- matrix(trDistances, ncol = 1)
+    }
+  }
+  return(trDistances)
 }
 
 getTraitLearningProbability <- function(params, repertoires, ind, tree, learnableTraits){
@@ -298,24 +322,12 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
   
   trDistances <- getDistances(learnableTraits, knownTraits, tree)  
   
-  
-  if(is.vector(trDistances)) {
-    if(length(knownTraits) == 1) {
-      trDistances <- matrix(trDistances, nrow = 1, byrow = TRUE)
-    } else if (length(learnableTraits) == 1) {
-      trDistances <- matrix(trDistances, ncol = 1)
-    }
-  }
   # Handle different falloff functions
   if (falloffFunction == "adjacent") {
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
   }
   else if (falloffFunction == "reciprocal"){
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/branching_factor)/x^probDelta))
-  }
-  else if (falloffFunction == "linear") {
-    maxDistance <- max(trDistances)
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) max(0, 1 - min(x) / maxDistance))
   }
   if(length(pList)!= length(learnableTraits)){
     browser()
@@ -331,14 +343,13 @@ getPayoffs <- function(tree, params) {
   random_payoffs <- runif(vcount(tree))
   distance_payoffs <- 1 + (distances_from_root - 1) * payoff_scaling
   adjusted_payoffs <- (1 - weight) * (2 * random_payoffs/max(random_payoffs)) + weight * distance_payoffs
-  
   return(adjusted_payoffs)
 }
 
 learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
   unknownTraits <- which(repertoires[ind,] == 0)
-  learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits)]
-
+  learnableTraits <- getLearnableTraits(repertoires, blockers, ind)
+  
   if(length(observedTraits) > 0){
     wList <- numeric(length = length(learnableTraits))     
     pList <- getTraitLearningProbability(params, repertoires, ind, tree, learnableTraits) 
@@ -386,10 +397,14 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     else if(learningStrategy == 0){
       wList <- rep(1, length(learnableTraits))
     }
+    
+    
     if(sum(wList, na.rm = T) == 0){
       return(numeric(0))
     }
+    
     pList <- pmin(pmax(pList,0), 1)
+    
     if(sum(wList, na.rm = T) > 0) {
       if(max(wList) == min(wList)) {
         wList <- wList
