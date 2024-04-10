@@ -214,10 +214,10 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
 N = 100
 M = 10
 num_nodes = 129 # (including root node)
-branching_factor = 1 # c(1,2, 4, 8, 16, 32, 64, 128)
-SLS = 1 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
+branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
+SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
-reset_rate = 0.01
+reset_rate = 0.001
 t_max = 5000
 r_max = 1
 
@@ -281,7 +281,13 @@ for(SLS in 0:4){
     # Create matrix to track number of individuals with each trait
     traitSums <- colSums(popn)
     traitTracking <- matrix(traitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
-    traitDiagram <- matrix(2:num_nodes, nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
+    # Trait labels
+    traitDiagram <- matrix(2:num_nodes, nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor) 
+    
+    # Plotting the frequency of traits across the branches before any learning has occurred
+    traitPlot <- t(as.data.frame(traitTracking))
+    # matplot(1:nrow(traitPlot), traitPlot[,1:ncol(traitPlot)], type = "l", lty = 1, col = 1:nrow(traitPlot), 
+    #        xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Frequency of Traits Per Branch")
     
     # Loop over timesteps 
     for(t in 1:t_max){
@@ -340,6 +346,16 @@ for(SLS in 0:4){
     # Overall summaries
     summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(summSLSPayoff[r,]))
     strategySuccess <- rbind(strategySuccess, summThisSimulation)
+    
+    # Trait frequencies after the simulation
+    finaltraitSums <- colSums(popn)
+    finaltraitTracking <- matrix(finaltraitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
+    
+    # Plot final trait frequencies for each branch 
+    traitPlot <- t(as.data.frame(finaltraitTracking))
+    # matplot(1:nrow(traitPlot), traitPlot[,1:ncol(traitPlot)], type = "l", lty = 1, col = 1:nrow(traitPlot), 
+    #       xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age")
+    
   }
 }
 
