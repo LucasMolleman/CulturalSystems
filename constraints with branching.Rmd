@@ -118,7 +118,7 @@ for (learningStrategy in c(0,1,2,3,4)){
       
       
       for(repl in 1:params$replicateSimulations){
-        print(paste("strat=", learningStrategy, "bf=", params$branching_factor, "scaling=",scaling, "repl=", repl))
+        print(paste("strat=", learningStrategy, "bf=", params$branching_factor, "scaling=",params$payoff_scaling, "repl=", repl))
         sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree)
         strategySuccess <- rbind(strategySuccess, sumThisSimulation)
       }
