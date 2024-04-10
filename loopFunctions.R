@@ -11,23 +11,22 @@ combineResults <- function(accum, new) {
 runsimulation <- function(params, learningStrategy, repl, tree){  
   ### define the cultural system ###
   
-  
   ## derive square matrix of parent/child traits
   adj_matrix <- as_adjacency_matrix(tree, sparse = FALSE)
-  ## root trait (at position 1,1) is its own parent
+  ## root trait is its own parent
   adj_matrix[params$root_node,params$root_node]<-1 
   
-  ## bookkeeping for output
-  SLpay<-rep(NA,params$timesteps)				## payoff for social learning
-  
+  ## Total payoffs are stored in column 1, payoffs for unblocked individuals in
+  ## column 2, and payoffs for blocked individuals in column 3
+  SLpay<-matrix(nrow=params$timesteps, ncol = 3)	
   
   # 		set payoffs for each trait
-  
   payoffs <- getPayoffs(tree, params)
   ### SYSTEM AND NODE PAYOFFS ARE SET
   
   ####### INITIALIZE POPULATION #####
-  blockers <- initializeBlockers(params)
+  blockers<- initializeBlockers(params, tree)
+  blocked <- which(rowSums(blockers) > 0)
   repertoires<-initializePopulation(params, blockers)
   popAge<-assignAges(repertoires)
   
@@ -39,7 +38,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
     ## will they learn individually or socially?
     r<-runif(1)
     unknownTraits <- which(repertoires[ind,] == 0) 
-    SLpay[t]<-NA
+    SLpay[t,]<-NA
     if (length(unknownTraits > 0)){  #only try to learn if there's anything to learn for this agent
       
       if (r<params$S) {  # social learning
@@ -62,6 +61,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
 
         learnedTrait <- learnSocially(params,
                                       repertoires,
+                                      blockers,
                                       ind,
                                       adj_matrix,
                                       learningStrategy, 
@@ -75,12 +75,14 @@ runsimulation <- function(params, learningStrategy, repl, tree){
         ######## calculate payoffs of learning
           repertoires[ind, learnedTrait] <- 1
           focalPay <- payoffs[learnedTrait]
-          SLpay[t]<- focalPay
+          SLpay[t,1]<- focalPay
+          if (ind %in% blocked){
+            SLpay[t,3]<- focalPay
+          } else {
+            SLpay[t,2]<- focalPay
+          } 
         }
-        else{
-          SLpay[t] <- 0
-        }
-	
+
       }
       else if(r >= params$S){	# individual learning (=innovation)
         selectedTrait <- sample(unknownTraits,1)
@@ -113,7 +115,9 @@ runsimulation <- function(params, learningStrategy, repl, tree){
                         params$olderPref,
                         repl,
                         params$payoff_scaling,
-                        sum(SLpay, na.rm=TRUE))
+                        mean(SLpay[,1], na.rm=TRUE),
+                        mean(SLpay[,2], na.rm=TRUE),
+                        mean(SLpay[,3], na.rm=TRUE))
 
   
   return(sumThisSimulation)

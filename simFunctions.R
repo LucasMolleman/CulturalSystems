@@ -221,12 +221,12 @@ generate_rooted_tree_betaDistr <- function(params, tree_layers) {
   return(g)
 }
 
-initializeBlockers(params){
+initializeBlockers <- function(params, tree){
   N <- params$N
   num_nodes <- params$num_nodes
   root_node <- params$root_node
   blockedLayer <- params$blockedLayer
-  numBlocked <- params$numBlockedTraits
+  numBlocked <- params$numBlocked
   propBlocked <- params$propBlocked
 
   blockedTraits <- matrix(0, nrow = N, ncol = num_nodes)
@@ -249,10 +249,10 @@ initializePopulation <- function(params, blockers){
   root_node <- params$root_node
   adj_matrix <- params$adj_matrix
   repertoires <- matrix(0, nrow = N, ncol = num_nodes)
+  repertoires[, root_node] <- 1
   
   trDistances <- distances(tree, v = root_node, to = setdiff(V(tree), root_node))
-  pList <- unlist(lapply(trDistances, function(x) 1/x))
-  which(colnames(repertoires) == learnableTraits)
+  payoffs<- unlist(lapply(trDistances, function(x) 1/x))
   
   for (ind in 1:N){
     blockedTraits <- which(blockers[ind,] == 1)
@@ -260,8 +260,10 @@ initializePopulation <- function(params, blockers){
       for (tr in 1:numTraits){
         unknownTraits <- which(repertoires[ind, ] == 0)
         learnableTraits <- setdiff(unknownTraits, blockedTraits)
-        if (length(learnableTraits) >= 1) {
-          pList <- pList[which(1:ncol(repertoires) %in% learnableTraits)]
+        if(length(learnableTraits == 1)) {
+          repertoires[ind, learnableTraits] <- 1
+        }else if(length(learnableTraits) >= 1) {
+          pList <- payoffs[which(1:ncol(repertoires) %in% learnableTraits)]
           repertoires[ind, sample(learnableTraits, 1, prob = pList)] <- 1
         }
       }
@@ -346,7 +348,7 @@ getPayoffs <- function(tree, params) {
   return(adjusted_payoffs)
 }
 
-learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
+learnSocially <- function(params, repertoires, blockers, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
   unknownTraits <- which(repertoires[ind,] == 0)
   learnableTraits <- getLearnableTraits(repertoires, blockers, ind)
   
@@ -371,7 +373,7 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     ###### STRATEGY 2: similarity based learning ######
     ## check for all agents how similar they are to self in skills
     else if(learningStrategy == 2){
-      usefulModels <- observedModels[observedTraits %in% unknownTraits]
+      usefulModels <- observedModels[observedTraits %in% learnableTraits]
       for(model in usefulModels){
         modelIndex <- which(usefulModels == model)
         wList[modelIndex] <- sum(repertoires[ind,] == repertoires[model,])/ncol(repertoires)
@@ -381,7 +383,7 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
     ######	STRATEGY 3: age-based social learning #####
     ## check for all agents how similar they are to self in age
     else if(learningStrategy == 3){
-      usefulModels <- observedModels[observedTraits %in% unknownTraits]
+      usefulModels <- observedModels[observedTraits %in% learnableTraits]
       ageDif <- popAge[usefulModels] - popAge[ind]
       wList <- ifelse(ageDif >= 0, 0.5 ^ ageDif, 10 ^ -8)
     }
@@ -425,11 +427,20 @@ learnSocially <- function(params, repertoires, ind, adj_matrix, learningStrategy
       print("Sum of pList is zero")
       browser()
     }
-    ### MAKE CHOICE ###
-    selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList * pList)
-    selectedTrait <- observedTraits[selectedTraitIndex]
-    p <- pList[selectedTraitIndex]
+    if(length(wList) != length(pList)){
+      print("Length of wList and pList do not match")
+      browser()
+    }
     
+    ### MAKE CHOICE ###
+    if(length(learnableTraits) == 1){
+      selectedTrait <- learnableTraits
+      p <- pList
+    } else {
+      selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList * pList)
+      selectedTrait <- observedTraits[selectedTraitIndex]
+      p <- pList[selectedTraitIndex]
+    }
     ## learn the trait with probability pList
 
     if(length(pList) > 0){

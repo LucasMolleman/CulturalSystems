@@ -60,9 +60,9 @@ params <- list(
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=10)
+strategySuccess<-matrix(nrow=0, ncol=12)
 
-for (learningStrategy in c(0,1,2)){
+for (learningStrategy in c(0,1,2,3,4)){
   for (scaling in c(2, 4, 6)){
     params$payoff_scaling <- scaling
       ## generate rooted tree to represent the cultural system
@@ -103,10 +103,10 @@ For debugging and testing
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=10)
+strategySuccess<-matrix(nrow=0, ncol=12)
 set.seed(1)
-for (learningStrategy in c(1:4)){
-  for (scaling in c(-1, -0.5, 0,0.5, 1)){
+for (learningStrategy in c(2:4)){
+  for (scaling in c(2,4,6)){
     params$payoff_scaling <- scaling
       ## generate rooted tree to represent the cultural system
       tree <- generate_converging_tree(params, params$branching_factor)
@@ -119,7 +119,7 @@ for (learningStrategy in c(1:4)){
       
       
       for(repl in 1:params$replicateSimulations){
-        print(paste("strat=", learningStrategy, "bf=", branching_factor, "scaling=",scaling, "repl=", repl))
+        print(paste("strat=", learningStrategy, "bf=", params$branching_factor, "scaling=",scaling, "repl=", repl))
         sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree)
         strategySuccess <- rbind(strategySuccess, sumThisSimulation)
       }
@@ -136,9 +136,9 @@ plotPayoffScaling(strategySuccess)
 ```{r}
 ## give names to the columns of the simulation summary matrix: number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 
-plotPayoffScaling <- function(strategySuccess){
+plotPayoffScaling <- function(strategySuccess, dependent){
   strategySuccess <- data.frame(strategySuccess)
-  names(strategySuccess) <- c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'meanPayoff')
+  names(strategySuccess) <- c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'meanPayoff', 'meanPayoffUnblocked', 'meanPayoffBlocked')
   rownames(strategySuccess) <- NULL
   strats <- unique(strategySuccess$learningStrat) + 1
   stratCols <- c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')[strats]
@@ -149,7 +149,7 @@ plotPayoffScaling <- function(strategySuccess){
 
   for (ps in sort(unique(strategySuccess$payoff_scaling))[1:length(unique(strategySuccess$payoff_scaling))]) {
     b <- subset(strategySuccess, payoff_scaling == ps)
-    boxplot(meanPayoff ~ learningStrat, data=b, main=ps, col=stratCols, ylim=c(0,3), xaxt='n',xlab="")
+    boxplot(b[,dependent] ~ b$learningStrat, main=ps, col=stratCols, ylim=c(0,3), xaxt='n',xlab="")
     axis(1, at=1:length(unique(b$learningStrat)), labels=FALSE)
     if(ps == min(unique(strategySuccess$payoff_scaling))) { # changed condition for clarity
       axis(1, at=1:length(unique(b$learningStrat)), labels=names(stratCols), las=2)
