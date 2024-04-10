@@ -335,9 +335,9 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
   else if (falloffFunction == "reciprocal"){
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/(branching_factor*5))/x^probDelta))
   }
-  
-  probBonusList <- sapply(learnableTraits, function(lt) addProbBonus(params, tree, lt, knownTraits))
-  
+  knownTraitsLayers <- distances(tree, v = params$root_node, to = knownTraits)
+  probBonusList <- sapply(learnableTraits, function(lt) addProbBonus(params, tree, lt, knownTraits, knownTraitsLayers))
+    
   pList <- pList + probBonusList
   
   if(length(pList)!= length(learnableTraits)){
@@ -358,10 +358,8 @@ getPayoffs <- function(tree, params) {
   return(adjusted_payoffs)
 }
 
-addProbBonus <- function(params, tree, targetTrait, knownTraits){
-  browser()
+addProbBonus <- function(params, tree, targetTrait, knownTraits, knownTraitsLayers){
   targetTraitLayer <- as.numeric(distances(tree, v = params$root_node, to = targetTrait))
-  knownTraitsLayers <- distances(tree, v = params$root_node, to = knownTraits)
   relevantKnownTraits <- knownTraits[which(knownTraitsLayers == targetTraitLayer -1)]
   
   if(length(relevantKnownTraits) == 3){
