@@ -217,7 +217,7 @@ num_nodes = 129 # (including root node)
 branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
-reset_rate = 0.001
+reset_rate = 0.01
 t_max = 5000
 r_max = 1
 
