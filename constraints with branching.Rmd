@@ -61,11 +61,13 @@ params <- list(
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 strategySuccess<-matrix(nrow=0, ncol=14)
 
+tree <- generate_converging_tree(params, params$branching_factor)
+prerequisites <- probBonusRequirements(tree)
+
 for (learningStrategy in c(0,1,2,3,4)){
   for (blockedLayer in c(1,2,3)){
     params$blockedLayer <- blockedLayer
       ## generate rooted tree to represent the cultural system
-      tree <- generate_converging_tree(params, params$branching_factor)
       ## for some tracking the distribution of traits across depths we need to know the depth of each node			
       nodeDepths<-1+distances(tree,v=params$root_node,to=V(tree),mode="out")
       maxNodeDepth<-max(nodeDepths)
@@ -81,7 +83,7 @@ for (learningStrategy in c(0,1,2,3,4)){
 
       results <- foreach(repl=1:params$replicateSimulations, .packages=c('igraph'), .combine='combineResults', .init=initResults) %dopar% {
  
-      strategySuccess <- runsimulation(params, learningStrategy, repl, tree)
+      strategySuccess <- runsimulation(params, learningStrategy, repl, tree, prerequisites)
 
  
       ## simulation replicate is done
@@ -104,11 +106,13 @@ For debugging and testing
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 strategySuccess<-matrix(nrow=0, ncol=14)
 set.seed(1)
+tree <- generate_converging_tree(params, params$branching_factor)
+prerequisites <- probBonusRequirements(tree)
+
 for (learningStrategy in c(0,1,2,3,4)){
   for (blockedLayer in c(1,2,3)){
     params$blockedLayer <- blockedLayer
       ## generate rooted tree to represent the cultural system
-      tree <- generate_converging_tree(params, params$branching_factor)
       #plot(tree, layout = layout.reingold.tilford(tree, root=params$root_node))
       ## for some tracking the distribution of traits across depths we need to know the depth of each node			
       nodeDepths<-1+distances(tree,v=params$root_node,to=V(tree),mode="out")
@@ -119,7 +123,7 @@ for (learningStrategy in c(0,1,2,3,4)){
       
       for(repl in 1:params$replicateSimulations){
         print(paste("strat=", learningStrategy, "bf=", params$branching_factor, "scaling=",params$payoff_scaling, "repl=", repl))
-        sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree)
+        sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree, prerequisites)
         strategySuccess <- rbind(strategySuccess, sumThisSimulation)
       }
   }

@@ -316,7 +316,7 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
   return(trDistances)
 }
 
-getTraitLearningProbability <- function(params, repertoires, ind, tree, learnableTraits){
+getTraitLearningProbability <- function(params, repertoires, ind, tree, learnableTraits, prerequisites){
   probDelta <- params$probDelta
   falloffFunction <- params$falloffFunction
   branching_factor <- params$branching_factor
@@ -335,10 +335,12 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
   else if (falloffFunction == "reciprocal"){
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/(branching_factor*5))/x^probDelta))
   }
-  knownTraitsLayers <- distances(tree, v = params$root_node, to = knownTraits)
-  probBonusList <- sapply(learnableTraits, function(lt) addProbBonus(params, tree, lt, knownTraits, knownTraitsLayers))
-    
-  pList <- pList + probBonusList
+  for(i in 1:length(learnableTraits)){
+    targetTrait <- learnableTraits[i]
+    if(all(prerequisites[targetTrait] %in% knownTraits)){
+      pList[i] <- pList[i + 0.9]
+    }
+  }
   
   if(length(pList)!= length(learnableTraits)){
     browser()
@@ -358,27 +360,36 @@ getPayoffs <- function(tree, params) {
   return(adjusted_payoffs)
 }
 
-addProbBonus <- function(params, tree, targetTrait, knownTraits, knownTraitsLayers){
-  targetTraitLayer <- as.numeric(distances(tree, v = params$root_node, to = targetTrait))
-  relevantKnownTraits <- knownTraits[which(knownTraitsLayers == targetTraitLayer -1)]
+probBonusRequirements <- function(tree){
+  # Number of traits corresponds to the number of vertices in the graph
+  numTraits <- gorder(tree)
   
-  if(length(relevantKnownTraits) == 3){
-    probBonus <- 0.8
-  }else{
-    probBonus <- 0
+  # Initialize the list to store prerequisites for each trait
+  prerequisiteList <- vector("list", numTraits)
+  
+  # Loop through each trait to find its prerequisites
+  for(trait in 1:numTraits){
+    # Find direct predecessors (parents) of the trait
+    predecessors <- neighbors(tree, trait, mode = "in")
+    
+    # Store the ids (or any other identifier) of required traits for the bonus
+    prerequisiteList[[trait]] <- as.numeric(predecessors)
   }
-  return(probBonus)
+  
+  return(prerequisiteList)
 }
 
 
-learnSocially <- function(params, repertoires, blockers, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
+
+
+learnSocially <- function(params, repertoires, blockers, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels, prerequisites){
   unknownTraits <- which(repertoires[ind,] == 0)
   blockedTraits <- which(blockers[ind,] == 1)
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
   
   if(length(observedTraits) > 0){
     wList <- numeric(length = length(learnableTraits))     
-    pList <- getTraitLearningProbability(params, repertoires, ind, tree, learnableTraits) 
+    pList <- getTraitLearningProbability(params, repertoires, ind, tree, learnableTraits, prerequisites) 
     
     
     root_node <- params$root_node

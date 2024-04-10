@@ -8,7 +8,7 @@ combineResults <- function(accum, new) {
   }
 }
 
-runsimulation <- function(params, learningStrategy, repl, tree){  
+runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){  
   ### define the cultural system ###
   
   ## derive square matrix of parent/child traits
@@ -69,7 +69,8 @@ runsimulation <- function(params, learningStrategy, repl, tree){
                                       payoffs,
                                       tree,
                                       observedTraits,
-                                      observedModels)														
+                                      observedModels,
+                                      prerequisites)														
         
         if (length(learnedTrait)==1){
         ######## calculate payoffs of learning
@@ -87,7 +88,7 @@ runsimulation <- function(params, learningStrategy, repl, tree){
       else if(r >= params$S){	# individual learning (=innovation)
         selectedTrait <- sample(unknownTraits,1)
         # Calculate learning probability based on distance
-        pList <- unique(getTraitLearningProbability(params, repertoires, ind, tree, selectedTrait))
+        pList <- unique(getTraitLearningProbability(params, repertoires, ind, tree, selectedTrait,prerequisites))
         if(length(pList) > 0){
           if (runif(1) < pList[1]){
             repertoires[ind,selectedTrait]<-1
