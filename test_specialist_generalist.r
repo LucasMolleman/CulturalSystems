@@ -11,7 +11,7 @@ library(igraph)
 ## 1. GENERATE TRAIT MODELS
 
 # Number of nodes includes the root node
-# Branching factor can be maximum of num_nodes-1
+# Branching factor can be maximum num_nodes-1
 
 # Trait model showing specialist vs generalist
 generate_specialist_generalist_tree <- function(num_nodes, branching_factor) {
@@ -214,12 +214,12 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
 N = 100
 M = 10
 num_nodes = 129 # (including root node)
-branching_factor = 128 # c(1,2, 4, 8, 16, 32, 64, 128)
+branching_factor = 1 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 1 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
 t_max = 5000
-r_max = 100
+r_max = 1
 
 ## 5. SIMULATION
 
@@ -277,6 +277,9 @@ for(SLS in 0:4){
     
     # Assign ages
     popAge <- assignAges(popn)
+    
+    # Create matrix to track number of individuals with each trait
+    traitTracking <- matrix(nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
     
     # Loop over timesteps 
     for(t in 1:t_max){
@@ -342,7 +345,7 @@ for(SLS in 0:4){
 write.csv(strategySuccess, file = "SummaryStats_bf64")
 
 # Plotting
-boxplot(Payoff ~ SLS, data = strategySuccess, main = "Mean Payoff for each SLS (bf = 8)")
+boxplot(Payoff ~ SLS, data = strategySuccess, main = "Mean Payoff for each SLS (bf = 64)")
 legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
 
 ## 6. PRELIMINARY RESULTS
