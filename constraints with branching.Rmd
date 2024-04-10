@@ -28,7 +28,7 @@ source("loopFunctions.R")
 ```{r simulation parameters}
 #### simulation parameters
 params <- list(
-  num_nodes = 32,                 # size of the cultural systems (number of nodes)
+  num_nodes = 48,                 # size of the cultural systems (number of nodes)
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
   timesteps = 5000,               # number of time steps in the simulation
@@ -39,15 +39,14 @@ params <- list(
   alpha1 = 1,                     # Alpha parameter for the beta distribution used to generate the tree
   beta1 = 1,                      # Beta parameter for the beta distribution used to generate the tree 
   olderPref = 0,
-  payoff_scaling = 0.7,           # Constant that is added/subtracted for each step away from the root node
-  payoff_weight = 0.8,            # How much the payoff depends on randomness vs distance from the root node (0 for random, 1 for fully deterministic))
+  payoff_scaling = 3,             # Constant that is added/subtracted for each step away from the root node
+  payoff_weight = 0.8,            # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   falloffFunction = "reciprocal", # "reciprocal" or "adjacent"
   probDelta = 2.5,                # parameter for the falloff function
-  windowSize = 1000,              # parameters for plotting (number of time steps per printing event frequencies)
-  root_node = 32,                 # root node of the tree, should be equal to num_nodes when using converging tree, else 1
+  root_node = 48,                 # root node of the tree, should be equal to num_nodes when using converging tree, else 1
   branching_factor = 3,           # branching factor of the tree
   blockedLayer = 1,               # layer at which tree blockages occur
-  numBlocked = 2,                 # number of blocked traits in the model
+  numBlocked = 4,                 # number of blocked traits in the model
   propBlocked = 0.1               # proportion of individuals that have blocked traits
   )
 
@@ -60,11 +59,11 @@ params <- list(
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=12)
+strategySuccess<-matrix(nrow=0, ncol=14)
 
 for (learningStrategy in c(0,1,2,3,4)){
-  for (scaling in c(2, 4, 6)){
-    params$payoff_scaling <- scaling
+  for (blockedLayer in c(1,2,3)){
+    params$blockedLayer <- blockedLayer
       ## generate rooted tree to represent the cultural system
       tree <- generate_converging_tree(params, params$branching_factor)
       ## for some tracking the distribution of traits across depths we need to know the depth of each node			
@@ -103,11 +102,11 @@ For debugging and testing
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=12)
+strategySuccess<-matrix(nrow=0, ncol=14)
 set.seed(1)
-for (learningStrategy in c(2:4)){
-  for (scaling in c(2,4,6)){
-    params$payoff_scaling <- scaling
+for (learningStrategy in c(0,1,2,3,4)){
+  for (blockedLayer in c(1,2,3)){
+    params$blockedLayer <- blockedLayer
       ## generate rooted tree to represent the cultural system
       tree <- generate_converging_tree(params, params$branching_factor)
       #plot(tree, layout = layout.reingold.tilford(tree, root=params$root_node))
@@ -129,16 +128,17 @@ for (learningStrategy in c(2:4)){
 ## Plot Results
 
 ```{r}
-plotPayoffScaling(strategySuccess)
+plotPayoffScaling(strategySuccess, "blockedLayer",'meanPayoffUnblocked')
+plotPayoffScaling(strategySuccess, "blockedLayer",'meanPayoffBlocked')
 ```
 
 
 ```{r}
 ## give names to the columns of the simulation summary matrix: number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 
-plotPayoffScaling <- function(strategySuccess, dependent){
+plotPayoffScaling <- function(strategySuccess, independent, dependent){
   strategySuccess <- data.frame(strategySuccess)
-  names(strategySuccess) <- c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'meanPayoff', 'meanPayoffUnblocked', 'meanPayoffBlocked')
+  names(strategySuccess) <- c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'blockedLayer', 'numBlocked',  'meanPayoff', 'meanPayoffUnblocked', 'meanPayoffBlocked')
   rownames(strategySuccess) <- NULL
   strats <- unique(strategySuccess$learningStrat) + 1
   stratCols <- c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')[strats]
@@ -147,11 +147,12 @@ plotPayoffScaling <- function(strategySuccess, dependent){
   # Update mar to provide more space at the bottom for the legend
   par(mfrow=c(1,5), mar=c(7, 4, 4, 2) + 0.1) # Increase the bottom margin substantially
 
-  for (ps in sort(unique(strategySuccess$payoff_scaling))[1:length(unique(strategySuccess$payoff_scaling))]) {
-    b <- subset(strategySuccess, payoff_scaling == ps)
-    boxplot(b[,dependent] ~ b$learningStrat, main=ps, col=stratCols, ylim=c(0,3), xaxt='n',xlab="")
+  for (level in sort(unique(strategySuccess[,independent]))[1:length(unique(strategySuccess[,independent]))]) {
+
+    b <- strategySuccess[strategySuccess[,independent] == level,]
+    boxplot(b[[dependent]] ~ b$learningStrat, main=paste(independent,"=",level), col=stratCols, ylim=c(0,5), xaxt='n',xlab="", ylab=dependent)
     axis(1, at=1:length(unique(b$learningStrat)), labels=FALSE)
-    if(ps == min(unique(strategySuccess$payoff_scaling))) { # changed condition for clarity
+    if(level == min(unique(strategySuccess[,independent]))) { # changed condition for clarity
       axis(1, at=1:length(unique(b$learningStrat)), labels=names(stratCols), las=2)
     }
   }
@@ -166,16 +167,7 @@ plotPayoffScaling <- function(strategySuccess, dependent){
 ```
 
 ```{r}
-## create an overview plot
-par(mfrow=c(1,3), xaxs='r', mar=c(5,4,4,2),lend=1)
 
-
- for (brf in unique(strategySuccess$branching_factor)){
-   b<-subset(strategySuccess,branching_factor==brf)
-   boxplot(meanPayoff ~ learningStrat, data=b, col=stratCols, ylim=c(0,1))
-  
-   legend('topright', c('random', 'payoff', 'similarity', 'age', 'conformity'), col=stratCols, pch=15:19)
-}
 
 ```
 

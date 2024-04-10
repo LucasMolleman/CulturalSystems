@@ -256,20 +256,22 @@ initializePopulation <- function(params, blockers){
   
   for (ind in 1:N){
     blockedTraits <- which(blockers[ind,] == 1)
-    numTraits <- sample(1:num_nodes-length(blockedTraits)-1, 1)
+    numTraits <- sample(1:(num_nodes-length(blockedTraits)-1), 1)
       for (tr in 1:numTraits){
         unknownTraits <- which(repertoires[ind, ] == 0)
         learnableTraits <- setdiff(unknownTraits, blockedTraits)
-        if(length(learnableTraits == 1)) {
+        if(length(learnableTraits) == 1) {
           repertoires[ind, learnableTraits] <- 1
-        }else if(length(learnableTraits) >= 1) {
+        }else if(length(learnableTraits) > 1) {
           pList <- payoffs[which(1:ncol(repertoires) %in% learnableTraits)]
-          repertoires[ind, sample(learnableTraits, 1, prob = pList)] <- 1
+          chosenTrait <- sample(learnableTraits, 1, prob = pList)
+          repertoires[ind, chosenTrait] <- 1
         }
       }
   }
   return(repertoires)
 }
+
 
 assignAges<-function(repertoires){
   ## for age-based social learning, we need to assume initial ages. 
@@ -286,6 +288,8 @@ getLearnableTraits<-function(repertoires, blockers, ind){
   blockedTraits <- which(blockers[ind, ] == 1)
   
   learnableTraits <- setdiff(unknownTraits, blockedTraits)
+  
+  observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
   
   return(learnableTraits)
 }
@@ -329,8 +333,13 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
   }
   else if (falloffFunction == "reciprocal"){
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/branching_factor)/x^probDelta))
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/(branching_factor))/x^probDelta))
   }
+  
+  probBonusList <- sapply(learnableTraits, function(lt) addProbBonus(params, tree, lt, knownTraits))
+  
+  pList <- pList + probBonusList
+  
   if(length(pList)!= length(learnableTraits)){
     browser()
   }
@@ -345,12 +354,28 @@ getPayoffs <- function(tree, params) {
   random_payoffs <- runif(vcount(tree))
   distance_payoffs <- 1 + (distances_from_root - 1) * payoff_scaling
   adjusted_payoffs <- (1 - weight) * (2 * random_payoffs/max(random_payoffs)) + weight * distance_payoffs
+  adjusted_payoffs[params$root_node] <- 0
   return(adjusted_payoffs)
 }
 
+addProbBonus <- function(params, tree, targetTrait, knownTraits){
+  targetTraitLayer <- distances(tree, v = params$root_node, to = targetTrait)
+  knownTraitsLayers <- distances(tree, v = params$root_node, to = knownTraits)
+  relevantKnownTraits <- knownTraits[which(knownTraitsLayers == targetTraitLayer -1)]
+  
+  if(length(relevantKnownTraits) == 3){
+    probBonus <- 0.8
+  }else{
+    probBonus <- 0
+  }
+  return(probBonus)
+}
+
+
 learnSocially <- function(params, repertoires, blockers, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels){
   unknownTraits <- which(repertoires[ind,] == 0)
-  learnableTraits <- getLearnableTraits(repertoires, blockers, ind)
+  blockedTraits <- which(blockers[ind,] == 1)
+  learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
   
   if(length(observedTraits) > 0){
     wList <- numeric(length = length(learnableTraits))     

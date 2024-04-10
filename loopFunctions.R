@@ -115,6 +115,8 @@ runsimulation <- function(params, learningStrategy, repl, tree){
                         params$olderPref,
                         repl,
                         params$payoff_scaling,
+                        params$blockedLayer,
+                        params$numBlocked,
                         mean(SLpay[,1], na.rm=TRUE),
                         mean(SLpay[,2], na.rm=TRUE),
                         mean(SLpay[,3], na.rm=TRUE))
