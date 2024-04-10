@@ -279,17 +279,9 @@ for(SLS in 0:4){
     popAge <- assignAges(popn)
     
     # Create matrix to track number of individuals with each trait
-    # traitTracking <- matrix(nrow = branching_factor, ncol = 1 + (num_nodes - 1)/branching_factor)
-    # traitTracking[,1] <- 1
-    # for(row in 1:branching_factor){
-    #   for(col in 1:(1 + (num_nodes - 1)/branching_factor)){
-    #     traitTracking[row,col] <- sum(popn[,col])
-    #   }
-    # }
-    
-    # Create matrix to track number of individuals with each trait
     traitSums <- colSums(popn)
     traitTracking <- matrix(traitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
+    traitDiagram <- matrix(2:num_nodes, nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
     
     # Loop over timesteps 
     for(t in 1:t_max){
