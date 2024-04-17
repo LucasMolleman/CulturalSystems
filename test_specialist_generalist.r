@@ -278,16 +278,11 @@ for(SLS in 0:4){
     # Assign ages
     popAge <- assignAges(popn)
     
-    # Create matrix to track number of individuals with each trait
+    # Create matrix to track number of individuals with each trait (initial starting frequencies)
     traitSums <- colSums(popn)
     traitTracking <- matrix(traitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
-    # Trait labels
+    # Trait labels (identifies which nodes are in which arms)
     traitDiagram <- matrix(2:num_nodes, nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor) 
-    
-    # Plotting the frequency of traits across the branches before any learning has occurred
-    traitPlot <- t(as.data.frame(traitTracking))
-    # matplot(1:nrow(traitPlot), traitPlot[,1:ncol(traitPlot)], type = "l", lty = 1, col = 1:nrow(traitPlot), 
-    #        xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Frequency of Traits Per Branch")
     
     # Loop over timesteps 
     for(t in 1:t_max){
@@ -350,21 +345,29 @@ for(SLS in 0:4){
     # Trait frequencies after the simulation
     finaltraitSums <- colSums(popn)
     finaltraitTracking <- matrix(finaltraitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
-    
-    # Plot final trait frequencies for each branch 
-    traitPlot <- t(as.data.frame(finaltraitTracking))
-    # matplot(1:nrow(traitPlot), traitPlot[,1:ncol(traitPlot)], type = "l", lty = 1, col = 1:nrow(traitPlot), 
-    #       xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age")
-    
   }
 }
 
 # Export summary statistics
 write.csv(strategySuccess, file = "SummaryStats_bf64")
 
-# Plotting
+# Plotting success of SLSs
 boxplot(Payoff ~ SLS, data = strategySuccess, main = "Mean Payoff for each SLS (bf = 64)")
 legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
+
+# Plotting frequency of traits per branch AFTER social learning
+traitPlot <- t(as.data.frame(finaltraitTracking))
+matplot(1:nrow(traitPlot), traitPlot[,1:ncol(traitPlot)], type = "l", lty = 1, col = 1:nrow(traitPlot), 
+        xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, After", ylim = c(0,100))
+
+# Plotting frequency of traits per branch BEFORE social learning
+traitTracking <- t(as.data.frame(traitTracking))
+matplot(1:nrow(traitTracking), traitTracking[,1:ncol(traitTracking)], type = "l", lty = 1, col = 1:nrow(traitTracking), 
+        xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, Before", ylim = c(0,100))
+
+# Comparing agent's age and the number of traits they have
+AgeTraits <- rbind(Age = popAge, N_Traits = rowSums(popn))
+
 
 ## 6. PRELIMINARY RESULTS
 
