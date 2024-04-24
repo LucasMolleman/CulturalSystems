@@ -28,7 +28,7 @@ source("loopFunctions.R")
 ```{r simulation parameters}
 #### simulation parameters
 params <- list(
-  num_nodes = 48,                 # size of the cultural systems (number of nodes)
+  num_nodes = 14,                 # size of the cultural systems (number of nodes)
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
   timesteps = 5000,               # number of time steps in the simulation
@@ -39,11 +39,11 @@ params <- list(
   alpha1 = 1,                     # Alpha parameter for the beta distribution used to generate the tree
   beta1 = 1,                      # Beta parameter for the beta distribution used to generate the tree 
   olderPref = 0,
-  payoff_scaling = 3,             # Constant that is added/subtracted for each step away from the root node
+  payoff_scaling = 5,             # Constant that is added/subtracted for each step away from the root node
   payoff_weight = 0.8,            # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   falloffFunction = "reciprocal", # "reciprocal" or "adjacent"
   probDelta = 2.5,                # parameter for the falloff function
-  root_node = 48,                 # root node of the tree, should be equal to num_nodes when using converging tree, else 1
+  root_node = 14,                 # root node of the tree, should be equal to num_nodes when using converging tree, else 1
   branching_factor = 3,           # branching factor of the tree
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 4,                 # number of blocked traits in the model
@@ -65,8 +65,8 @@ tree <- generate_converging_tree(params, params$branching_factor)
 prerequisites <- probBonusRequirements(tree)
 
 for (learningStrategy in c(0,1,2,3,4)){
-  for (blockedLayer in c(1,2,3)){
-    params$blockedLayer <- blockedLayer
+  for (numBlocked in c(3,6,9)){
+    params$numBlocked <- numBlocked
       ## generate rooted tree to represent the cultural system
       ## for some tracking the distribution of traits across depths we need to know the depth of each node			
       nodeDepths<-1+distances(tree,v=params$root_node,to=V(tree),mode="out")
@@ -132,8 +132,8 @@ for (learningStrategy in c(0,1,2,3,4)){
 ## Plot Results
 
 ```{r}
-plotPayoffScaling(strategySuccess, "blockedLayer",'meanPayoffUnblocked')
-plotPayoffScaling(strategySuccess, "blockedLayer",'meanPayoffBlocked')
+plotPayoffScaling(strategySuccess, "numBlocked",'meanPayoffUnblocked')
+plotPayoffScaling(strategySuccess, "numBlocked",'meanPayoffBlocked')
 ```
 
 
@@ -170,9 +170,6 @@ plotPayoffScaling <- function(strategySuccess, independent, dependent){
 
 ```
 
-```{r}
 
-
-```
 
 

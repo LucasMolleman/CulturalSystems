@@ -333,7 +333,7 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
     pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
   }
   else if (falloffFunction == "reciprocal"){
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/(branching_factor*5))/x^probDelta))
+    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/(branching_factor*10))/x^probDelta))
   }
   for(i in 1:length(learnableTraits)){
     targetTrait <- learnableTraits[i]
