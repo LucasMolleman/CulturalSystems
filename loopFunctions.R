@@ -27,7 +27,8 @@ runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){
   ####### INITIALIZE POPULATION #####
   blockers<- initializeBlockers(params, tree)
   blocked <- which(rowSums(blockers) > 0)
-  repertoires<-initializePopulation(params, blockers)
+  tree <- addDetours(params, tree, blocked)
+  repertoires<-initializePopulation(params, blockers, tree)
   popAge<-assignAges(repertoires)
   
   ### population is now initialized... start running the model

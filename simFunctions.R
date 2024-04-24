@@ -144,7 +144,7 @@ generate_converging_tree <- function(params, branch_factor) {
 generate_rooted_tree_branching <- function(params, branching_factor) {
   num_nodes <- params$num_nodes
   
-  g <- graph.empty(n = num_nodes, directed = TRUE)
+  g <- graph.empty(n = num_nodes, directed = FALSE)
   
   edgeList<-c()
   for (i in 1:(num_nodes-1)){
@@ -236,14 +236,54 @@ initializeBlockers <- function(params, tree){
   
   blockableTraits <- which(trDistances == blockedLayer)
   
-  for(ind in blockedInds){
-    blockedTraits[ind, sample(blockableTraits, numBlocked)] <- 1
-  }
+  blockedTraitIndices <- sample(blockableTraits, numBlocked)
+  blockedTraits[blockedInds, blockedTraitIndices] <- 1
   
   return(blockedTraits)
 }
 
-initializePopulation <- function(params, blockers){
+addDetours <- function(params, tree, blockedTraits) {
+  num_nodes <- params$num_nodes
+  root_node <- params$root_node
+  blockedLayer <- params$blockedLayer
+  numSteps <- params$numSteps
+  
+  rootDistances <- distances(tree, v = root_node, mode = "out")
+  for(blockedTrait in blockedTraits) {
+    blockedDistances <- distances(tree, v = blockedTrait, mode = "out")
+    preTraits <- which(blockedDistances[1:num_nodes] == 1 & rootDistances == blockedLayer - 1)
+    postTraits <- which(blockedDistances[1:num_nodes] == 1 & rootDistances == blockedLayer + 1)
+    print(paste("Pre traits: ", preTraits))
+    print(paste("Post traits: ", postTraits))
+    for(preTrait in preTraits) {
+      for(postTrait in postTraits) {
+        maxNodeId <- max(V(tree))
+        
+        # Assuming continuous node ids, prepare new node ids
+        newNodes <- ((maxNodeId+1):(maxNodeId+numSteps))
+        
+        # Add new nodes to the graph without relying on names
+        tree <- add_vertices(tree, numSteps)
+        
+        # Connect preTrait to the first new node and so forth
+        edgesToAdd <- c(preTrait, maxNodeId+1)
+        if(numSteps > 1) {
+          for (i in 1:(numSteps-1)) {
+            edgesToAdd <- c(edgesToAdd, maxNodeId+i, maxNodeId+i+1)
+          }
+        }
+        
+        # Finally, connect the last new node to postTrait
+        edgesToAdd <- c(edgesToAdd, maxNodeId+numSteps, postTrait)
+        tree <- add_edges(tree, edgesToAdd)
+      }
+    }
+  }
+  return(tree)
+}
+
+
+initializePopulation <- function(params, blockers, tree){
   N <- params$N
   num_nodes <- params$num_nodes
   root_node <- params$root_node
