@@ -8,7 +8,7 @@ combineResults <- function(accum, new) {
   }
 }
 
-runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){  
+runsimulation <- function(params, blockedLearningStrategy, repl, tree, requirements){  
   ### define the cultural system ###
   
   ## derive square matrix of parent/child traits
@@ -23,11 +23,12 @@ runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){
   # 		set payoffs for each trait
   payoffs <- getPayoffs(tree, params)
   ### SYSTEM AND NODE PAYOFFS ARE SET
-  
+
   ####### INITIALIZE POPULATION #####
   blockers<- initializeBlockers(params, tree)
-  blocked <- which(rowSums(blockers) > 0)
+  blocked <- which(colSums(blockers) > 0)
   tree <- addDetours(params, tree, blocked)
+  requirements <- augmentTrRequirements(requirements, tree) #add alternative routes around blocked traits
   repertoires<-initializePopulation(params, blockers, tree)
   popAge<-assignAges(repertoires)
   
@@ -35,7 +36,12 @@ runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){
   for (t in 1:params$timesteps){
     ## sample a random individual
     ind<-sample(1:params$N,1)
-    
+    #if ind is blocked 
+    if (ind %in% blocked){
+      learningStrategy <- blockedLearningStrategy
+    } else {
+      learningStrategy <- 1 #typical learners always employ payoff-based learning
+    }
     ## will they learn individually or socially?
     r<-runif(1)
     unknownTraits <- which(repertoires[ind,] == 0) 
@@ -59,7 +65,6 @@ runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){
             observedModels<-c(observedModels, model)
           }
         }
-
         learnedTrait <- learnSocially(params,
                                       repertoires,
                                       blockers,
@@ -71,7 +76,7 @@ runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){
                                       tree,
                                       observedTraits,
                                       observedModels,
-                                      prerequisites)														
+                                      requirements)														
         
         if (length(learnedTrait)==1){
         ######## calculate payoffs of learning
@@ -89,7 +94,7 @@ runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){
       else if(r >= params$S){	# individual learning (=innovation)
         selectedTrait <- sample(unknownTraits,1)
         # Calculate learning probability based on distance
-        pList <- unique(getTraitLearningProbability(params, repertoires, ind, tree, selectedTrait,prerequisites))
+        pList <- unique(getTraitLearningProbability(params, repertoires, ind, tree, selectedTrait,requirements))
         if(length(pList) > 0){
           if (runif(1) < pList[1]){
             repertoires[ind,selectedTrait]<-1
@@ -107,22 +112,20 @@ runsimulation <- function(params, learningStrategy, repl, tree, prerequisites){
       popAge[ind]<-0  ## reset the age of the agent to 0
     }
   }
-  
+
   sumThisSimulation<-c(params$num_nodes, 
-                        params$branching_factor, 
-                        params$tree_layers, 
-                        params$alpha1,
-                        params$beta1,
-                        learningStrategy,
+                        blockedLearningStrategy,
                         params$olderPref,
                         repl,
                         params$payoff_scaling,
                         params$blockedLayer,
                         params$numBlocked,
-                        mean(SLpay[,1], na.rm=TRUE),
-                        mean(SLpay[,2], na.rm=TRUE),
-                        mean(SLpay[,3], na.rm=TRUE))
-
+                        params$numSteps,
+                        params$propBlocked,
+                        sum(SLpay[,1], na.rm=TRUE),
+                        sum(SLpay[,2], na.rm=TRUE),
+                        sum(SLpay[,3], na.rm=TRUE))
+  
   
   return(sumThisSimulation)
 }

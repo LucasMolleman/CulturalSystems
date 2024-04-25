@@ -28,27 +28,22 @@ source("loopFunctions.R")
 ```{r simulation parameters}
 #### simulation parameters
 params <- list(
-  num_nodes = 14,                 # size of the cultural systems (number of nodes)
+  num_nodes = 16,                 # size of the cultural systems (number of nodes)
+  root_node = 1,                  # root node of the tree
   N = 100,                        # population size
-  M = 10,                         # number of demonstrators
-  timesteps = 5000,               # number of time steps in the simulation
+  M = 20,                         # number of demonstrators
+  timesteps = 10000,               # number of time steps in the simulation
   replicateSimulations = 30,      # number of simulations per parameter setting
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.01,              # probability that an individual is replaced by a naive individual
-  tree_layers = 5,                # number of layers in the tree
-  alpha1 = 1,                     # Alpha parameter for the beta distribution used to generate the tree
-  beta1 = 1,                      # Beta parameter for the beta distribution used to generate the tree 
   olderPref = 0,
-  payoff_scaling = 5,             # Constant that is added/subtracted for each step away from the root node
-  payoff_weight = 0.8,            # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
-  falloffFunction = "reciprocal", # "reciprocal" or "adjacent"
-  probDelta = 2.5,                # parameter for the falloff function
-  root_node = 14,                 # root node of the tree, should be equal to num_nodes when using converging tree, else 1
-  branching_factor = 3,           # branching factor of the tree
+  payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
+  payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
-  numBlocked = 4,                 # number of blocked traits in the model
-  propBlocked = 0.1               # proportion of individuals that have blocked traits
-  )
+  numBlocked = 1,                 # number of blocked traits in the model
+  propBlocked = 0.5,              # proportion of individuals that have blocked traits
+  numSteps = 3                    # number of auxiliary traits necessary for overcoming a block
+)
 
 ``` 
 
@@ -59,22 +54,18 @@ params <- list(
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=14)
+strategySuccess<-matrix(nrow=0, ncol=12)
 
-tree <- generate_converging_tree(params, params$branching_factor)
-prerequisites <- probBonusRequirements(tree)
+tree <- generate_rooted_tree()
+requirements <- trRequirements(tree)
 
-for (learningStrategy in c(0,1,2,3,4)){
-  for (numBlocked in c(3,6,9)){
-    params$numBlocked <- numBlocked
-      ## generate rooted tree to represent the cultural system
-      ## for some tracking the distribution of traits across depths we need to know the depth of each node			
-      nodeDepths<-1+distances(tree,v=params$root_node,to=V(tree),mode="out")
-      maxNodeDepth<-max(nodeDepths)
-      ## bookkeep the frequency of traits across tree depths (for checking stability over time)
-      traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
-      
-    
+for (learningStrategy in c(0,1,2)){
+  for(numSteps in c(1,2,3)){
+    params$numSteps <- numSteps
+    for(blockedLayer in c(1,2,3)){
+      params$blockedLayer <- blockedLayer
+      for(prop in c(0.1, 0.3, 0.5)){
+          params$propBlocked <- prop
     ### start simulation
     numCores <- detectCores() - 1  # leave one core for other tasks
     cl <- makeCluster(numCores)
@@ -83,7 +74,7 @@ for (learningStrategy in c(0,1,2,3,4)){
 
       results <- foreach(repl=1:params$replicateSimulations, .packages=c('igraph'), .combine='combineResults', .init=initResults) %dopar% {
  
-      strategySuccess <- runsimulation(params, learningStrategy, repl, tree, prerequisites)
+      strategySuccess <- runsimulation(params, learningStrategy, repl, tree, requirements)
 
  
       ## simulation replicate is done
@@ -94,6 +85,8 @@ for (learningStrategy in c(0,1,2,3,4)){
      
     # add the results to the summary matrix
     strategySuccess <- rbind(strategySuccess, results)
+      }
+    }
   }
 }
 ```
@@ -104,45 +97,44 @@ For debugging and testing
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=14)
+strategySuccess<-matrix(nrow=0, ncol=12)
 set.seed(1)
-tree <- generate_converging_tree(params, params$branching_factor)
-prerequisites <- probBonusRequirements(tree)
+tree <- generate_rooted_tree()
+requirements <- trRequirements(tree)
 
-for (learningStrategy in c(0,1,2,3,4)){
-  for (blockedLayer in c(1,2,3)){
-    params$blockedLayer <- blockedLayer
-      ## generate rooted tree to represent the cultural system
-      #plot(tree, layout = layout.reingold.tilford(tree, root=params$root_node))
-      ## for some tracking the distribution of traits across depths we need to know the depth of each node			
-      nodeDepths<-1+distances(tree,v=params$root_node,to=V(tree),mode="out")
-      maxNodeDepth<-max(nodeDepths)
-      ## bookkeep the frequency of traits across tree depths (for checking stability over time)
-      traitsAtDepth<-matrix(NA, nrow=params$timesteps, ncol=max(nodeDepths))
-      
-      
+for (learningStrategy in c(0,1,2)){
+  for(numSteps in c(1,2,3)){
+    params$numSteps <- numSteps
+    for(blockedLayer in c(1,2,3)){
+      params$blockedLayer <- blockedLayer
+      for(prop in c(0.1, 0.3, 0.5)){
+          params$propBlocked <- prop
       for(repl in 1:params$replicateSimulations){
-        print(paste("strat=", learningStrategy, "bf=", params$branching_factor, "scaling=",params$payoff_scaling, "repl=", repl))
-        sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree, prerequisites)
+        print(paste("strat=", learningStrategy, "N=", params$numSteps, "layer=",params$blockedLayer, "repl=", repl))
+        sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree, requirements)
         strategySuccess <- rbind(strategySuccess, sumThisSimulation)
       }
+      }
+    }
   }
 }
 ```
 ## Plot Results
 
 ```{r}
-plotPayoffScaling(strategySuccess, "numBlocked",'meanPayoffUnblocked')
-plotPayoffScaling(strategySuccess, "numBlocked",'meanPayoffBlocked')
+plotPayoffScaling(strategySuccess, "blockedLayer",'sumPayoffBlocked')
+plotPayoffScaling(strategySuccess, "numSteps",'sumPayoffBlocked')
+plotPayoffScaling(strategySuccess, "propBlocked",'sumPayoffBlocked')
 ```
 
 
 ```{r}
 ## give names to the columns of the simulation summary matrix: number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 
-plotPayoffScaling <- function(strategySuccess, independent, dependent){
+plotPayoffScaling <- function(strategySuccess, independent, dependent, subset = TRUE){
   strategySuccess <- data.frame(strategySuccess)
-  names(strategySuccess) <- c('numNodes', 'branching_factor', 'tree_layers', 'alpha', 'beta', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'blockedLayer', 'numBlocked',  'meanPayoff', 'meanPayoffUnblocked', 'meanPayoffBlocked')
+  strategySuccess <- strategySuccess[subset, ]
+  names(strategySuccess) <- c('numNodes', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'blockedLayer', 'numBlocked', 'numSteps', 'propBlocked', 'sumPayoff', 'sumPayoffUnblocked', 'sumPayoffBlocked')
   rownames(strategySuccess) <- NULL
   strats <- unique(strategySuccess$learningStrat) + 1
   stratCols <- c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')[strats]
@@ -154,7 +146,7 @@ plotPayoffScaling <- function(strategySuccess, independent, dependent){
   for (level in sort(unique(strategySuccess[,independent]))[1:length(unique(strategySuccess[,independent]))]) {
 
     b <- strategySuccess[strategySuccess[,independent] == level,]
-    boxplot(b[[dependent]] ~ b$learningStrat, main=paste(independent,"=",level), col=stratCols, ylim=c(0,5), xaxt='n',xlab="", ylab=dependent)
+    boxplot(b[[dependent]] ~ b$learningStrat, main=paste(independent,"=",level), col=stratCols, xaxt='n',xlab="", ylab=dependent)
     axis(1, at=1:length(unique(b$learningStrat)), labels=FALSE)
     if(level == min(unique(strategySuccess[,independent]))) { # changed condition for clarity
       axis(1, at=1:length(unique(b$learningStrat)), labels=names(stratCols), las=2)
@@ -169,6 +161,60 @@ plotPayoffScaling <- function(strategySuccess, independent, dependent){
 
 
 ```
+
+```{r}
+data <- as.data.frame(strategySuccess)
+library(data.table)
+setDT(data)
+setnames(data, c("numNodes", "blockedLearningStrat", "olderPref", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked"))
+
+#set first 8 columns to factor
+data[, (1:5) := lapply(.SD, factor), .SDcols = 1:5]
+
+summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked, data = data))
+
+summary(mod2 <- lm(sumPayoffBlocked ~ blockedLearningStrat*numSteps*blockedLayer*propBlocked, data = data))
+
+#Probing the interaction numSteps:blockedLayer:propBlocked 
+library(dplyr)
+aggregated_data <- data %>%
+  group_by(blockedLearningStrat, numSteps, blockedLayer, propBlocked) %>%
+  summarise(meanSumPayoffBlocked = mean(sumPayoffBlocked, na.rm = TRUE), .groups = 'drop')
+
+aggregated_data <- aggregated_data %>%
+  mutate(blockedLearningStrat = factor(blockedLearningStrat, levels = c("0", "1", "2"), labels = c("Random", "Payoff", "Similarity")))
+# Plotting the aggregated means
+ggplot(aggregated_data, aes(x = as.factor(numSteps), y = meanSumPayoffBlocked, group = interaction(blockedLayer, propBlocked), color = as.factor(blockedLayer))) +
+  geom_line(aes(linetype = as.factor(propBlocked))) +
+  geom_point(aes(shape = as.factor(propBlocked))) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity"))) +
+  labs(title = "Average SumPayoffBlocked across NumSteps, BlockedLayer, PropBlocked,\n and LearningStrategies",
+       subtitle = "Data aggregated across unique combinations of factors",
+       x = "Number of Steps",
+       y = "Average Sum Payoff Blocked",
+       color = "Blocked Layer",
+       linetype = "Proportion Blocked",
+       shape = "Proportion Blocked") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X labels for better visualization
+        strip.text.x = element_text(size = 12, face = "bold"))
+``` 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
