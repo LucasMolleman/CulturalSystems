@@ -167,6 +167,7 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
         }
         wList<-c(wList, simToFocal)
       }
+      wList <- wList / sum(wList)
     }
     ##################	
     
@@ -175,13 +176,11 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
       # Based on age similarity
       # Check for all agents how similar they are to self
       for (mod in observedModels){
-        w <- 10^-8
         ageDif <- popAge[mod] - popAge[ind]								
-        if (ageDif >= 0){
-          w <- 0.5^ageDif
-        }
+        w <- 0.5^ageDif
         wList <- c(wList, w)
-      }			
+      }
+      wList <- wList / sum(wList)
     }	
     ################
     
@@ -191,7 +190,8 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
       for (mod in 1:length(observedBehaviours)){
         w <- length(which(observedBehaviours == observedBehaviours[mod]))
         wList <- c(wList, w)
-      }			
+      }	
+      wList <- wList / sum(wList)
     }
     ################
     
