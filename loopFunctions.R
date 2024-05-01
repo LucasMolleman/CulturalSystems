@@ -112,7 +112,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree, requireme
       popAge[ind]<-0  ## reset the age of the agent to 0
     }
   }
-
+  browser()
   sumThisSimulation<-c(params$num_nodes, 
                         blockedLearningStrategy,
                         params$olderPref,
