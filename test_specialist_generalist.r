@@ -105,9 +105,48 @@ getLearnableTraits <- function(repertoires, ind, adj_matrix){
   return(learnableTraits)
 }
 
+getEnvironmentalLearnability <- function(repertoires, adj_matrix){
+  p <- c()
+  
+  for(ind in 1:nrow(repertoires)){
+    
+    knownTraits <- which(repertoires[ind,] == 1)
+    
+    unknownTraits <- which(repertoires[ind,] == 0)
+    
+    if(length(unknownTraits) == 0){
+      p[ind] <- NA 
+      next
+    }
+    
+    learnableTraits <- getLearnableTraits(repertoires, ind, adj_matrix)
+    
+    freqLearnable <- 0
+    
+    popOthers <- repertoires[-ind,]
+    
+    
+    for(trait in learnableTraits){
+      freqLearnable <- freqLearnable + sum(popOthers[,trait])
+    }
+    
+    freqUnknown <- 0
+    
+    for(trait in unknownTraits){
+      freqUnknown <- freqUnknown + sum(popOthers[,trait])
+    }
+    
+    p[ind] <- freqLearnable / freqUnknown
+  }
+  
+  return(mean(p, na.rm=T))
+}
+
+
 ## 3. SOCIAL LEARNING 
 
 learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, popAge){
+  
   # Sample M random other individuals
   pool <- 1:N
   poolOthers <- pool[-ind] # Agents do not sample themselves
@@ -214,11 +253,11 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
 N = 100
 M = 10
 num_nodes = 129 # (including root node)
-branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
+branching_factor = 4# c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 5000
+t_max = 1000
 r_max = 1
 
 ## 5. SIMULATION
@@ -235,7 +274,7 @@ strategySuccess <- matrix(nrow = 0, ncol = 5)
 colnames(strategySuccess) <- c("Simulation", "Nodes", "Branching", "SLS", "Total Payoff")
 
 # Loop over social learning strategies 
-for(SLS in 0:4){
+for(SLS in 0){
   
   # Bookkeeping overall summaries
   summMeanTraitsInSystem <- matrix(nrow = 0, ncol = t_max)
@@ -284,8 +323,25 @@ for(SLS in 0:4){
     # Trait labels (identifies which nodes are in which arms)
     traitDiagram <- matrix(2:num_nodes, nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor) 
     
+    probabilities <- rep(NA, t_max)
+    meanKnownTraitsBranch <- rep(NA, t_max)
+    varKnownTraitsBranch <- rep(NA, t_max)
+    distancesFromRoot <- distances(trait_model, v = 1)
+    branchRootTraits <- which(distancesFromRoot == 1)
+    
     # Loop over timesteps 
     for(t in 1:t_max){
+      if(t %% 50 == 0){
+        print(paste('Time = ', t))
+      }
+      
+      probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
+      
+      for(trait in branchRootTraits){
+        meanKnownTraitsBranch[t] <- mean(colSums(popn)[trait])/(num_nodes/branching_factor)
+        varKnownTraitsBranch[t] <- var(colSums(popn)[trait])/(num_nodes/branching_factor)
+      }
+      
       
       # Sample an individual
       ind <- sample(1:N, 1)
@@ -346,6 +402,9 @@ for(SLS in 0:4){
     finaltraitSums <- colSums(popn)
     finaltraitTracking <- matrix(finaltraitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
   }
+  plot(probabilities, type = "l", ylim = c(0,1))
+  lines(meanKnownTraitsBranch, col = "red")
+  lines(varKnownTraitsBranch, col = "blue")
 }
 
 # Export summary statistics
