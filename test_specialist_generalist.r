@@ -143,6 +143,8 @@ getEnvironmentalLearnability <- function(repertoires, adj_matrix){
 }
 
 
+
+
 ## 3. SOCIAL LEARNING 
 
 learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, popAge){
@@ -257,13 +259,9 @@ branching_factor = 4# c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-<<<<<<< HEAD
 t_max = 1000
 r_max = 1
-=======
-t_max = 5000
-r_max = 3
->>>>>>> 14bccd5c0c8f464defb24cda420acadd065861af
+
 
 ## 5. SIMULATION
 
@@ -345,7 +343,7 @@ for(SLS in 0){
       if(t %% 50 == 0){
         print(paste('Time = ', t))
       }
-      
+      browser()
       probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
       
       for(trait in branchRootTraits){
