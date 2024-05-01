@@ -1,223 +1,31 @@
-## if showPopState==1, vary node size with portion of agents with that trait
-plotTree <- function(params, tree, repertoires = NULL, showPopState = FALSE) {
-  num_nodes <- params$num_nodes - 1
-  # Use layout_as_tree to create a tree layout
-  layout <- layout_as_tree(tree, root=1, rootlevel=0)
-  
-  # Calculate the x-coordinates to center the tree horizontally
-  levels <- distances(tree, v = 1, to = V(tree), mode = "out")
-  level_widths <- table(levels)
-  
-  # Calculate the total width of the tree
-  total_width <- max(level_widths)
-  mid_x<-total_width/2
-  x_coordinates<-c()
-  for (level in level_widths) {
-    x0<-mid_x
-    for (k in 1:level){
-      x<- (k-0.5) / level
-      x_coordinates<-c(x_coordinates, x)
-    }
-  }
-  # Set the x-coordinates in the layout
-  layout[, 1] <- x_coordinates
-  
-  # set colouring according to depth
-  nodeDepths<-1+distances(tree,v=1,to=V(tree),mode="out")
-  colramp <- colorRampPalette(c("white", "blue","green","orange", "red"))
-  color_palette <- colramp(max(nodeDepths))
-  color <- color_palette[1:num_nodes]
-  V(tree)$color <- color_palette[nodeDepths]
-  
-  ## plot the tree
-  if (showPopState) {
-    V(tree)$propAdopted <- rep(0,num_nodes)
-    for (tr in 2:num_nodes) V(tree)$propAdopted[tr]<-mean(repertoires[,tr])
-    plot(tree, layout = layout, vertex.size=30*V(tree)$propAdopted, edge.arrow.size = 0.5, edge.color='black',
-         vertex.color = V(tree)$color, vertex.label=NA)	
-  }
-  else {
-    plot(tree, layout = layout, edge.arrow.size = 0.5, edge.color='black',
-         vertex.color = V(tree)$color, vertex.label = V(tree)$name)
-  }
-}
 
-plotConvergingTree <- function(params, tree, repertoires = NULL, showPopState = FALSE) {
-  num_nodes <- params$num_nodes 
-  root_node <- num_nodes
-  # Use layout_as_tree to initially place nodes
-  layout <- layout_as_tree(tree, root = root_node, rootlevel = 0)
+
+generate_rooted_tree <- function() {
+  g <- graph.empty(directed = TRUE)
+  g <- add_vertices(g, 2)  
+  g <- add_edges(g, c(1, 2))
   
-  # Calculate levels
-  levels <- distances(tree, v = root_node, to = V(tree), mode = "out")
-  level_widths <- table(levels)
+  currentNodes <- c(2) 
+  nextNodeId <- 3 
   
-  # Determine the widest layer to set as the basis for horizontal spacing
-  widest_layer_width <- max(level_widths)
-  
-  # Calculate x-coordinates to center the tree horizontally
-  x_coordinates <- numeric(num_nodes)
-  
-  for (depth in unique(levels)) {
-    nodes_in_level <- which(levels == depth)
-    num_nodes_at_level <- length(nodes_in_level)
+  for(level in 1:3) {
+    newNodes <- vector("list", length(currentNodes) * 2)
+    edgeList <- c()
     
-    # Calculate starting x-coordinate for this layer to center it
-    start_x <- (widest_layer_width - num_nodes_at_level) / 2 + 1
-    x_coords_level <- start_x + seq_len(num_nodes_at_level) - 1
+    for(i in seq_along(currentNodes)) {
+      node1 <- nextNodeId
+      node2 <- nextNodeId + 1
+      nextNodeId <- nextNodeId + 2
+      newNodes[[i]] <- c(node1, node2)
+      edgeList <- c(edgeList, c(currentNodes[i], node1), c(currentNodes[i], node2))
+    }
     
-    # Assign calculated x-coordinates
-    x_coordinates[nodes_in_level] <- x_coords_level
+    newNodeIds <- unlist(newNodes)
+    g <- add_vertices(g, length(newNodeIds))
+    g <- add_edges(g, edgeList)
+    currentNodes <- newNodeIds
   }
   
-  # Update layout with new x-coordinates while keeping existing y-coordinates
-  layout[, 1] <- x_coordinates
-  
-  # Node coloring by depth
-  nodeDepths <- 1 + levels
-  colramp <- colorRampPalette(c("white", "blue", "green", "orange", "red"))
-  color_palette <- colramp(max(nodeDepths))
-  V(tree)$color <- color_palette[nodeDepths]
-  
-  if (showPopState) {
-    # Apply additional properties if showing population state
-    V(tree)$propAdopted <- ifelse(is.null(repertoires), rep(0, num_nodes), rowMeans(repertoires, na.rm = TRUE))
-    plot(tree, layout = layout, vertex.size = 30 * V(tree)$propAdopted + 5, edge.arrow.size = 0.5, edge.color = 'black',
-         vertex.color = V(tree)$color, vertex.label = NA)
-  } else {
-    plot(tree, layout = layout, vertex.size = 15, edge.arrow.size = 0.5, edge.color = 'black',
-         vertex.color = V(tree)$color, vertex.label = NA)
-  }
-}
-
-generate_converging_tree <- function(params, branch_factor) {
-  num_nodes <- params$num_nodes - 1 #Subtract 1 to account for the root node.
-  if (num_nodes <= 1) {
-    return(graph.empty(n = 1, directed = TRUE)) # Handle trivial case separately.
-  }
-  
-  # Initially create a graph with vertices but no edges.
-  g <- graph.empty(n = num_nodes, directed = TRUE)
-  already_added_nodes <- 1
-  current_layer <- c(1) # Start with just the root node.
-  
-  while (already_added_nodes < num_nodes) {
-    new_layer <- c()
-    for (parent in current_layer) {
-      children_to_add <- min(num_nodes - already_added_nodes, branch_factor)
-      children <- (already_added_nodes + 1):(already_added_nodes + children_to_add)
-      already_added_nodes <- already_added_nodes + children_to_add
-      
-      # Add edges from current parent to new children.
-      edges_to_add <- cbind(rep(parent, length(children)), children)
-      g <- add_edges(g, as.vector(t(edges_to_add)))
-      
-      if (already_added_nodes >= num_nodes) {
-        break
-      }
-      
-      new_layer <- c(new_layer, children)
-    }
-    current_layer <- new_layer # Prepare for next layer
-  }
-  
-  # Now, create a new graph including the new root with no edges initially
-  g_reversed <- graph.empty(n = num_nodes + 1, directed = TRUE)
-  new_root <- num_nodes + 1
-  
-  # Iterate over the original graph to add reversed edges
-  orig_edges <- get.edgelist(g)
-  for (edge in seq_len(nrow(orig_edges))) {
-    g_reversed <- add_edges(g_reversed, c(orig_edges[edge, 2], orig_edges[edge, 1]))
-  }
-  
-  # Identify nodes with an in-degree of 0 and connect the new root to these nodes
-  nodes_with_no_in_edges <- V(g_reversed)[degree(g_reversed, mode="in") == 0 & V(g_reversed) != new_root]
-  for (node in nodes_with_no_in_edges) {
-    g_reversed <- add_edges(g_reversed, c(new_root, node))
-  }
-  
-  return(g_reversed)
-}
-
-# function to create a rooted tree which represents a cultural system
-generate_rooted_tree_branching <- function(params, branching_factor) {
-  num_nodes <- params$num_nodes
-  
-  g <- graph.empty(n = num_nodes, directed = FALSE)
-  
-  edgeList<-c()
-  for (i in 1:(num_nodes-1)){
-    #	outDegreeThisNode<-1+floor(runif(1)*branching_factor)
-    #	outDegreeThisNode<-max(1, round(rnorm(1,mean=branching_factor,sd=1)))
-    outDegreeThisNode<-branching_factor
-    k<-i+1
-    numConn<-0
-    for (j in (i+1):num_nodes){
-      if (numConn<outDegreeThisNode && !j%in%edgeList[c(FALSE,TRUE)]) {
-        edgeList<-c(edgeList, i,j)
-        numConn<-numConn+1
-      }
-    }
-  }
-  g<-add_edges(g, c(edgeList))
-  return(g)
-}
-
-# Function to create a rooted tree which represents a cultural system
-generate_rooted_tree_betaDistr <- function(params, tree_layers) {
-  num_nodes <- params$num_nodes
-  alpha1 <- params$alpha1
-  beta1 <- params$beta1
-  
-  g <- graph.empty(n = num_nodes, directed = TRUE)
-  edgeList<-c()
-  
-  ## define distribution of nodes across layers
-  nodeLayer<-1 + rbbinom((num_nodes-1), (tree_layers-1), alpha = alpha1, beta = beta1)
-  
-  layerDistr<-rep(1,tree_layers)
-  for (node in nodeLayer[1:(length(nodeLayer)-tree_layers)]){
-    layerDistr[node]<-layerDistr[node]+1
-  }
-  
-  layerNode<-0
-  for (i in 1:length(layerDistr)) layerNode<-c(layerNode,rep(i,layerDistr[i]))
-  inDegrees<-rep(0,num_nodes)
-  
-  for (layer in 0:(max(layerNode)-1)){
-    if (layer==0) {
-      for (j in which(layerNode==1)){
-        edgeList<-c(edgeList,1,j)
-        inDegrees[j]<-inDegrees[j]+1
-      }
-    }
-    if (layer > 0){
-      for (i in which(layerNode==layer)){
-        nextLayer<-which(layerNode==(layer+1))	
-        lowestInNextLayer<-min(inDegrees[nextLayer])
-        
-        candidates<-nextLayer[which(inDegrees[nextLayer]==lowestInNextLayer)]
-        
-        targetNodes<-candidates[1]
-        if (length(targetNodes>0)){
-          for (j in targetNodes){
-            edgeList<-c(edgeList,i,j)
-            inDegrees[j]<-inDegrees[j]+1
-          }
-        }
-      }
-      for (i in which(layerNode==(layer+1))){
-        if (inDegrees[i] == 0){
-          sourceNodes<-which(layerNode==layer)
-          sourceNode<-ifelse (length(sourceNodes)==1, sourceNodes[1], sample(sourceNodes,1))
-          edgeList<-c(edgeList,sourceNode,i)
-          inDegrees[i]<-inDegrees[i]+1
-        }
-      }
-    }
-  }
-  g<-add_edges(g, c(edgeList))
   return(g)
 }
 
@@ -251,30 +59,24 @@ addDetours <- function(params, tree, blockedTraits) {
   rootDistances <- distances(tree, v = root_node, mode = "out")
   for(blockedTrait in blockedTraits) {
     blockedDistances <- distances(tree, v = blockedTrait, mode = "out")
-    preTraits <- which(blockedDistances[1:num_nodes] == 1 & rootDistances == blockedLayer - 1)
-    postTraits <- which(blockedDistances[1:num_nodes] == 1 & rootDistances == blockedLayer + 1)
-    print(paste("Pre traits: ", preTraits))
-    print(paste("Post traits: ", postTraits))
+    
+    preTraits <- neighbors(tree, blockedTrait, mode = "in")
+    postTraits <- neighbors(tree, blockedTrait, mode = "out")
+    
     for(preTrait in preTraits) {
       for(postTrait in postTraits) {
         maxNodeId <- max(V(tree))
         
         # Assuming continuous node ids, prepare new node ids
         newNodes <- ((maxNodeId+1):(maxNodeId+numSteps))
-        
-        # Add new nodes to the graph without relying on names
+
         tree <- add_vertices(tree, numSteps)
         
-        # Connect preTrait to the first new node and so forth
-        edgesToAdd <- c(preTrait, maxNodeId+1)
-        if(numSteps > 1) {
-          for (i in 1:(numSteps-1)) {
-            edgesToAdd <- c(edgesToAdd, maxNodeId+i, maxNodeId+i+1)
-          }
+        edgesToAdd <- c()
+        for(newNode in newNodes){
+          edgesToAdd <- c(edgesToAdd, preTrait,newNode, newNode, postTrait)
         }
-        
-        # Finally, connect the last new node to postTrait
-        edgesToAdd <- c(edgesToAdd, maxNodeId+numSteps, postTrait)
+      
         tree <- add_edges(tree, edgesToAdd)
       }
     }
@@ -283,17 +85,22 @@ addDetours <- function(params, tree, blockedTraits) {
 }
 
 
+
+
 initializePopulation <- function(params, blockers, tree){
   N <- params$N
   num_nodes <- params$num_nodes
   root_node <- params$root_node
   adj_matrix <- params$adj_matrix
+  numSteps <- params$numSteps
+  numBlocked <- params$numBlocked
   repertoires <- matrix(0, nrow = N, ncol = num_nodes)
   repertoires[, root_node] <- 1
   
-  trDistances <- distances(tree, v = root_node, to = setdiff(V(tree), root_node))
+  regularTraits <- which(V(tree) <= num_nodes)
+  trDistances <- distances(tree, v = root_node, to = setdiff(regularTraits, root_node))
   payoffs<- unlist(lapply(trDistances, function(x) 1/x))
-  
+  payoffs <- c(payoffs, rep(1/numSteps, numBlocked * numSteps))
   for (ind in 1:N){
     blockedTraits <- which(blockers[ind,] == 1)
     numTraits <- sample(1:(num_nodes-length(blockedTraits)-1), 1)
@@ -356,29 +163,23 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
   return(trDistances)
 }
 
-getTraitLearningProbability <- function(params, repertoires, ind, tree, learnableTraits, prerequisites){
-  probDelta <- params$probDelta
-  falloffFunction <- params$falloffFunction
-  branching_factor <- params$branching_factor
+getTraitLearningProbability <- function(params, repertoires, ind, tree, learnableTraits, requirements){
   if(length(learnableTraits) == 0){
     return(numeric(0))
   }
   
   knownTraits <- which(repertoires[ind,] == 1)
-  
-  trDistances <- getDistances(learnableTraits, knownTraits, tree)  
-  
-  # Handle different falloff functions
-  if (falloffFunction == "adjacent") {
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) if(min(x) == 1) 1 else 0)
-  }
-  else if (falloffFunction == "reciprocal"){
-    pList <- apply(trDistances, MARGIN = 2, FUN = function(x) sum((1/(branching_factor*10))/x^probDelta))
-  }
+  pList <- rep(0, length(learnableTraits))
   for(i in 1:length(learnableTraits)){
     targetTrait <- learnableTraits[i]
-    if(all(prerequisites[targetTrait] %in% knownTraits)){
-      pList[i] <- pList[i + 0.9]
+    if(length(requirements[targetTrait]) >= 2){
+      if(all(requirements[targetTrait][[1]] %in% knownTraits) | all(requirements[targetTrait][[2]] %in% knownTraits)){
+        pList[i] <- 1
+      }
+    } else if(length(requirements[targetTrait]) >= 1){
+      if(all(requirements[targetTrait][[1]] %in% knownTraits)){
+        pList[i] <- 1
+      }
     }
   }
   
@@ -389,23 +190,30 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
 }
 
 getPayoffs <- function(tree, params) {
+  numBlocked <- params$numBlocked
+  num_nodes <- params$num_nodes
+  numSteps <- params$numSteps 
   weight <- params$payoff_weight # Determines how random the effect of distance on a trait is
   root_node <- params$root_node
   payoff_scaling <- params$payoff_scaling # Determines how much distance affects payoff
-  distances_from_root <- distances(tree, v = root_node, mode = "out")
-  random_payoffs <- runif(vcount(tree))
+  
+  
+  distances_from_root <- distances(tree, v = root_node, mode = "out")[1:num_nodes]
   distance_payoffs <- 1 + (distances_from_root - 1) * payoff_scaling
+  
+  random_payoffs <- runif(num_nodes)
+  
   adjusted_payoffs <- (1 - weight) * (2 * random_payoffs/max(random_payoffs)) + weight * distance_payoffs
   adjusted_payoffs[params$root_node] <- 0
+  adjusted_payoffs <- c(adjusted_payoffs, rep(1/numSteps, numBlocked * numSteps)) # all auxiliary nodes get a partial payoff
   return(adjusted_payoffs)
 }
 
-probBonusRequirements <- function(tree){
-  # Number of traits corresponds to the number of vertices in the graph
+trRequirements <- function(tree){
   numTraits <- gorder(tree)
   
   # Initialize the list to store prerequisites for each trait
-  prerequisiteList <- vector("list", numTraits)
+  requirements <- vector("list", numTraits)
   
   # Loop through each trait to find its prerequisites
   for(trait in 1:numTraits){
@@ -413,20 +221,29 @@ probBonusRequirements <- function(tree){
     predecessors <- neighbors(tree, trait, mode = "in")
     
     # Store the ids (or any other identifier) of required traits for the bonus
-    prerequisiteList[[trait]] <- as.numeric(predecessors)
+    requirements[[trait]] <- list(as.numeric(predecessors))
   }
   
-  return(prerequisiteList)
+  return(requirements)
 }
 
-
+augmentTrRequirements <- function(requirements, tree){
+  num_nodes <- length(requirements)
+  unreachableTraits <- which(degree(tree, mode = "in") > 1)
+  
+  for(trait in unreachableTraits){
+    # Find parents that are auxiliary nodes
+    parents <- neighbors(tree, trait, mode = "in")[which(neighbors(tree, trait, mode = "in") > num_nodes)]
+    requirements[[trait]][[2]] <- c(parents)
+  }
+  return(requirements)
+}
 
 
 learnSocially <- function(params, repertoires, blockers, ind, adj_matrix, learningStrategy,  popAge,  payoffs, tree, observedTraits, observedModels, prerequisites){
   unknownTraits <- which(repertoires[ind,] == 0)
   blockedTraits <- which(blockers[ind,] == 1)
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
-  
   if(length(observedTraits) > 0){
     wList <- numeric(length = length(learnableTraits))     
     pList <- getTraitLearningProbability(params, repertoires, ind, tree, learnableTraits, prerequisites) 
@@ -441,7 +258,7 @@ learnSocially <- function(params, repertoires, blockers, ind, adj_matrix, learni
     ##### STRATEGY 1: payoff-based social learning #####
     if(learningStrategy == 1){
       if(sum(payoffs[learnableTraits], na.rm = T) != 0){ #handle case where all payoffs are zero
-        wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits], na.rm = T)
+        wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits])
       }
     }
     
@@ -480,15 +297,6 @@ learnSocially <- function(params, repertoires, blockers, ind, adj_matrix, learni
       return(numeric(0))
     }
     
-    pList <- pmin(pmax(pList,0), 1)
-    
-    if(sum(wList, na.rm = T) > 0) {
-      if(max(wList) == min(wList)) {
-        wList <- wList
-      } else {
-        wList <- (wList - min(wList)) / (max(wList) - min(wList))
-      }
-    }
     if(any(is.na(wList * pList))) {
       print("NA in wList * pList")
       browser()  
@@ -504,6 +312,10 @@ learnSocially <- function(params, repertoires, blockers, ind, adj_matrix, learni
     }
     if(length(wList) != length(pList)){
       print("Length of wList and pList do not match")
+      browser()
+    }
+    if(!any((wList * pList) > 0)){
+      print("no positive probabilities")
       browser()
     }
     
