@@ -219,7 +219,7 @@ SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 
 SL_rate = 0.99
 reset_rate = 0.01
 t_max = 5000
-r_max = 1
+r_max = 3
 
 ## 5. SIMULATION
 
@@ -231,18 +231,24 @@ r_max = 1
   
 # Summary matrix with success of learning strategies 
 # Simulation replicate, number of nodes, branching factor, learning strategy, payoff at the end of the simulation
-strategySuccess <- matrix(nrow = 0, ncol = 5)
-colnames(strategySuccess) <- c("Simulation", "Nodes", "Branching", "SLS", "Total Payoff")
+strategySuccess <- matrix(nrow = 0, ncol = 6)
+colnames(strategySuccess) <- c("Simulation", "Nodes", "Branching", "SLS", "Total Payoff", "Proportion of Successful Trials")
+
+# Bookkeeping overall summaries
+summMeanTraitsInSystem <- matrix(nrow = 0, ncol = t_max)
+colnames(summMeanTraitsInSystem) <- 1:t_max
+
+summSLSPayoff <- matrix(nrow = 0, ncol = t_max)
+colnames(summSLSPayoff) <- 1:t_max
 
 # Loop over social learning strategies 
 for(SLS in 0:4){
   
-  # Bookkeeping overall summaries
-  summMeanTraitsInSystem <- matrix(nrow = 0, ncol = t_max)
-  summSLSPayoff <- matrix(nrow = 0, ncol = t_max)
-  
   #Loop over replications
   for(r in 1:r_max){
+    
+    # Tracking the total number of replications over all SLSs
+    n <- c()
     
     # Show simulation progress
     flush.console()
@@ -334,22 +340,27 @@ for(SLS in 0:4){
       # Bookkeeping each timestep
       meanTraitsInSystem[t] <- sum(popn) / (num_nodes * N)
     }
+    
+    # Tracking the end of a replication
+    n <- n + 1
+    
     # Bookkeeping each replication
     summSLSPayoff <- rbind(summSLSPayoff, SLSPayoff)
     summMeanTraitsInSystem <- rbind(summMeanTraitsInSystem, meanTraitsInSystem)
     
     # Overall summaries
-    summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(summSLSPayoff[r,]))
+    summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(summSLSPayoff[n,]), sum(summSLSPayoff[n,]>0)/5000)
     strategySuccess <- rbind(strategySuccess, summThisSimulation)
     
     # Trait frequencies after the simulation
     finaltraitSums <- colSums(popn)
     finaltraitTracking <- matrix(finaltraitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
+  
   }
 }
 
 # Export summary statistics
-write.csv(strategySuccess, file = "SummaryStats_bf64")
+write.csv(strategySuccess, file = "")
 
 # Plotting success of SLSs
 boxplot(Payoff ~ SLS, data = strategySuccess, main = "Mean Payoff for each SLS (bf = 64)")
@@ -390,3 +401,7 @@ boxplot(Payoff ~ SLS, data = bf16, main = "bf = 16", ylab = "Total Payoff")
 boxplot(Payoff ~ SLS, data = bf32, main = "bf = 32", ylab = "Total Payoff")
 boxplot(Payoff ~ SLS, data = bf64, main = "bf = 64", ylab = "Total Payoff")
 boxplot(Payoff ~ SLS, data = bf128, main = "bf = 128", ylab = "Total Payoff")
+
+# Learnability of population
+
+
