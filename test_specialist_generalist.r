@@ -1,6 +1,6 @@
 ## Specialists vs Generalists
 ## Hannah Armstrong
-## Updated: 10-01-24
+## Updated: 01-05-24
 
 ## Libraries
 library(igraph)
