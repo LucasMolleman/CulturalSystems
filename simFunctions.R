@@ -1,3 +1,5 @@
+
+
 generate_rooted_tree <- function() {
   g <- graph.empty(directed = TRUE)
   g <- add_vertices(g, 2)  
@@ -126,6 +128,19 @@ assignAges<-function(repertoires){
   return (popAge)
 }
 
+getLearnableTraits<-function(repertoires, blockers, ind){
+  # Identify traits not known by the individual
+  unknownTraits <- which(repertoires[ind, ] == 0)
+  
+  blockedTraits <- which(blockers[ind, ] == 1)
+  
+  learnableTraits <- setdiff(unknownTraits, blockedTraits)
+  
+  observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
+  
+  return(learnableTraits)
+}
+
 getDistances <- function(learnableTraits, knownTraits, tree) {
   ### 
   # Get Distances between known traits and learnable traits, creating
@@ -172,45 +187,6 @@ getTraitLearningProbability <- function(params, repertoires, ind, tree, learnabl
     browser()
   }
   return(pList)
-}
-
-getEnvironmentalLearnability <- function(params, inds, repertoires, adj_matrix, tree, blockers, requirements){
-  p <- c()
-  
-  for(ind in inds){
-    
-    knownTraits <- which(repertoires[ind,] == 1)
-    
-    unknownTraits <- which(repertoires[ind,] == 0)
-    
-    if(length(unknownTraits) == 0){
-      p[ind] <- NA 
-      next
-    }
-    blockedTraits <- which(blockers[ind,] == 1)
-    learnableTraits <- unknownTraits[which(!unknownTraits %in% blockedTraits)]
-    
-    pList <- getTraitLearningProbability(params, repertoires, ind, tree, learnableTraits, requirements)
-    
-    freqLearnable <- 0
-    
-    popOthers <- repertoires[-ind,]
-    
-    
-    for(trait in learnableTraits){
-      freqLearnable <- freqLearnable + sum(popOthers[,trait])
-    }
-    
-    freqUnknown <- 0
-    
-    for(trait in unknownTraits){
-      freqUnknown <- freqUnknown + sum(popOthers[,trait])
-    }
-    
-    p[ind] <- freqLearnable / freqUnknown
-  }
-  
-  return(mean(p, na.rm=T))
 }
 
 getPayoffs <- function(tree, params) {
