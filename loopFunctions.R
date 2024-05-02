@@ -26,18 +26,33 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree, requireme
 
   ####### INITIALIZE POPULATION #####
   blockers<- initializeBlockers(params, tree)
-  blocked <- which(colSums(blockers) > 0)
-  tree <- addDetours(params, tree, blocked)
+  blockedTraits <- which(colSums(blockers) > 0)
+  blockedInds <- which(rowSums(blockers) > 0)
+  tree <- addDetours(params, tree, blockedTraits)
   requirements <- augmentTrRequirements(requirements, tree) #add alternative routes around blocked traits
   repertoires<-initializePopulation(params, blockers, tree)
   popAge<-assignAges(repertoires)
   
   ### population is now initialized... start running the model
+  probabilities <- rep(NA, params$timesteps)
+  probabilitiesBlocked <- rep(NA, params$timesteps)
   for (t in 1:params$timesteps){
+    #probabilities[t] <- getEnvironmentalLearnability(params, 1:params$N, repertoires, adj_matrix, tree, blockers, requirements)
+    #probabilitiesBlocked[t] <- getEnvironmentalLearnability(params, blockedInds, repertoires, adj_matrix, tree, blockers, requirements)
+    
+    # if(t %% 500 == 0){
+    #   cat(paste("Time step: ", t))
+    #   # cat(paste("\nAverage known traits for typical individuals: ", mean(rowSums(repertoires[-blockedInds,])),
+    #   #           "\nAverage known traits for blocked individuals: ", mean(rowSums(repertoires[blockedInds,])),
+    #   #           "\n"))
+    #   cat(paste("Average payoff for typical learners: ", mean(SLpay[,2], na.rm=TRUE), "\n",
+    #             "Average payoff for blocked learners: ", mean(SLpay[,3], na.rm=TRUE), "\n"))
+    # }
+    
     ## sample a random individual
     ind<-sample(1:params$N,1)
     #if ind is blocked 
-    if (ind %in% blocked){
+    if (ind %in% blockedInds){
       learningStrategy <- blockedLearningStrategy
     } else {
       learningStrategy <- 1 #typical learners always employ payoff-based learning
@@ -83,13 +98,20 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree, requireme
           repertoires[ind, learnedTrait] <- 1
           focalPay <- payoffs[learnedTrait]
           SLpay[t,1]<- focalPay
-          if (ind %in% blocked){
+          if (ind %in% blockedInds){
             SLpay[t,3]<- focalPay
           } else {
             SLpay[t,2]<- focalPay
           } 
+        } else {
+          SLpay[t,1]<-0
+          if (ind %in% blockedInds){
+            SLpay[t,3]<-0
+          } else {
+            SLpay[t,2]<-0
+          }
         }
-
+      
       }
       else if(r >= params$S){	# individual learning (=innovation)
         selectedTrait <- sample(unknownTraits,1)
@@ -108,11 +130,19 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree, requireme
     ## replace an individual with a naive one at random
     ## NB this is not appropriate for evolutionary sims
     if (runif(1) < params$reset_rate) {
-      repertoires[ind,]<-c(1,rep(0,params$num_nodes-1))
-      popAge[ind]<-0  ## reset the age of the agent to 0
+        repertoires[ind,]<-c(1,rep(0,params$num_nodes-1))
+        popAge[ind]<-0  ## reset the age of the agent to 0
     }
   }
 
+  # png("probabilities.png")
+  # plot(probabilities, type = "l", ylim = c(0,1))
+  # dev.off()
+  # 
+  # png("probabilities_blocked.png")
+  # plot(probabilitiesBlocked, type = "l", ylim = c(0,1))
+  # dev.off()
+  
   sumThisSimulation<-c(params$num_nodes, 
                         blockedLearningStrategy,
                         params$olderPref,
