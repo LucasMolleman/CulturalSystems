@@ -11,10 +11,7 @@ combineResults <- function(accum, new) {
 runsimulation <- function(params, blockedLearningStrategy, repl, tree, requirements){  
   ### define the cultural system ###
   
-  ## derive square matrix of parent/child traits
-  adj_matrix <- as_adjacency_matrix(tree, sparse = FALSE)
-  ## root trait is its own parent
-  adj_matrix[params$root_node,params$root_node]<-1 
+
   
   ## Total payoffs are stored in column 1, payoffs for unblocked individuals in
   ## column 2, and payoffs for blocked individuals in column 3
@@ -69,7 +66,6 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree, requireme
                                       repertoires,
                                       blockers,
                                       ind,
-                                      adj_matrix,
                                       learningStrategy, 
                                       popAge,
                                       payoffs,

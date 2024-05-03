@@ -81,7 +81,7 @@ for (learningStrategy in c(0,1,2)){
       strategySuccess
     }
     # Stopping the cluster after the parallelization step 
-    stopCluster(cl)
+    parallel::stopCluster(cl)
      
     # add the results to the summary matrix
     strategySuccess <- rbind(strategySuccess, results)
@@ -143,13 +143,13 @@ plotPayoffScaling <- function(strategySuccess, independent, dependent, subset = 
   # Update mar to provide more space at the bottom for the legend
   par(mfrow=c(1,5), mar=c(7, 4, 4, 2) + 0.1) # Increase the bottom margin substantially
 
-  for (level in sort(unique(strategySuccess[,independent]))[1:length(unique(strategySuccess[,independent]))]) {
+  for (level in sort(unique(strategySuccess[,independent]))[seq_along(unique(strategySuccess[,independent]))]) {
 
     b <- strategySuccess[strategySuccess[,independent] == level,]
     boxplot(b[[dependent]] ~ b$learningStrat, main=paste(independent,"=",level), col=stratCols, xaxt='n',xlab="", ylab=dependent)
-    axis(1, at=1:length(unique(b$learningStrat)), labels=FALSE)
+    axis(1, at=seq_along(length(unique(b$learningStrat))), labels=FALSE)
     if(level == min(unique(strategySuccess[,independent]))) { # changed condition for clarity
-      axis(1, at=1:length(unique(b$learningStrat)), labels=names(stratCols), las=2)
+      axis(1, at=seq_along(unique(b$learningStrat)), labels=names(stratCols), las=2)
     }
   }
 
@@ -175,14 +175,15 @@ summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedL
 
 summary(mod2 <- lm(sumPayoffBlocked ~ blockedLearningStrat*numSteps*blockedLayer*propBlocked, data = data))
 
+
 #Probing the interaction numSteps:blockedLayer:propBlocked 
 library(dplyr)
+library(ggplot2)
 aggregated_data <- data %>%
   group_by(blockedLearningStrat, numSteps, blockedLayer, propBlocked) %>%
-  summarise(meanSumPayoffBlocked = mean(sumPayoffBlocked, na.rm = TRUE), .groups = 'drop')
-
-aggregated_data <- aggregated_data %>%
+  summarise(meanSumPayoffBlocked = mean(sumPayoffBlocked, na.rm = TRUE), .groups = 'drop')%>%
   mutate(blockedLearningStrat = factor(blockedLearningStrat, levels = c("0", "1", "2"), labels = c("Random", "Payoff", "Similarity")))
+
 # Plotting the aggregated means
 ggplot(aggregated_data, aes(x = as.factor(numSteps), y = meanSumPayoffBlocked, group = interaction(blockedLayer, propBlocked), color = as.factor(blockedLayer))) +
   geom_line(aes(linetype = as.factor(propBlocked))) +
