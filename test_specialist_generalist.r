@@ -284,8 +284,8 @@ branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 5000
-r_max = 1
+t_max = 200
+r_max = 2
 
 ## 5. SIMULATION
 
@@ -306,6 +306,8 @@ colnames(strategySuccess) <- c("Simulation", "Nodes", "Branching", "SLS", "Total
 # Bookkeeping overall summaries
 summMeanTraitsInSystem <- matrix(nrow = 0, ncol = t_max)
 summSLSPayoff <- matrix(nrow = 0, ncol = t_max)
+summMeanTraitsInBranch <- list()
+summVarAcrossBranch <- matrix(nrow = 0, ncol = t_max)
 
 # Loop over social learning strategies 
 for(SLS in 0:4){
@@ -317,6 +319,13 @@ for(SLS in 0:4){
     flush.console()
     print(paste('Replication =', r, ' Number of nodes =', num_nodes, ' SLS =', SLS, 
                 ' Branching factor =', branching_factor))
+    
+    # Bookkeeping individual replications
+    SLSPayoff <- rep(NA, t_max) # SLS payoff at each timestep
+    meanTraitsInSystem <- rep(NA, t_max) # Number of traits in population at each timestep
+    probabilities <- rep(NA, t_max) # Environmental learnability
+    meanTraitsInBranch <- matrix(nrow = 0, ncol = branching_factor) # Mean traits in each branch
+    varTraitsAcrossBranch <- c() # Variance in mean traits
     
     # Create trait model
     trait_model <- generate_specialist_generalist_tree(num_nodes, branching_factor)
@@ -335,10 +344,6 @@ for(SLS in 0:4){
     nodeDepths <- 1 + distances(trait_model, v = 1, to = V(trait_model), mode = "out")
     maxNodeDepth <- max(nodeDepths)
     
-    # Bookkeeping individual replications
-    SLSPayoff <- rep(NA, t_max) # SLS payoff at each timestep
-    meanTraitsInSystem <- rep(NA, t_max) # Number of traits in population at each timestep
-    
     # Set payoffs
     #	payoffs <- rep(1, num_nodes) # Equal uniform 
     # payoffs <- runif(num_nodes)	# Random payoffs from uniform distribution
@@ -352,17 +357,13 @@ for(SLS in 0:4){
     # Assign ages
     popAge <- assignAges(popn)
     
-    probabilities <- rep(NA, t_max)
-    meanKnownTraitsBranch <- rep(NA, t_max)
-    varKnownTraitsBranch <- rep(NA, t_max)
-    distancesFromRoot <- distances(trait_model, v = 1)
-    branchRootTraits <- which(distancesFromRoot == 1)
-    
     # Loop over timesteps 
     for(t in 1:t_max){
-      #if(t %% 50 == 0){
-      #  print(paste('Time = ', t))
-      #}
+      
+      if(t %% 50 == 0){
+        print(paste('Time = ', t))
+      }
+      
       #probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
       
       # Mean number of traits per branch (over all individuals, not per individual)
@@ -370,12 +371,16 @@ for(SLS in 0:4){
       
       if(branching_factor == 1){ # Completely constrained (one branch)
         meanKnownTraitsBranch <- sum(popn)/(num_nodes-1)
-        
       }
-      if(branching_factor ==(num_nodes-1)){ # Completely unconstriained (independent traits)
-        
-      }
-      else{
+      
+      if(branching_factor == (num_nodes-1)){ # Completely unconstrained (independent traits)
+       
+         for(trait in vertBranches){
+          meanKnownTraitsBranch[trait] <- colSums(popn)[trait]
+         }
+        meanKnownTraitsBranch <- na.omit(meanKnownTraitsBranch)
+        varTraitsBranch <- var(meanKnownTraitsBranch) # Variance between the branches
+      } else { # All other branching factors other than 1 or 128
         for(col in 1:branching_factor){
           subset <- vertBranches[,col]
           
@@ -392,7 +397,8 @@ for(SLS in 0:4){
         varTraitsBranch <- var(meanKnownTraitsBranch)
       }
       
-      
+      meanTraitsInBranch <- rbind(meanTraitsInBranch, meanKnownTraitsBranch)
+      varTraitsAcrossBranch <- c(varTraitsAcrossBranch, varTraitsBranch)
       
       # Sample an individual
       ind <- sample(1:N, 1)
@@ -412,22 +418,22 @@ for(SLS in 0:4){
               popn[ind, selectedTrait] <- 1
               traitPayoff <- payoffs[selectedTrait]
               SLSPayoff[t] <- traitPayoff
-            }
-            else{
+            } 
+            else {
               SLSPayoff[t] <- 0
             }
-          }
-          else{
+          } 
+          else {
             SLSPayoff[t] <- 0
           }
-        }
-        else{ # Individual learning
+        } 
+        else { # Individual learning
           selectedTrait <- sample(learnableTraits, 1)
           popn[ind, selectedTrait] <- 1
           SLSPayoff[t] <- 0
         }
-      }
-      else{
+      } 
+      else {
         SLSPayoff[t] <- 0
       }
       # Increase agent age
@@ -445,6 +451,8 @@ for(SLS in 0:4){
     # Bookkeeping each replication
     summSLSPayoff <- rbind(summSLSPayoff, SLSPayoff)
     summMeanTraitsInSystem <- rbind(summMeanTraitsInSystem, meanTraitsInSystem)
+    summMeanTraitsInBranch <- c(summMeanTraitsInBranch, list(meanTraitsInBranch))
+    summVarAcrossBranch <- rbind(summVarAcrossBranch, varTraitsAcrossBranch)
     
     # Overall summaries
     summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(SLSPayoff), sum(SLSPayoff>0)/t_max)
