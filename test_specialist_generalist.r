@@ -33,8 +33,8 @@ generate_specialist_generalist_tree <- function(num_nodes, branching_factor) {
   return(g)
 }
 
-# Function to find vertices in each branch
-find_vertices_in_branches <- function(graph) {
+# Determine the nodes in each branch
+verticesInBranches <- function(graph) {
   branches <- list()
   visited <- logical(vcount(graph))
   
@@ -60,8 +60,6 @@ find_vertices_in_branches <- function(graph) {
   
   return(branches)
 }
-
-x<-find_vertices_in_branches(trait_model)
 
 ## 2. GENERATE POPULATION
 
@@ -293,6 +291,7 @@ r_max = 1
 
 # Functions needed for this simulation:
 # 1. generate_specialist_generalist
+# 2. verticesInBranches
 # 2. initializePopulation
 # 3. assignAges
 # 4. getLearnableTraits
@@ -326,6 +325,11 @@ for(SLS in 0:4){
     adj_matrix <- as_adjacency_matrix(trait_model, sparse = FALSE)
     # Root trait (at position 1,1) is its own parent
     adj_matrix[1,1] <- 1
+    
+    # Vertices in each branch
+    branches <- verticesInBranches(trait_model)
+    vertBranches <- do.call(cbind, branches)
+    vertBranches <- vertBranches[-1,]
     
     # Node depths 			
     nodeDepths <- 1 + distances(trait_model, v = 1, to = V(trait_model), mode = "out")
@@ -361,10 +365,34 @@ for(SLS in 0:4){
       #}
       #probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
       
-      for(trait in branchRootTraits){
-        meanKnownTraitsBranch[t] <- mean(colSums(popn)[trait])/((num_nodes-1)/branching_factor)
-        varKnownTraitsBranch[t] <- var(colSums(popn)[trait])/((num_nodes-1)/branching_factor)
+      # Mean number of traits per branch (over all individuals, not per individual)
+      meanKnownTraitsBranch <- c()
+      
+      if(branching_factor == 1){ # Completely constrained (one branch)
+        meanKnownTraitsBranch <- sum(popn)/(num_nodes-1)
+        
       }
+      if(branching_factor ==(num_nodes-1)){ # Completely unconstriained (independent traits)
+        
+      }
+      else{
+        for(col in 1:branching_factor){
+          subset <- vertBranches[,col]
+          
+          traitsInBranch <- 0
+          
+          for(trait in subset){
+            traitsInBranch <- traitsInBranch + colSums(popn)[trait]
+          }
+          
+          meanKnownTraitsBranch[col] <- traitsInBranch / ((num_nodes-1)/branching_factor)
+        }
+        
+        # Variance between the branches
+        varTraitsBranch <- var(meanKnownTraitsBranch)
+      }
+      
+      
       
       # Sample an individual
       ind <- sample(1:N, 1)
