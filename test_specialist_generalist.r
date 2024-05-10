@@ -284,8 +284,8 @@ branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 200
-r_max = 2
+t_max = 5000
+r_max = 1
 
 ## 5. SIMULATION
 
@@ -364,16 +364,15 @@ for(SLS in 0:4){
         print(paste('Time = ', t))
       }
       
-      #probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
+      probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
       
       # Mean number of traits per branch (over all individuals, not per individual)
       meanKnownTraitsBranch <- c()
       
       if(branching_factor == 1){ # Completely constrained (one branch)
         meanKnownTraitsBranch <- sum(popn)/(num_nodes-1)
-      }
-      
-      if(branching_factor == (num_nodes-1)){ # Completely unconstrained (independent traits)
+        varTraitsBranch <- NA
+      } else if (branching_factor == (num_nodes-1)){ # Completely unconstrained (independent traits)
        
          for(trait in vertBranches){
           meanKnownTraitsBranch[trait] <- colSums(popn)[trait]
