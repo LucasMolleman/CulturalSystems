@@ -1,6 +1,6 @@
 ## Specialists vs Generalists
 ## Hannah Armstrong
-## Updated: 01-05-24
+## Updated: 10-05-24
 
 ## Libraries
 library(igraph)
@@ -32,6 +32,36 @@ generate_specialist_generalist_tree <- function(num_nodes, branching_factor) {
   g <- add_edges(g, c(edgeList))
   return(g)
 }
+
+# Function to find vertices in each branch
+find_vertices_in_branches <- function(graph) {
+  branches <- list()
+  visited <- logical(vcount(graph))
+  
+  dfs <- function(vertex, branch) {
+    visited[vertex] <<- TRUE
+    branch <- c(branch, vertex)
+    neighbors <- neighbors(graph, vertex)
+    unvisited_neighbors <- neighbors[!visited[neighbors]]
+    if (length(unvisited_neighbors) > 0) {
+      for (neighbor in unvisited_neighbors) {
+        dfs(neighbor, branch)
+      }
+    } else {
+      branches <<- c(branches, list(branch))
+    }
+  }
+  
+  for (vertex in 1:vcount(graph)) {
+    if (!visited[vertex]) {
+      dfs(vertex, numeric(0))
+    }
+  }
+  
+  return(branches)
+}
+
+x<-find_vertices_in_branches(trait_model)
 
 ## 2. GENERATE POPULATION
 
@@ -256,7 +286,7 @@ branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 1000
+t_max = 5000
 r_max = 1
 
 ## 5. SIMULATION
@@ -326,14 +356,14 @@ for(SLS in 0:4){
     
     # Loop over timesteps 
     for(t in 1:t_max){
-      if(t %% 50 == 0){
-        print(paste('Time = ', t))
-      }
-      probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
+      #if(t %% 50 == 0){
+      #  print(paste('Time = ', t))
+      #}
+      #probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
       
       for(trait in branchRootTraits){
-        meanKnownTraitsBranch[t] <- mean(colSums(popn)[trait])/(num_nodes/branching_factor)
-        varKnownTraitsBranch[t] <- var(colSums(popn)[trait])/(num_nodes/branching_factor)
+        meanKnownTraitsBranch[t] <- mean(colSums(popn)[trait])/((num_nodes-1)/branching_factor)
+        varKnownTraitsBranch[t] <- var(colSums(popn)[trait])/((num_nodes-1)/branching_factor)
       }
       
       # Sample an individual
