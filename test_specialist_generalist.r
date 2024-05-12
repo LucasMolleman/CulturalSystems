@@ -281,33 +281,34 @@ N = 100
 M = 10
 num_nodes = 129 # (including root node)
 branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
-SLS = 3 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
+SLS = 0 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
 t_max = 5000
-r_max = 1
+r_max = 20
 
 ## 5. SIMULATION
 
 # Functions needed for this simulation:
 # 1. generate_specialist_generalist
 # 2. verticesInBranches
-# 2. initializePopulation
-# 3. assignAges
-# 4. getLearnableTraits
-# 5. getEnvironmentalLearnability
-# 6. learnSocially
+# 3. initializePopulation
+# 4. assignAges
+# 5. getLearnableTraits
+# 6. getEnvironmentalLearnability
+# 7. learnSocially
   
 # Summary matrix with success of learning strategies 
 # Simulation replicate, number of nodes, branching factor, learning strategy, payoff at the end of the simulation
 strategySuccess <- matrix(nrow = 0, ncol = 6)
-colnames(strategySuccess) <- c("Simulation", "Nodes", "Branching", "SLS", "Total Payoff", "Proportion of Successful Trials")
+colnames(strategySuccess) <- c("Simulation", "Nodes", "Branching", "SLS", "TotalPayoff", "ProportionSuccessfulTrials")
 
 # Bookkeeping overall summaries
 summMeanTraitsInSystem <- matrix(nrow = 0, ncol = t_max)
 summSLSPayoff <- matrix(nrow = 0, ncol = t_max)
 summMeanTraitsInBranch <- list()
 summVarAcrossBranch <- matrix(nrow = 0, ncol = t_max)
+summProbabilities <- matrix(nrow = 0, ncol = t_max)
 
 # Loop over social learning strategies 
 for(SLS in 0:4){
@@ -452,42 +453,28 @@ for(SLS in 0:4){
     summMeanTraitsInSystem <- rbind(summMeanTraitsInSystem, meanTraitsInSystem)
     summMeanTraitsInBranch <- c(summMeanTraitsInBranch, list(meanTraitsInBranch))
     summVarAcrossBranch <- rbind(summVarAcrossBranch, varTraitsAcrossBranch)
+    summProbabilities <- rbind(summProbabilities, probabilities)
     
     # Overall summaries
     summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(SLSPayoff), sum(SLSPayoff>0)/t_max)
     strategySuccess <- rbind(strategySuccess, summThisSimulation)
-    
-    # Trait frequencies after the simulation
-    finaltraitSums <- colSums(popn)
-    finaltraitTracking <- matrix(finaltraitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
-  
   }
 }
-
-plot(probabilities, type = "l", ylim = c(0,1))
-lines(meanKnownTraitsBranch, col = "red")
-lines(varKnownTraitsBranch, col = "blue")
 
 # Export summary statistics
 write.csv(strategySuccess, file = "")
 
 # Plotting success of SLSs
-boxplot(Payoff ~ SLS, data = strategySuccess, main = "Mean Payoff for each SLS (bf = 64)")
+boxplot(TotalPayoff ~ SLS, data = strategySuccess, main = "Mean Payoff for each SLS (bf = 4)")
 legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
 
-# Plotting frequency of traits per branch AFTER social learning
-traitPlot <- t(as.data.frame(finaltraitTracking))
-matplot(1:nrow(traitPlot), traitPlot[,1:ncol(traitPlot)], type = "l", lty = 1, col = 1:nrow(traitPlot), 
-        xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, After", ylim = c(0,100))
-
-# Plotting frequency of traits per branch BEFORE social learning
-traitTracking <- t(as.data.frame(traitTracking))
-matplot(1:nrow(traitTracking), traitTracking[,1:ncol(traitTracking)], type = "l", lty = 1, col = 1:nrow(traitTracking), 
-        xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, Before", ylim = c(0,100))
+# Plotting environmental learnability, mean traits in each branch, variance in traits across the branches
+plot(probabilities, type = "l", ylim = c(0,1))
+lines(meanKnownTraitsBranch, col = "red")
+lines(varKnownTraitsBranch, col = "blue")
 
 # Comparing agent's age and the number of traits they have
 AgeTraits <- rbind(Age = popAge, N_Traits = rowSums(popn))
-
 
 ## 6. PRELIMINARY RESULTS
 
@@ -511,11 +498,25 @@ boxplot(Payoff ~ SLS, data = bf32, main = "bf = 32", ylab = "Total Payoff")
 boxplot(Payoff ~ SLS, data = bf64, main = "bf = 64", ylab = "Total Payoff")
 boxplot(Payoff ~ SLS, data = bf128, main = "bf = 128", ylab = "Total Payoff")
 
-# OLD CODE
+# 7. OLD CODE
 
 # Create matrix to track number of individuals with each trait (initial starting frequencies)
 # traitSums <- colSums(popn)
 # traitTracking <- matrix(traitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
 # Trait labels (identifies which nodes are in which arms)
 # traitDiagram <- matrix(2:num_nodes, nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor) 
+
+# Trait frequencies after the simulation
+# finaltraitSums <- colSums(popn)
+# finaltraitTracking <- matrix(finaltraitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
+
+# Plotting frequency of traits per branch AFTER social learning
+# traitPlot <- t(as.data.frame(finaltraitTracking))
+# matplot(1:nrow(traitPlot), traitPlot[,1:ncol(traitPlot)], type = "l", lty = 1, col = 1:nrow(traitPlot), 
+#         xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, After", ylim = c(0,100))
+
+# Plotting frequency of traits per branch BEFORE social learning
+# traitTracking <- t(as.data.frame(traitTracking))
+# matplot(1:nrow(traitTracking), traitTracking[,1:ncol(traitTracking)], type = "l", lty = 1, col = 1:nrow(traitTracking), 
+#         xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, Before", ylim = c(0,100))
 
