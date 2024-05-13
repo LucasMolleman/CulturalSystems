@@ -462,41 +462,102 @@ for(SLS in 0:4){
 }
 
 # Export summary statistics
-write.csv(strategySuccess, file = "")
+write.csv(strategySuccess, file = "StrategySuccess")
+labels <- strategySuccess[,c(1,4)]
+
+write.csv(summSLSPayoff, file = "SLSPayoff (No Labels)")
+sls_payoff <- cbind(labels, summSLSPayoff)
+colnames(sls_payoff) <- c("Simulation", "SLS", 1:5000)
+rownames(sls_payoff) <- 1:100
+write.csv(sls_payoff, file = "SLSPayoff")
+
+write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem (No Labels)")
+traitsinenv <- cbind(labels, summMeanTraitsInSystem)
+colnames(traitsinenv) <- c("Simulation", "SLS", 1:5000)
+rownames(traitsinenv) <- 1:100
+write.csv(traitsinenv, file = "MeanTraitsInSystem")
+
+saveRDS(summMeanTraitsInBranch, file="MeanTraitsInBranch.RData")
+write.csv(summVarAcrossBranch, file = "VarianceAcrossBranch")
+
+write.csv(summProbabilities, file = "EnvironmentalLearnability (No Labels)")
+EnvironmentalLearnability <- cbind(labels, summProbabilities)
+colnames(EnvironmentalLearnability) <- c("Simulation", "SLS", 1:5000)
+rownames(EnvironmentalLearnability) <- 1:100
+write.csv(EnvironmentalLearnability, file = "EnvironmentalLearnability")
 
 # Plotting success of SLSs
-boxplot(TotalPayoff ~ SLS, data = strategySuccess, main = "Mean Payoff for each SLS (bf = 4)")
+boxplot(TotalPayoff ~ SLS, data = strategySuccess, main = "Total Payoff")
+legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
+
+# Plotting proportion of successful trials
+boxplot(ProportionSuccessfulTrials ~ SLS, data = strategySuccess, main = "Proportion of Successful Traits")
 legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
 
 # Plotting environmental learnability, mean traits in each branch, variance in traits across the branches
-plot(probabilities, type = "l", ylim = c(0,1))
-lines(meanKnownTraitsBranch, col = "red")
-lines(varKnownTraitsBranch, col = "blue")
+
+# Random learning
+plot1 <- summProbabilities[1:20,]
+avy1 <- colMeans(plot1)
+
+matplot(t(plot1), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
+        main = "Random Learning", ylim = c(0.09,0.19))
+lines(avy1, lwd = 3)
+
+# Payoff based social learning 
+plot2 <- summProbabilities[21:40,]
+avy2 <- colMeans(plot2)
+
+matplot(t(plot2), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
+        main = "Payoff-Based Social Learning", ylim = c(0.09,0.19))
+lines(avy2, lwd = 3)
+
+# Similarity based social learning
+plot3 <- summProbabilities[41:60,]
+avy3 <- colMeans(plot3)
+
+matplot(t(plot3), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
+        main = "Similarity-Based Social Learning", ylim = c(0.09,0.19))
+lines(avy3, lwd = 3)
+
+# Age based social learning
+plot4 <- summProbabilities[61:80,]
+avy4 <- colMeans(plot4)
+
+matplot(t(plot4), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
+        main = "Age-Based Social Learning", ylim = c(0.09,0.19))
+lines(avy4, lwd = 3)
+
+# Conformity social learning
+plot5 <- summProbabilities[81:100,]
+avy5 <- colMeans(plot5)
+
+matplot(t(plot5), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
+        main = "Conformity Social Learning", ylim = c(0.09,0.19))
+lines(avy5, lwd = 3)
+
+# Plotting mean traits in the environment
+randomMean <- colMeans(summMeanTraitsInSystem[1:20,])
+payoffMean <- colMeans(summMeanTraitsInSystem[21:40,])
+similarityMean <- colMeans(summMeanTraitsInSystem[41:60,])
+ageMean <- colMeans(summMeanTraitsInSystem[61:80,])
+conformityMean <- colMeans(summMeanTraitsInSystem[81:100,])
+
+plot(randomMean, type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in the Environment",
+     main = "Mean Traits in the Environment for Each SLS", ylim = c(0.35,0.52))
+lines(payoffMean, col = "blue")
+lines(similarityMean, col = "purple")
+lines(ageMean, col = "green")
+lines(conformityMean, col = "orange")
+legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
+       col = c("red", "blue", "purple", "green", "orange"), lwd = 2, cex = 0.8)
 
 # Comparing agent's age and the number of traits they have
 AgeTraits <- rbind(Age = popAge, N_Traits = rowSums(popn))
 
 ## 6. PRELIMINARY RESULTS
 
-bf1 <- read.csv("SummaryStats_bf1")
-bf2 <- read.csv("SummaryStats_bf2")
-bf4 <- read.csv("SummaryStats_bf4")
-bf8 <- read.csv("SummaryStats_bf8")
-bf16 <- read.csv("SummaryStats_bf16")
-bf32 <- read.csv("SummaryStats_bf32")
-bf64 <- read.csv("SummaryStats_bf64")
-bf128 <- read.csv("SummaryStats_bf128")
-
-dev.new()
-par(mfrow=c(2,4))
-boxplot(Payoff ~ SLS, data = bf1, main = "bf = 1", ylab = "Total Payoff")
-boxplot(Payoff ~ SLS, data = bf2, main = "bf = 2", ylab = "Total Payoff")
-boxplot(Payoff ~ SLS, data = bf4, main = "bf = 4", ylab = "Total Payoff")
-boxplot(Payoff ~ SLS, data = bf8, main = "bf = 8", ylab = "Total Payoff")
-boxplot(Payoff ~ SLS, data = bf16, main = "bf = 16", ylab = "Total Payoff")
-boxplot(Payoff ~ SLS, data = bf32, main = "bf = 32", ylab = "Total Payoff")
-boxplot(Payoff ~ SLS, data = bf64, main = "bf = 64", ylab = "Total Payoff")
-boxplot(Payoff ~ SLS, data = bf128, main = "bf = 128", ylab = "Total Payoff")
+data <- read.csv("")
 
 # 7. OLD CODE
 
@@ -519,4 +580,5 @@ boxplot(Payoff ~ SLS, data = bf128, main = "bf = 128", ylab = "Total Payoff")
 # traitTracking <- t(as.data.frame(traitTracking))
 # matplot(1:nrow(traitTracking), traitTracking[,1:ncol(traitTracking)], type = "l", lty = 1, col = 1:nrow(traitTracking), 
 #         xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, Before", ylim = c(0,100))
+
 
