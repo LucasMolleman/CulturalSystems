@@ -284,8 +284,8 @@ branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 0 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 5000
-r_max = 20
+t_max = 20000
+r_max = 5
 
 ## 5. SIMULATION
 
@@ -494,9 +494,13 @@ legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4
 boxplot(ProportionSuccessfulTrials ~ SLS, data = strategySuccess, main = "Proportion of Successful Traits")
 legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
 
-# Plotting environmental learnability, mean traits in each branch, variance in traits across the branches
+# Plotting environmental learnability
 
 # Random learning
+matplot(t(summProbabilities), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
+        main = "Environmental Learnability")
+lines(plot, lwd = 3)
+
 plot1 <- summProbabilities[1:20,]
 avy1 <- colMeans(plot1)
 
@@ -557,7 +561,63 @@ AgeTraits <- rbind(Age = popAge, N_Traits = rowSums(popn))
 
 ## 6. PRELIMINARY RESULTS
 
-data <- read.csv("")
+bf1 <- read.csv("SummaryStats_bf1")
+bf2 <- read.csv("SummaryStats_bf2")
+bf4 <- read.csv("SummaryStats_bf4")
+bf8 <- read.csv("SummaryStats_bf8")
+bf16 <- read.csv("SummaryStats_bf16")
+bf32 <- read.csv("SummaryStats_bf32")
+bf64 <- read.csv("SummaryStats_bf64")
+bf128 <- read.csv("SummaryStats_bf128")
+
+random <- rbind(bf1[bf1$SLS == 0,], bf2[bf2$SLS == 0,], bf4[bf4$SLS == 0,], bf8[bf8$SLS == 0,],
+                bf16[bf16$SLS == 0,], bf32[bf32$SLS == 0,], bf64[bf64$SLS == 0,], bf128[bf128$SLS == 0,])
+randomtotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(random$Payoff[random$Branching == 1]), mean(random$Payoff[random$Branching == 2]),
+                                                    mean(random$Payoff[random$Branching == 4]), mean(random$Payoff[random$Branching == 8]),
+                                                    mean(random$Payoff[random$Branching == 16]), mean(random$Payoff[random$Branching == 32]),
+                                                    mean(random$Payoff[random$Branching == 64]), mean(random$Payoff[random$Branching == 128])))
+randomtotal <- as.data.frame(randomtotal)
+colnames(randomtotal) <- c("BranchingFactor", "TotalPayoff")
+randomtotal$BranchingFactor <- factor(randomtotal$BranchingFactor, levels = rev(unique(randomtotal$BranchingFactor)))
+
+
+payoff <- rbind(bf1[bf1$SLS == 1,], bf2[bf2$SLS == 1,], bf4[bf4$SLS == 1,], bf8[bf8$SLS == 1,],
+                bf16[bf16$SLS == 1,], bf32[bf32$SLS == 1,], bf64[bf64$SLS == 1,], bf128[bf128$SLS == 1,])
+payofftotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(payoff$Payoff[payoff$Branching == 1]), mean(payoff$Payoff[payoff$Branching == 2]),
+                                                    mean(payoff$Payoff[payoff$Branching == 4]), mean(payoff$Payoff[payoff$Branching == 8]),
+                                                    mean(payoff$Payoff[payoff$Branching == 16]), mean(payoff$Payoff[payoff$Branching == 32]),
+                                                    mean(payoff$Payoff[payoff$Branching == 64]), mean(payoff$Payoff[payoff$Branching == 128])))
+
+similarity <- rbind(bf1[bf1$SLS == 2,], bf2[bf2$SLS == 2,], bf4[bf4$SLS == 2,], bf8[bf8$SLS == 2,],
+                bf16[bf16$SLS == 2,], bf32[bf32$SLS == 2,], bf64[bf64$SLS == 2,], bf128[bf128$SLS == 2,])
+similaritytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(similarity$Payoff[similarity$Branching == 1]), mean(similarity$Payoff[similarity$Branching == 2]),
+                                                    mean(similarity$Payoff[similarity$Branching == 4]), mean(similarity$Payoff[similarity$Branching == 8]),
+                                                    mean(similarity$Payoff[similarity$Branching == 16]), mean(similarity$Payoff[similarity$Branching == 32]),
+                                                    mean(similarity$Payoff[similarity$Branching == 64]), mean(similarity$Payoff[similarity$Branching == 128])))
+
+age <- rbind(bf1[bf1$SLS == 3,], bf2[bf2$SLS == 3,], bf4[bf4$SLS == 3,], bf8[bf8$SLS == 3,],
+                bf16[bf16$SLS == 3,], bf32[bf32$SLS == 3,], bf64[bf64$SLS == 3,], bf128[bf128$SLS == 3,])
+agetotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(age$Payoff[age$Branching == 1]), mean(age$Payoff[age$Branching == 2]),
+                                                        mean(age$Payoff[age$Branching == 4]), mean(age$Payoff[age$Branching == 8]),
+                                                        mean(age$Payoff[age$Branching == 16]), mean(age$Payoff[age$Branching == 32]),
+                                                        mean(age$Payoff[age$Branching == 64]), mean(age$Payoff[age$Branching == 128])))
+
+conformity <- rbind(bf1[bf1$SLS == 4,], bf2[bf2$SLS == 4,], bf4[bf4$SLS == 4,], bf8[bf8$SLS == 4,],
+                bf16[bf16$SLS == 4,], bf32[bf32$SLS == 4,], bf64[bf64$SLS == 4,], bf128[bf128$SLS == 4,])
+conformitytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(conformity$Payoff[conformity$Branching == 1]), mean(conformity$Payoff[conformity$Branching == 2]),
+                                                        mean(conformity$Payoff[conformity$Branching == 4]), mean(conformity$Payoff[conformity$Branching == 8]),
+                                                        mean(conformity$Payoff[conformity$Branching == 16]), mean(conformity$Payoff[conformity$Branching == 32]),
+                                                        mean(conformity$Payoff[conformity$Branching == 64]), mean(conformity$Payoff[conformity$Branching == 128])))
+
+plot(x = as.numeric(randomtotal[,1]), y = randomtotal[,2], type = "l", col = "red", xlab = "Branching Factor", ylab = "Total Payoff",
+     main = "Mean Payoff over 100 Simulations", ylim = c(0,5500), xaxt = "n")
+axis(1, at = 1:length(levels(randomtotal$BranchingFactor)), labels = levels(randomtotal$BranchingFactor))
+lines(x = payofftotal[,1], y = payofftotal[,2], type = "l", col = "blue")
+lines(x = similaritytotal[,1], y = similaritytotal[,2], type = "l", col = "green")
+lines (x = agetotal[,1], y = agetotal[,2], type = "l", col = "purple")
+lines(x = conformitytotal[,1], y = conformitytotal[,2], type = "l", col = "orange")
+legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
+       col = c("red", "blue", "green", "purple", "orange"), lwd = 2, cex = 0.8)
 
 # 7. OLD CODE
 
