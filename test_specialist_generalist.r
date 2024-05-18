@@ -486,7 +486,7 @@ randomtotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(random$Payoff[random$Br
                                                     mean(random$Payoff[random$Branching == 16]), mean(random$Payoff[random$Branching == 32]),
                                                     mean(random$Payoff[random$Branching == 64]), mean(random$Payoff[random$Branching == 128])))
 randomtotal <- as.data.frame(randomtotal)
-colnames(randomtotal) <- c("BranchingFactor", "TotalPayoff")
+colnames(randomtotal) <- c("BranchingFactor", "MeanPayoff")
 randomtotal$BranchingFactor <- factor(randomtotal$BranchingFactor, levels = rev(unique(randomtotal$BranchingFactor)))
 
 payoff <- rbind(bf1[bf1$SLS == 1,], bf2[bf2$SLS == 1,], bf4[bf4$SLS == 1,], bf8[bf8$SLS == 1,],
@@ -497,7 +497,7 @@ payofftotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(payoff$Payoff[payoff$Br
                                                     mean(payoff$Payoff[payoff$Branching == 64]), mean(payoff$Payoff[payoff$Branching == 128])))
 payofftotal <- as.data.frame(payofftotal)
 payofftotal[,2] <- payofftotal[,2]/randomtotal[,2]
-colnames(payofftotal) <- c("BranchingFactor", "TotalPayoff (divided by Random)")
+colnames(payofftotal) <- c("BranchingFactor", "MeanPayoff (divided by Random)")
 payofftotal$BranchingFactor <- factor(payofftotal$BranchingFactor, levels = rev(unique(payofftotal$BranchingFactor)))
 
 
@@ -509,7 +509,7 @@ similaritytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(similarity$Payoff[s
                                                         mean(similarity$Payoff[similarity$Branching == 64]), mean(similarity$Payoff[similarity$Branching == 128])))
 similaritytotal <- as.data.frame(similaritytotal)
 similaritytotal[,2] <- similaritytotal[,2]/randomtotal[,2]
-colnames(similaritytotal) <- c("BranchingFactor", "TotalPayoff (divided by Random)")
+colnames(similaritytotal) <- c("BranchingFactor", "MeanPayoff (divided by Random)")
 similaritytotal$BranchingFactor <- factor(similaritytotal$BranchingFactor, levels = rev(unique(similaritytotal$BranchingFactor)))
 
 age <- rbind(bf1[bf1$SLS == 3,], bf2[bf2$SLS == 3,], bf4[bf4$SLS == 3,], bf8[bf8$SLS == 3,],
@@ -520,7 +520,7 @@ agetotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(age$Payoff[age$Branching =
                                                  mean(age$Payoff[age$Branching == 64]), mean(age$Payoff[age$Branching == 128])))
 agetotal <- as.data.frame(agetotal)
 agetotal[,2] <- agetotal[,2]/randomtotal[,2]
-colnames(agetotal) <- c("BranchingFactor", "TotalPayoff (divided by Random")
+colnames(agetotal) <- c("BranchingFactor", "MeanPayoff (divided by Random")
 agetotal$BranchingFactor <- factor(agetotal$BranchingFactor, levels = rev(unique(agetotal$BranchingFactor)))
 
 conformity <- rbind(bf1[bf1$SLS == 4,], bf2[bf2$SLS == 4,], bf4[bf4$SLS == 4,], bf8[bf8$SLS == 4,],
@@ -531,7 +531,7 @@ conformitytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(conformity$Payoff[c
                                                         mean(conformity$Payoff[conformity$Branching == 64]), mean(conformity$Payoff[conformity$Branching == 128])))
 conformitytotal <- as.data.frame(conformitytotal)
 conformitytotal[,2] <- conformitytotal[,2]/randomtotal[,2]
-colnames(conformitytotal) <- c("BranchingFactor", "TotalPayoff (divided by Random")
+colnames(conformitytotal) <- c("BranchingFactor", "MeanPayoff (divided by Random")
 conformitytotal$BranchingFactor <- factor(conformitytotal$BranchingFactor, levels = rev(unique(conformitytotal$BranchingFactor)))
 
 plot(x = as.numeric(payofftotal[,1]), y = payofftotal[,2], type = "l", col = "red", 
