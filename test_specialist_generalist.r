@@ -7,6 +7,8 @@ library(igraph)
 # library(colorRamps)
 # library(extraDistr)
 # library(matrixStats)
+library(ggplot2)
+library(reshape2)
 
 ## 1. GENERATE TRAIT MODELS
 
@@ -284,8 +286,8 @@ branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 0 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 20000
-r_max = 5
+t_max = 50
+r_max = 1
 
 ## 5. SIMULATION
 
@@ -309,6 +311,8 @@ summSLSPayoff <- matrix(nrow = 0, ncol = t_max)
 summMeanTraitsInBranch <- list()
 summVarAcrossBranch <- matrix(nrow = 0, ncol = t_max)
 summProbabilities <- matrix(nrow = 0, ncol = t_max)
+
+Sys.time()
 
 # Loop over social learning strategies 
 for(SLS in 0:4){
@@ -459,6 +463,7 @@ for(SLS in 0:4){
     summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(SLSPayoff), sum(SLSPayoff>0)/t_max)
     strategySuccess <- rbind(strategySuccess, summThisSimulation)
   }
+  print(Sys.time())
 }
 
 # Export summary statistics
@@ -544,6 +549,37 @@ lines(x = as.numeric(agetotal[,1]), y = agetotal[,2], type = "l", col = "green")
 lines(x = as.numeric(conformitytotal[,1]), y = conformitytotal[,2], type = "l", col = "orange")
 legend("topleft", legend = c("Payoff", "Similarity", "Age", "Conformity"),
        col = c("red", "blue", "green", "orange"), lwd = 2, cex = 0.8)
+
+
+## 13-05-24 Simulation Results ##
+
+# Plotting Mean Traits in the Branches (bf = 4)
+data <- readRDS("MeanTraitsInBranch.RData")
+random <- data[1:20]
+payoff <- data[21:40]
+similarity <- data[41:60]
+age <- data[61:80]
+conformity <- data[81:100]
+
+plot(age[[2]][,1], type = "l", col = "red")
+lines(age[[2]][,2], type = "l", col = "blue")
+lines(age[[2]][,3], type = "l", col = "green")
+lines(age[[2]][,4], type = "l", col = "magenta")
+
+# Variance
+variance <- read.csv("VarianceAcrossBranch")
+random <- variance[1:20,]
+random$X <- factor(1:20)
+colnames(random) <- c("Simulation", paste("T", 1:5000, sep = ""))
+ranLong <- melt(random, id.vars = "Simulation", variable.name = "Variable", value.name = "Value")
+
+ggplot(ranLong, aes(x = Variable, y = Value, group = Simulation, color = Simulation)) +
+  geom_line() +
+  theme_minimal() + 
+  labs(title = "Variance in Mean Traits Across the Branches",
+       x = "Timesteps",
+       y = "Variance",
+       color = "Simulation")
 
 ## 14-05-24 Simulation Results ##
 
@@ -662,5 +698,3 @@ AgeTraits <- rbind(Age = popAge, N_Traits = rowSums(popn))
 # traitTracking <- t(as.data.frame(traitTracking))
 # matplot(1:nrow(traitTracking), traitTracking[,1:ncol(traitTracking)], type = "l", lty = 1, col = 1:nrow(traitTracking), 
 #         xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, Before", ylim = c(0,100))
-
-
