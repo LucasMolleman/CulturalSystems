@@ -307,13 +307,12 @@ colnames(strategySuccess) <- c("Simulation", "Nodes", "Branching", "SLS", "Total
 # Bookkeeping overall summaries
 summMeanTraitsInSystem <- matrix(nrow = 0, ncol = t_max)
 summSLSPayoff <- matrix(nrow = 0, ncol = t_max)
-summMeanTraitsInBranch <- list()
-summVarAcrossBranch <- matrix(nrow = 0, ncol = t_max)
-summProbabilities <- matrix(nrow = 0, ncol = t_max)
-
-Sys.time()
+## summMeanTraitsInBranch <- list()
+## summVarAcrossBranch <- matrix(nrow = 0, ncol = t_max)
+## summProbabilities <- matrix(nrow = 0, ncol = t_max)
 
 # Loop over social learning strategies 
+system.time(
 for(SLS in 0:4){
   
   #Loop over replications
@@ -327,9 +326,9 @@ for(SLS in 0:4){
     # Bookkeeping individual replications
     SLSPayoff <- rep(NA, t_max) # SLS payoff at each timestep
     meanTraitsInSystem <- rep(NA, t_max) # Number of traits in population at each timestep
-    probabilities <- rep(NA, t_max) # Environmental learnability
-    meanTraitsInBranch <- matrix(nrow = 0, ncol = branching_factor) # Mean traits in each branch
-    varTraitsAcrossBranch <- c() # Variance in mean traits
+    ## probabilities <- rep(NA, t_max) # Environmental learnability
+    ## meanTraitsInBranch <- matrix(nrow = 0, ncol = branching_factor) # Mean traits in each branch
+    ## varTraitsAcrossBranch <- c() # Variance in mean traits
     
     # Create trait model
     trait_model <- generate_specialist_generalist_tree(num_nodes, branching_factor)
@@ -340,9 +339,9 @@ for(SLS in 0:4){
     adj_matrix[1,1] <- 1
     
     # Vertices in each branch
-    branches <- verticesInBranches(trait_model)
-    vertBranches <- do.call(cbind, branches)
-    vertBranches <- vertBranches[-1,]
+    ## branches <- verticesInBranches(trait_model)
+    ## vertBranches <- do.call(cbind, branches)
+    ## vertBranches <- vertBranches[-1,]
     
     # Node depths 			
     nodeDepths <- 1 + distances(trait_model, v = 1, to = V(trait_model), mode = "out")
@@ -368,40 +367,40 @@ for(SLS in 0:4){
         print(paste('Time = ', t))
       }
       
-      probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
+      ## probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
       
       # Mean number of traits per branch (over all individuals, not per individual)
-      meanKnownTraitsBranch <- c()
+      ## meanKnownTraitsBranch <- c()
       
-      if(branching_factor == 1){ # Completely constrained (one branch)
-        meanKnownTraitsBranch <- sum(popn)/(num_nodes-1)
-        varTraitsBranch <- NA
-      } else if (branching_factor == (num_nodes-1)){ # Completely unconstrained (independent traits)
-       
-         for(trait in vertBranches){
-          meanKnownTraitsBranch[trait] <- colSums(popn)[trait]
-         }
-        meanKnownTraitsBranch <- na.omit(meanKnownTraitsBranch)
-        varTraitsBranch <- var(meanKnownTraitsBranch) # Variance between the branches
-      } else { # All other branching factors other than 1 or 128
-        for(col in 1:branching_factor){
-          subset <- vertBranches[,col]
-          
-          traitsInBranch <- 0
-          
-          for(trait in subset){
-            traitsInBranch <- traitsInBranch + colSums(popn)[trait]
-          }
-          
-          meanKnownTraitsBranch[col] <- traitsInBranch / ((num_nodes-1)/branching_factor)
-        }
-        
+      ## if(branching_factor == 1){ # Completely constrained (one branch)
+      ##  meanKnownTraitsBranch <- sum(popn)/(num_nodes-1)
+      ##  varTraitsBranch <- NA
+      ##} else if (branching_factor == (num_nodes-1)){ # Completely unconstrained (independent traits)
+      ## 
+      ##   for(trait in vertBranches){
+      ##    meanKnownTraitsBranch[trait] <- colSums(popn)[trait]
+      ##   }
+      ##  meanKnownTraitsBranch <- na.omit(meanKnownTraitsBranch)
+      ##  varTraitsBranch <- var(meanKnownTraitsBranch) # Variance between the branches
+      ##} else { # All other branching factors other than 1 or 128
+      ##  for(col in 1:branching_factor){
+      ##    subset <- vertBranches[,col]
+      ##    
+      ##    traitsInBranch <- 0
+      ##    
+      ##    for(trait in subset){
+      ##      traitsInBranch <- traitsInBranch + colSums(popn)[trait]
+      ##    }
+      ##    
+      ##    meanKnownTraitsBranch[col] <- traitsInBranch / ((num_nodes-1)/branching_factor)
+      ##  }
+      ##  
         # Variance between the branches
-        varTraitsBranch <- var(meanKnownTraitsBranch)
-      }
+      ##  varTraitsBranch <- var(meanKnownTraitsBranch)
+      ##}
       
-      meanTraitsInBranch <- rbind(meanTraitsInBranch, meanKnownTraitsBranch)
-      varTraitsAcrossBranch <- c(varTraitsAcrossBranch, varTraitsBranch)
+      ##meanTraitsInBranch <- rbind(meanTraitsInBranch, meanKnownTraitsBranch)
+      ##varTraitsAcrossBranch <- c(varTraitsAcrossBranch, varTraitsBranch)
       
       # Sample an individual
       ind <- sample(1:N, 1)
@@ -454,16 +453,16 @@ for(SLS in 0:4){
     # Bookkeeping each replication
     summSLSPayoff <- rbind(summSLSPayoff, SLSPayoff)
     summMeanTraitsInSystem <- rbind(summMeanTraitsInSystem, meanTraitsInSystem)
-    summMeanTraitsInBranch <- c(summMeanTraitsInBranch, list(meanTraitsInBranch))
-    summVarAcrossBranch <- rbind(summVarAcrossBranch, varTraitsAcrossBranch)
-    summProbabilities <- rbind(summProbabilities, probabilities)
+    ##summMeanTraitsInBranch <- c(summMeanTraitsInBranch, list(meanTraitsInBranch))
+    ##summVarAcrossBranch <- rbind(summVarAcrossBranch, varTraitsAcrossBranch)
+    ##summProbabilities <- rbind(summProbabilities, probabilities)
     
     # Overall summaries
     summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(SLSPayoff), sum(SLSPayoff>0)/t_max)
     strategySuccess <- rbind(strategySuccess, summThisSimulation)
   }
-  print(Sys.time())
 }
+)
 
 # Export summary statistics
 write.csv(strategySuccess, file = "StrategySuccess")
@@ -778,6 +777,12 @@ ggplot(varLong, aes(x = Variable, y = Value, group = Simulation, color = Simulat
        color = "Simulation")
 
 # Environmental learnability
+learnability <- read.csv("EnvironmentalLearnability")
+learnability <- learnability[,-1]
+learnability <- as.data.frame(learnability)
+matplot(t(learnability[,1:20000]), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability",
+        main = "Environmental Learnability for Different SLSs")
+legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"), col = 1:5, lty = 1, cex = 0.8, bg = "white", bty = "o")
 
 
 # 7. OLD CODE
