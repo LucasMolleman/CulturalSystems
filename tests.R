@@ -594,3 +594,5 @@ plot(tree)
 plotTree(list(num_nodes = 32), tree)
 vcount(tree)
 plotTreeWithHorizontalLayers(tree)
+
+

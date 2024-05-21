@@ -18,9 +18,14 @@ library(extraDistr)
 library(matrixStats)
 library(doParallel)
 library(foreach)
+library(Rcpp)
+library(dplyr)
+library(ggplot2)
+
 
 source("simFunctions.R")
 source("loopFunctions.R")
+sourceCpp("getTraitLearningProbability.cpp")
 ```
 
 ## Set Parameters
@@ -31,18 +36,19 @@ params <- list(
   num_nodes = 16,                 # size of the cultural systems (number of nodes)
   root_node = 1,                  # root node of the tree
   N = 100,                        # population size
-  M = 20,                         # number of demonstrators
-  timesteps = 10000,               # number of time steps in the simulation
-  replicateSimulations = 30,      # number of simulations per parameter setting
+  M = 10,                         # number of demonstrators
+  timesteps =  5000,              # number of time steps in the simulation
+  replicateSimulations = 3,       # number of simulations per parameter setting
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
-  reset_rate = 0.01,              # probability that an individual is replaced by a naive individual
+  reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
   olderPref = 0,
-  payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
+  payoff_scaling = 4,             # Constant that is added/subtracted for each step away from the root node
   payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
   propBlocked = 0.5,              # proportion of individuals that have blocked traits
-  numSteps = 3                    # number of auxiliary traits necessary for overcoming a block
+  numSteps = 3,                   # number of auxiliary traits necessary for overcoming a block
+  detourType = "parallel"         # type of detour (parallel or serial)
 )
 
 ``` 
@@ -54,41 +60,27 @@ params <- list(
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=12)
+strategySuccess<-matrix(nrow=0, ncol=14)
 
 tree <- generate_rooted_tree()
-requirements <- trRequirements(tree)
+attr(tree, "requirements") <- trRequirements(tree)
+set.seed(1)
 
-for (learningStrategy in c(0,1,2)){
-  for(numSteps in c(1,2,3)){
-    params$numSteps <- numSteps
-    for(blockedLayer in c(1,2,3)){
-      params$blockedLayer <- blockedLayer
-      for(prop in c(0.1, 0.3, 0.5)){
-          params$propBlocked <- prop
-    ### start simulation
-    numCores <- detectCores() - 1  # leave one core for other tasks
-    cl <- makeCluster(numCores)
-    registerDoParallel(cl)
-    initResults <- matrix(numeric(0), ncol = ncol(strategySuccess)) 
 
-      results <- foreach(repl=1:params$replicateSimulations, .packages=c('igraph'), .combine='combineResults', .init=initResults) %dopar% {
- 
-      strategySuccess <- runsimulation(params, learningStrategy, repl, tree, requirements)
+iterations <- expand.grid(
+  learningStrategy = c(0,1,6),
+  numSteps = c(1, 2, 3),
+  blockedLayer = c(1, 2, 3),
+  propBlocked = c(0.1, 0.3),
+  repl = 1:params$replicateSimulations
+) 
 
- 
-      ## simulation replicate is done
-      strategySuccess
-    }
-    # Stopping the cluster after the parallelization step 
-    parallel::stopCluster(cl)
-     
-    # add the results to the summary matrix
-    strategySuccess <- rbind(strategySuccess, results)
-      }
-    }
-  }
-}
+future::plan(future::multisession, workers = (parallel::detectCores() - 1))
+
+strategySuccess <- rbind(strategySuccess, run_all_simulations_parallel(iterations, params, tree))
+
+saveRDS(strategySuccess, "strategySuccess.rds")
+future::plan(future::sequential)
 ```
 
 ## Non-Parallel Version
@@ -97,39 +89,98 @@ For debugging and testing
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=12)
+strategySuccess<-matrix(nrow=0, ncol=14)
 set.seed(1)
 tree <- generate_rooted_tree()
-requirements <- trRequirements(tree)
+attr(tree, "requirements") <- trRequirements(tree)
 
-for (learningStrategy in c(0,1,2)){
-  for(numSteps in c(1,2,3)){
-    params$numSteps <- numSteps
-    for(blockedLayer in c(1,2,3)){
-      params$blockedLayer <- blockedLayer
-      for(prop in c(0.1, 0.3, 0.5)){
-          params$propBlocked <- prop
-      for(repl in 1:params$replicateSimulations){
-        print(paste("strat=", learningStrategy, "N=", params$numSteps, "layer=",params$blockedLayer, "repl=", repl))
-        sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree, requirements)
-        strategySuccess <- rbind(strategySuccess, sumThisSimulation)
-      }
-      }
-    }
-  }
-}
+iterations <- expand.grid(
+  learningStrategy = c(6),
+  numSteps = 2,
+  blockedLayer = 1,
+  propBlocked = c(0.3),
+  repl = 1:params$replicateSimulations
+) 
+
+strategySuccess <- run_all_simulations(iterations, params, tree)
+
+saveRDS(strategySuccess, "strategySuccess.rds")
 ```
+
+
+
+
+```{r}
+data <- as.data.frame(strategySuccess)
+library(data.table)
+setDT(data)
+setnames(data, c("numNodes", "blockedLearningStrat", "olderPref", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked", "failed_learning_prop", "failed_learning_prop_blocked"))
+
+#set first 8 columns to factor
+data[ , (1:5) := lapply(.SD, factor), .SDcols = 1:5]
+
+data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,6), labels = c("Random", "Payoff", "Similarity"))]
+
+summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked , data = data))
+
+summary(mod2 <- lm(sumPayoffBlocked ~ blockedLearningStrat*numSteps*blockedLayer*propBlocked, data = data))
+
+#Probing the interaction numSteps:blockedLayer:propBlocked 
+
+aggregated_data <- data %>%
+  group_by(blockedLearningStrat, numSteps, blockedLayer, propBlocked) %>%
+  summarise(meanSumPayoffBlocked = mean(sumPayoffBlocked, na.rm = TRUE),
+            SE = sd(sumPayoffBlocked, na.rm = TRUE) / sqrt(n()),  # Standard Error
+            n = n(),
+            .groups = 'drop') %>%
+  mutate(CI_lower = meanSumPayoffBlocked - (1.96 * SE),
+         CI_upper = meanSumPayoffBlocked + (1.96 * SE),
+         blockedLearningStrat = factor(blockedLearningStrat, levels = c("0", "1", "2"), labels = c("Random", "Payoff", "Similarity")))
+
+prepare_aggregated_data <- function(data, dependent_var, independent_vars) {
+  aggregated_data <- data %>%
+    group_by(across(all_of(independent_vars))) %>%
+    summarise(
+      mean_value = mean(get(dependent_var), na.rm = TRUE),
+      SE = sd(get(dependent_var), na.rm = TRUE) / sqrt(n()),  # Standard Error
+      n = n(),
+      .groups = 'drop'
+    ) %>%
+    mutate(
+      CI_lower = mean_value - (1.96 * SE),
+      CI_upper = mean_value + (1.96 * SE)
+    )
+  
+  return(aggregated_data)
+}
+
+dependent_var <- "sumPayoffBlocked"
+independent_vars <- c("blockedLearningStrat", "numSteps", "blockedLayer", "propBlocked")
+
+aggregated_data2 <- prepare_aggregated_data(data, dependent_var, independent_vars)
+
+# Plotting the aggregated means
+ggplot(aggregated_data2, aes(x = as.factor(numSteps), y = mean_value, group = interaction(blockedLayer, propBlocked), color = as.factor(blockedLayer))) +
+  geom_line(aes(linetype = as.factor(propBlocked))) +
+  geom_point(aes(shape = as.factor(propBlocked))) +
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.2) +  # 95% CI error bars
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity"))) +
+  labs(title = "Average SumPayoffBlocked across NumSteps, BlockedLayer, PropBlocked,\n and LearningStrategies",
+       subtitle = "Data aggregated across unique combinations of factors",
+       x = "Number of Steps",
+       y = "Average Sum Payoff Blocked",
+       color = "Blocked Layer",
+       linetype = "Proportion Blocked",
+       shape = "Proportion Blocked") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X labels for better visualization
+        strip.text.x = element_text(size = 12, face = "bold"))
+``` 
 ## Plot Results
 
 ```{r}
-plotPayoffScaling(strategySuccess, "blockedLayer",'sumPayoffBlocked')
-plotPayoffScaling(strategySuccess, "numSteps",'sumPayoffBlocked')
-plotPayoffScaling(strategySuccess, "propBlocked",'sumPayoffBlocked')
-```
-
-
-```{r}
 ## give names to the columns of the simulation summary matrix: number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
+strategySuccess <- readRDS("strategySuccess.rds")
 
 plotPayoffScaling <- function(strategySuccess, independent, dependent, subset = TRUE){
   strategySuccess <- data.frame(strategySuccess)
@@ -147,7 +198,7 @@ plotPayoffScaling <- function(strategySuccess, independent, dependent, subset = 
 
     b <- strategySuccess[strategySuccess[,independent] == level,]
     boxplot(b[[dependent]] ~ b$learningStrat, main=paste(independent,"=",level), col=stratCols, xaxt='n',xlab="", ylab=dependent)
-    axis(1, at=seq_along(length(unique(b$learningStrat))), labels=FALSE)
+    axis(1, at=seq_along(unique(b$learningStrat)), labels=FALSE)
     if(level == min(unique(strategySuccess[,independent]))) { # changed condition for clarity
       axis(1, at=seq_along(unique(b$learningStrat)), labels=names(stratCols), las=2)
     }
@@ -163,45 +214,33 @@ plotPayoffScaling <- function(strategySuccess, independent, dependent, subset = 
 ```
 
 ```{r}
-data <- as.data.frame(strategySuccess)
-library(data.table)
-setDT(data)
-setnames(data, c("numNodes", "blockedLearningStrat", "olderPref", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked"))
-
-#set first 8 columns to factor
-data[, (1:5) := lapply(.SD, factor), .SDcols = 1:5]
-
-summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked, data = data))
-
-summary(mod2 <- lm(sumPayoffBlocked ~ blockedLearningStrat*numSteps*blockedLayer*propBlocked, data = data))
+plotPayoffScaling(strategySuccess[data$propBlocked == 0.3,], "blockedLayer",'sumPayoffBlocked')
+plotPayoffScaling(strategySuccess, "numSteps",'sumPayoffBlocked')
+plotPayoffScaling(strategySuccess, "propBlocked",'sumPayoffBlocked')
+```
 
 
-#Probing the interaction numSteps:blockedLayer:propBlocked 
-library(dplyr)
-library(ggplot2)
-aggregated_data <- data %>%
-  group_by(blockedLearningStrat, numSteps, blockedLayer, propBlocked) %>%
-  summarise(meanSumPayoffBlocked = mean(sumPayoffBlocked, na.rm = TRUE), .groups = 'drop')%>%
-  mutate(blockedLearningStrat = factor(blockedLearningStrat, levels = c("0", "1", "2"), labels = c("Random", "Payoff", "Similarity")))
 
-# Plotting the aggregated means
-ggplot(aggregated_data, aes(x = as.factor(numSteps), y = meanSumPayoffBlocked, group = interaction(blockedLayer, propBlocked), color = as.factor(blockedLayer))) +
-  geom_line(aes(linetype = as.factor(propBlocked))) +
-  geom_point(aes(shape = as.factor(propBlocked))) +
-  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity"))) +
-  labs(title = "Average SumPayoffBlocked across NumSteps, BlockedLayer, PropBlocked,\n and LearningStrategies",
-       subtitle = "Data aggregated across unique combinations of factors",
-       x = "Number of Steps",
-       y = "Average Sum Payoff Blocked",
-       color = "Blocked Layer",
-       linetype = "Proportion Blocked",
-       shape = "Proportion Blocked") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X labels for better visualization
-        strip.text.x = element_text(size = 12, face = "bold"))
-``` 
+```{r}
+trait_dist <- readRDS("trait_dist.rds")
 
+traitdepths <- list(
+ `1` = 2,
+ `2` = c(3,4),
+ `3` = c(5:8),
+ `4` = c(9:16),
+ `5` = c(17,18)
+)
 
+trait_dist_long <- as.data.frame(trait_dist) %>% 
+
+  tibble::rownames_to_column("Time") %>% 
+
+  pivot_longer(-Time, names_to = "Trait", values_to = "Proportion")
+
+trait_dist_long$Depth <- unlist(traitdepths)[as.character(trait_dist_long$Trait)]
+
+```
 
 
 

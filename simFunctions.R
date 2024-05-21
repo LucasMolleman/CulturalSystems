@@ -51,11 +51,22 @@ initializeBlockers <- function(params, tree) {
     blockedTraitIndices <- sample(blockableTraits, numBlocked)
   }
   blockedTraits[blockedInds, blockedTraitIndices] <- 1
+  blockedTraits
+}
 
-  return(blockedTraits)
+bookkeep_traits <- function(repertoires, blockedInds){
+  browser()
+  num_traits <- ncol(repertoires)
+  prop_adopted <- rep(NA, num_traits - 1)
+  for (trait in 2:num_traits) {
+    prop_adopted[trait] <- mean(repertoires[blockedInds, trait])
+  }
+  prop_adopted
 }
 
 addDetours <- function(params, tree, blockedTraits, type = "serial") {
+  requirements <- attributes(tree)$requirements
+  payoffs <- attributes(tree)$payoffs
   num_nodes <- params$num_nodes
   root_node <- params$root_node
   blockedLayer <- params$blockedLayer
@@ -103,40 +114,44 @@ addDetours <- function(params, tree, blockedTraits, type = "serial") {
       }
     }
   }
+  attributes(tree)$requirements <- requirements
+  attributes(tree)$payoffs <- payoffs
   return(tree)
+}
+
+sample_initial_traits <- function(ind, repertoire, blockedTraits, numTraits, payoffs){
+  for(trait in seq_along(numTraits)){
+    unknownTraits <- which(repertoire == 0)
+    learnableTraits <- setdiff(unknownTraits, blockedTraits)
+    if (length(learnableTraits) == 1) {
+      repertoire[learnableTraits] <- 1
+      return(repertoire)
+    } 
+    if (length(learnableTraits) > 1) {
+      pList <- payoffs[which(1:length(repertoire) %in% learnableTraits)]
+      chosenTrait <- sample(learnableTraits, 1, prob = pList)
+      repertoire[chosenTrait] <- 1
+      return(repertoire)
+    }
+  }
 }
 
 initializePopulation <- function(params, blockers, tree) {
   N <- params$N
-  num_nodes <- params$num_nodes
   root_node <- params$root_node
-  numSteps <- params$numSteps
-  numBlocked <- params$numBlocked
+  num_nodes <- igraph::gorder(tree)
   repertoires <- matrix(0, nrow = N, ncol = num_nodes)
   repertoires[, root_node] <- 1
-
+  
   regularTraits <- which(igraph::V(tree) <= num_nodes)
-  trDistances <- igraph::distances(tree, v = root_node, to = setdiff(regularTraits, root_node))
-  payoffs <- unlist(lapply(trDistances, function(x) 1 / x))
-  payoffs <- c(payoffs, rep(1 / numSteps, numBlocked * numSteps))
+  payoffs <- attributes(tree)$payoffs
   for (ind in 1:N) {
     blockedTraits <- which(blockers[ind, ] == 1)
     numTraits <- sample(1:(num_nodes - length(blockedTraits) - 1), 1)
-    for (tr in 1:numTraits) {
-      unknownTraits <- which(repertoires[ind, ] == 0)
-      learnableTraits <- setdiff(unknownTraits, blockedTraits)
-      if (length(learnableTraits) == 1) {
-        repertoires[ind, learnableTraits] <- 1
-      } else if (length(learnableTraits) > 1) {
-        pList <- payoffs[which(1:ncol(repertoires) %in% learnableTraits)]
-        chosenTrait <- sample(learnableTraits, 1, prob = pList)
-        repertoires[ind, chosenTrait] <- 1
-      }
-    }
+    repertoires[ind, ] <- sample_initial_traits(ind, repertoires[ind, ], blockedTraits, numTraits, payoffs)
   }
   return(repertoires)
 }
-
 
 assignAges <- function(repertoires) {
   ## for age-based social learning, we need to assume initial ages.
@@ -168,30 +183,48 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
   return(trDistances)
 }
 
-getTraitLearningProbability <- function(params, repertoires, ind, tree, learnableTraits, requirements) {
-  if (length(learnableTraits) == 0) {
-    return(numeric(0))
-  }
 
-  knownTraits <- which(repertoires[ind, ] == 1)
-  pList <- rep(0, length(learnableTraits))
-  for (i in 1:length(learnableTraits)) {
-    targetTrait <- learnableTraits[i]
-    if (length(requirements[targetTrait]) >= 2) {
-      if (all(requirements[targetTrait][[1]] %in% knownTraits) | all(requirements[targetTrait][[2]] %in% knownTraits)) {
-        pList[i] <- 1
-      }
-    } else if (length(requirements[targetTrait]) >= 1) {
-      if (all(requirements[targetTrait][[1]] %in% knownTraits)) {
-        pList[i] <- 1
-      }
+
+getEnvironmentalLearnability <- function(params, inds, repertoires, adj_matrix, tree, blockers){
+  requirements <- attributes(tree)$requirements
+  p <- c()
+  
+  for(ind in inds){
+    
+    knownTraits <- which(repertoires[ind,] == 1)
+    
+    unknownTraits <- which(repertoires[ind,] == 0)
+    
+    if(length(unknownTraits) == 0){
+      p[ind] <- NA 
+      next
     }
+    blockedTraits <- which(blockers[ind,] == 1)
+    learnableTraits <- unknownTraits[which(!unknownTraits %in% blockedTraits)]
+    
+    pList <- RcppFunctions::getTraitLearningProbability(repertoires, ind, attributes(tree)$requirements, learnableTraits)
+    
+    learnableTraits <- learnableTraits[which(pList == 1)]
+    
+    freqLearnable <- 0
+    
+    popOthers <- repertoires[-ind,]
+    
+    
+    for(trait in learnableTraits){
+      freqLearnable <- freqLearnable + sum(popOthers[,trait])
+    }
+    
+    freqUnknown <- 0
+    
+    for(trait in unknownTraits){
+      freqUnknown <- freqUnknown + sum(popOthers[,trait])
+    }
+    
+    p[ind] <- freqLearnable / freqUnknown
   }
-
-  if (length(pList) != length(learnableTraits)) {
-    browser()
-  }
-  return(pList)
+  
+  return(mean(p, na.rm=T))
 }
 
 getPayoffs <- function(tree, params) {
@@ -210,7 +243,8 @@ getPayoffs <- function(tree, params) {
 
   adjusted_payoffs <- (1 - weight) * (2 * random_payoffs / max(random_payoffs)) + weight * distance_payoffs
   adjusted_payoffs[params$root_node] <- 0
-  adjusted_payoffs <- c(adjusted_payoffs, rep(1 / numSteps, numBlocked * numSteps)) # all auxiliary nodes get a partial payoff
+  adjusted_payoffs <- c(adjusted_payoffs, rep(1 / numSteps, numBlocked * numSteps * 2)) # all auxiliary nodes get a partial payoff
+  print(adjusted_payoffs)
   return(adjusted_payoffs)
 }
 
@@ -232,7 +266,8 @@ trRequirements <- function(tree) {
   return(requirements)
 }
 
-augmentTrRequirements <- function(requirements, tree) {
+augmentTrRequirements <- function(tree) {
+  requirements <- attr(tree, "requirements")
   num_nodes <- length(requirements)
   unreachableTraits <- which(igraph::degree(tree, mode = "in") > 1)
 
@@ -245,14 +280,14 @@ augmentTrRequirements <- function(requirements, tree) {
 }
 
 
-learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, popAge, payoffs, tree, observedTraits, observedModels, prerequisites) {
+learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, popAge, tree, observedTraits, observedModels) {
+  payoffs <- attributes(tree)$payoffs
   unknownTraits <- which(repertoires[ind, ] == 0)
   blockedTraits <- which(blockers[ind, ] == 1)
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
   if (length(observedTraits) > 0) {
     wList <- numeric(length = length(learnableTraits))
-    pList <- getTraitLearningProbability(params, repertoires, ind, tree, learnableTraits, prerequisites)
-
+    pList <- RcppFunctions::getTraitLearningProbability(repertoires, ind, attributes(tree)$requirements, learnableTraits)
 
     root_node <- params$root_node
     # Exit if the probability of learning any trait is zero
@@ -290,6 +325,41 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     else if (learningStrategy == 4) {
       wList <- table(learnableTraits)[as.character(learnableTraits)]
     }
+    
+    else if (learningStrategy == 5) {
+      usefulModels <- observedModels[observedTraits %in% learnableTraits]
+      blockedInds <- which(rowSums(blockers) > 0)
+      #if blocked, set weight of all models that are also blocked to 1, others to 0
+      if (ind %in% blockedInds) {
+        if (any(usefulModels %in% blockedInds)) {
+          for (model in usefulModels) {
+            modelIndex <- which(usefulModels == model)
+            wList[modelIndex] <- ifelse(model %in% blockedInds, 1, 0)
+          }
+        } else { #else, regular similarity-based learning
+          for (model in usefulModels) {
+            modelIndex <- which(usefulModels == model)
+            wList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
+          }
+        }
+     } else { #if not blocked, regular similarity-based learning
+        for (model in usefulModels) {
+          modelIndex <- which(usefulModels == model)
+          wList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
+        }
+      }
+    }
+    
+    else if (learningStrategy == 6) {
+      # prefer individuals with learning difficulties. If none are available, choose randomly
+      usefulModels <- observedModels[observedTraits %in% learnableTraits]
+      blockedInds <- which(rowSums(blockers) > 0)
+      for (model in usefulModels) {
+        modelIndex <- which(usefulModels == model)
+        wList[modelIndex] <- ifelse(model %in% blockedInds, 1, sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires))
+      }
+    }
+      
 
     ###### STRATEGY 0: random learning benchmark
     ## Randomly select a trait that is not yet learned
@@ -320,8 +390,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       browser()
     }
     if (!any((wList * pList) > 0)) {
-      print("no positive probabilities")
-      browser()
+      wList <- rep(1, length(wList))
     }
 
     ### MAKE CHOICE ###
@@ -344,4 +413,34 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     }
   }
   return(numeric(0))
+}
+
+
+# Not used
+getTraitLearningProbability_R <- function(repertoires, ind, tree, learnableTraits) {
+  requirements <- attributes(tree)$requirements
+  
+  if (length(learnableTraits) == 0) {
+    return(numeric(0))
+  }
+  
+  knownTraits <- which(repertoires[ind, ] == 1)
+  pList <- rep(0, length(learnableTraits))
+  for (i in 1:length(learnableTraits)) {
+    targetTrait <- learnableTraits[i]
+    if (length(requirements[targetTrait]) >= 2) {
+      if (all(requirements[targetTrait][[1]] %in% knownTraits) | all(requirements[targetTrait][[2]] %in% knownTraits)) {
+        pList[i] <- 1
+      }
+    } else if (length(requirements[targetTrait]) >= 1) {
+      if (all(requirements[targetTrait][[1]] %in% knownTraits)) {
+        pList[i] <- 1
+      }
+    }
+  }
+  
+  if (length(pList) != length(learnableTraits)) {
+    browser()
+  }
+  return(pList)
 }
