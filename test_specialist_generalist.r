@@ -285,7 +285,7 @@ branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 0 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 50
+t_max = 20000
 r_max = 1
 
 ## 5. SIMULATION
@@ -467,8 +467,11 @@ for(SLS in 0:4){
 
 # Export summary statistics
 write.csv(strategySuccess, file = "StrategySuccess")
-labels <- strategySuccess[,c(1,4)]
-
+write.csv(summProbabilities, file = "EnvironmentalLearnability")
+write.csv(summSLSPayoff, file = "SLSPayoff")
+write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem")
+write.csv(summVarAcrossBranch, file = "VarianceAcrossBranch")
+saveRDS(summMeanTraitsInBranch, file = "MeanTraitsInBranch.RData")
 
 # 6. PLOTTING
 
@@ -724,6 +727,58 @@ ggplot(varLong, aes(x = Variable, y = Value, group = Simulation, color = Simulat
        x = "Timesteps",
        y = "Variance",
        color = "Simulation")
+
+## 21-05-24 Simulation Results ##
+
+# Mean traits in each branch
+dev.new()
+par(mfrow = c(2,3))
+plot(summMeanTraitsInBranch[[1]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
+     xlab = "Timesteps", main = "Random", ylim = c(17,53))
+lines(summMeanTraitsInBranch[[1]][,2], type = "l", col = "blue")
+lines(summMeanTraitsInBranch[[1]][,3], type = "l", col = "green")
+lines(summMeanTraitsInBranch[[1]][,4], type = "l", col = "magenta")
+
+plot(summMeanTraitsInBranch[[2]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
+     xlab = "Timesteps", main = "Payoff", ylim = c(17,53))
+lines(summMeanTraitsInBranch[[2]][,2], type = "l", col = "blue")
+lines(summMeanTraitsInBranch[[2]][,3], type = "l", col = "green")
+lines(summMeanTraitsInBranch[[2]][,4], type = "l", col = "magenta")
+
+plot(summMeanTraitsInBranch[[3]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
+     xlab = "Timesteps", main = "Similarity", ylim = c(17,53))
+lines(summMeanTraitsInBranch[[3]][,2], type = "l", col = "blue")
+lines(summMeanTraitsInBranch[[3]][,3], type = "l", col = "green")
+lines(summMeanTraitsInBranch[[3]][,4], type = "l", col = "magenta")
+
+plot(summMeanTraitsInBranch[[4]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
+     xlab = "Timesteps", main = "Age", ylim = c(17,53))
+lines(summMeanTraitsInBranch[[4]][,2], type = "l", col = "blue")
+lines(summMeanTraitsInBranch[[4]][,3], type = "l", col = "green")
+lines(summMeanTraitsInBranch[[4]][,4], type = "l", col = "magenta")
+
+plot(summMeanTraitsInBranch[[5]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
+     xlab = "Timesteps", main = "Conformity", ylim = c(17,53))
+lines(summMeanTraitsInBranch[[5]][,2], type = "l", col = "blue")
+lines(summMeanTraitsInBranch[[5]][,3], type = "l", col = "green")
+lines(summMeanTraitsInBranch[[5]][,4], type = "l", col = "magenta")
+
+# Variance
+variance <- read.csv("VarianceAcrossBranch")
+variance$X <- factor(1:5)
+colnames(variance) <- c("Simulation", paste("T", 1:20000, sep = ""))
+varLong <- melt(variance, id.vars = "Simulation", variable.name = "Variable", value.name = "Value")
+
+ggplot(varLong, aes(x = Variable, y = Value, group = Simulation, color = Simulation)) +
+  geom_line() +
+  theme_minimal() + 
+  labs(title = "Variance in Mean Traits Across the Branches",
+       x = "Timesteps",
+       y = "Variance",
+       color = "Simulation")
+
+# Environmental learnability
+
 
 # 7. OLD CODE
 
