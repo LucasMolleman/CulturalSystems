@@ -677,6 +677,55 @@ legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformi
 # Comparing agent's age and the number of traits they have
 AgeTraits <- rbind(Age = popAge, N_Traits = rowSums(popn))
 
+# Mean traits in the branches
+data <- readRDS("MeanTraitsInBranch.RData")
+
+dev.new()
+par(mfrow = c(2,3))
+plot(data[[1]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
+     main = "Mean Traits in the Branches for bf = 4 (Simulation 1)", ylim = c(21,60))
+lines(data[[1]][,2], type = "l", col = "blue")
+lines(data[[1]][,3], type = "l", col = "green")
+lines(data[[1]][,4], type = "l", col = "magenta")
+
+plot(data[[2]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
+     main = "Mean Traits in the Branches for bf = 4 (Simulation 2)", ylim = c(21,60))
+lines(data[[2]][,2], type = "l", col = "blue")
+lines(data[[2]][,3], type = "l", col = "green")
+lines(data[[2]][,4], type = "l", col = "magenta")
+
+plot(data[[3]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
+     main = "Mean Traits in the Branches for bf = 4 (Simulation 3)", ylim = c(21,60))
+lines(data[[3]][,2], type = "l", col = "blue")
+lines(data[[3]][,3], type = "l", col = "green")
+lines(data[[3]][,4], type = "l", col = "magenta")
+
+plot(data[[4]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
+     main = "Mean Traits in the Branches for bf = 4 (Simulation 4)", ylim = c(21,60))
+lines(data[[4]][,2], type = "l", col = "blue")
+lines(data[[4]][,3], type = "l", col = "green")
+lines(data[[4]][,4], type = "l", col = "magenta")
+
+plot(data[[5]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
+     main = "Mean Traits in the Branches for bf = 4 (Simulation 5)", ylim = c(21,60))
+lines(data[[5]][,2], type = "l", col = "blue")
+lines(data[[5]][,3], type = "l", col = "green")
+lines(data[[5]][,4], type = "l", col = "magenta")
+
+# Variance in mean traits in the branches
+variance <- read.csv("VarianceAcrossBranch")
+variance$X <- factor(1:5)
+colnames(variance) <- c("Simulation", paste("T", 1:20000, sep = ""))
+varLong <- melt(variance, id.vars = "Simulation", variable.name = "Variable", value.name = "Value")
+
+ggplot(varLong, aes(x = Variable, y = Value, group = Simulation, color = Simulation)) +
+  geom_line() +
+  theme_minimal() + 
+  labs(title = "Variance in Mean Traits Across the Branches",
+       x = "Timesteps",
+       y = "Variance",
+       color = "Simulation")
+
 # 7. OLD CODE
 
 # Create matrix to track number of individuals with each trait (initial starting frequencies)
