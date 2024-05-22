@@ -171,6 +171,47 @@ getEnvironmentalLearnability <- function(repertoires, adj_matrix){
   return(mean(p, na.rm=T))
 }
 
+# Environmental learnability function that's faster than the one above
+getEnvironmentalLearnability2 <- function(repertoires, adj_matrix) {
+  # Calculate known and unknown traits for all individuals
+  knownTraits <- apply(repertoires, 1, function(ind) which(ind == 1))
+  unknownTraits <- apply(repertoires, 1, function(ind) which(ind == 0))
+  
+  # Initialize a vector to store the probabilities
+  p <- numeric(nrow(repertoires))
+  
+  # Function to calculate learnable traits for an individual
+  getLearnable <- function(ind) {
+    getLearnableTraits(repertoires, ind, adj_matrix)
+  }
+  
+  # Calculate learnable traits for all individuals
+  learnableTraits <- lapply(1:nrow(repertoires), getLearnable)
+  
+  # Function to calculate the frequency of traits in a subset of the population
+  traitFrequency <- function(traits, pop) {
+    colSums(pop[, traits, drop = FALSE])
+  }
+  
+  # Calculate probabilities for each individual
+  for (ind in 1:nrow(repertoires)) {
+    if (length(unknownTraits[[ind]]) == 0) {
+      p[ind] <- NA
+      next
+    }
+    
+    popOthers <- repertoires[-ind, , drop = FALSE]
+    
+    freqLearnable <- sum(traitFrequency(learnableTraits[[ind]], popOthers))
+    freqUnknown <- sum(traitFrequency(unknownTraits[[ind]], popOthers))
+    
+    p[ind] <- freqLearnable / freqUnknown
+  }
+  
+  # Return the mean probability, excluding NA values
+  return(mean(p, na.rm = TRUE))
+}
+
 ## 3. SOCIAL LEARNING 
 
 learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, popAge){
@@ -285,7 +326,7 @@ branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 0 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 20000
+t_max = 100
 r_max = 1
 
 ## 5. SIMULATION
@@ -367,7 +408,7 @@ for(SLS in 0:4){
         print(paste('Time = ', t))
       }
       
-      ## probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
+      ##probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
       
       # Mean number of traits per branch (over all individuals, not per individual)
       ## meanKnownTraitsBranch <- c()
