@@ -322,12 +322,12 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
 N = 100
 M = 10
 num_nodes = 129 # (including root node)
-branching_factor = 4 # c(1,2, 4, 8, 16, 32, 64, 128)
+branching_factor = 1 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 0 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
-t_max = 100
-r_max = 1
+t_max = 20000
+r_max = 1000
 
 ## 5. SIMULATION
 
@@ -341,7 +341,7 @@ r_max = 1
 # 7. learnSocially
   
 # Summary matrix with success of learning strategies 
-# Simulation replicate, number of nodes, branching factor, learning strategy, payoff at the end of the simulation
+# Simulation replicate, number of nodes, branching factor, learning strategy, payoff at the end of the simulation, successful trials
 strategySuccess <- matrix(nrow = 0, ncol = 6)
 colnames(strategySuccess) <- c("Simulation", "Nodes", "Branching", "SLS", "TotalPayoff", "ProportionSuccessfulTrials")
 
@@ -824,26 +824,3 @@ learnability <- as.data.frame(learnability)
 matplot(t(learnability[,1:20000]), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability",
         main = "Environmental Learnability for Different SLSs")
 legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"), col = 1:5, lty = 1, cex = 0.8, bg = "white", bty = "o")
-
-
-# 7. OLD CODE
-
-# Create matrix to track number of individuals with each trait (initial starting frequencies)
-# traitSums <- colSums(popn)
-# traitTracking <- matrix(traitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
-# Trait labels (identifies which nodes are in which arms)
-# traitDiagram <- matrix(2:num_nodes, nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor) 
-
-# Trait frequencies after the simulation
-# finaltraitSums <- colSums(popn)
-# finaltraitTracking <- matrix(finaltraitSums[-1], nrow = branching_factor, ncol = (num_nodes - 1)/branching_factor)
-
-# Plotting frequency of traits per branch AFTER social learning
-# traitPlot <- t(as.data.frame(finaltraitTracking))
-# matplot(1:nrow(traitPlot), traitPlot[,1:ncol(traitPlot)], type = "l", lty = 1, col = 1:nrow(traitPlot), 
-#         xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, After", ylim = c(0,100))
-
-# Plotting frequency of traits per branch BEFORE social learning
-# traitTracking <- t(as.data.frame(traitTracking))
-# matplot(1:nrow(traitTracking), traitTracking[,1:ncol(traitTracking)], type = "l", lty = 1, col = 1:nrow(traitTracking), 
-#         xlab = "Trait Depth of Branch", ylab = "Frequency", main = "Age-Based, bf = 4, Before", ylim = c(0,100))
