@@ -25,7 +25,6 @@ library(ggplot2)
 
 source("simFunctions.R")
 source("loopFunctions.R")
-sourceCpp("getTraitLearningProbability.cpp")
 ```
 
 ## Set Parameters
@@ -38,7 +37,7 @@ params <- list(
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
   timesteps =  5000,              # number of time steps in the simulation
-  replicateSimulations = 3,       # number of simulations per parameter setting
+  replicateSimulations = 1,       # number of simulations per parameter setting
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
   olderPref = 0,

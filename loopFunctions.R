@@ -9,7 +9,7 @@ combineResults <- function(accum, new) {
 }
 
 
-runsimulation <- function(params, blockedLearningStrategy, repl, tree){  
+runsimulation <- function(params, blockedLearningStrategy, repl, tree){ 
   ### define the cultural system ###
   ## Total payoffs are stored in column 1, payoffs for unblocked individuals in
   ## column 2, and payoffs for blocked individuals in column 3
@@ -28,9 +28,8 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   if (ncol(repertoires) !=  gorder(tree)) {
     stop("Number of nodes in the tree does not match the number of nodes in the repertoires")
   }
-  
+  browser()
   popAge<-assignAges(repertoires)
-  
   ### population is now initialized... start running the model
   probabilities <- rep(NA, params$timesteps)
   probabilitiesBlocked <- rep(NA, params$timesteps)
@@ -107,7 +106,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
       else if(r >= params$S){	# individual learning (=innovation)
         selectedTrait <- sample(unknownTraits,1)
         # Calculate learning probability
-        pList <- unique(RcppFunctions::getTraitLearningProbability(repertoires, ind, attributes(tree)$requirements, selectedTrait))
+        pList <- unique(getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, selectedTrait))
         if(length(pList) > 0){
           if (runif(1) < pList[1]){
             repertoires[ind,selectedTrait]<-1
@@ -153,9 +152,9 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
                         failed_learning_count/params$timesteps,
                         failed_learning_count_blocked/sum(!is.na(SLpay[,3])))
   
-  trait_dist <- do.call(rbind, trait_dist)
+  #trait_dist <- do.call(rbind, trait_dist)
   
-  saveRDS(trait_dist, "trait_dist.rds")
+  #saveRDS(trait_dist, "trait_dist.rds")
   
   return(sumThisSimulation)
 }

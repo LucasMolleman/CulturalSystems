@@ -119,7 +119,8 @@ addDetours <- function(params, tree, blockedTraits, type = "serial") {
   return(tree)
 }
 
-sample_initial_traits <- function(ind, repertoire, blockedTraits, numTraits, payoffs){
+sample_initial_traits <- function(ind, repertoires, blockedTraits, numTraits, payoffs, initialnodes, requirements){
+  repertoire <- repertoires[ind, ]
   for(trait in seq_along(numTraits)){
     unknownTraits <- which(repertoire == 0)
     learnableTraits <- setdiff(unknownTraits, blockedTraits)
@@ -127,13 +128,32 @@ sample_initial_traits <- function(ind, repertoire, blockedTraits, numTraits, pay
       repertoire[learnableTraits] <- 1
       return(repertoire)
     } 
+    pList <- getTraitLearningProbability_R(repertoires, ind, requirements, learnableTraits)
+    aux_traits <- which(!1:length(repertoire) %in% 1:initialnodes)
+    
     if (length(learnableTraits) > 1) {
-      pList <- payoffs[which(1:length(repertoire) %in% learnableTraits)]
-      chosenTrait <- sample(learnableTraits, 1, prob = pList)
-      repertoire[chosenTrait] <- 1
-      return(repertoire)
+      # individuals with blocked traits prefer learning auxiliary traits
+      if (length(blockedTraits) > 0) {
+        if (any(aux_traits %in% learnableTraits)) {
+          # aux traits 1, else 0
+          wList <- rep(0, length(learnableTraits))
+          for (i in seq_along(learnableTraits)) {
+            trait <- learnableTraits[i]
+            wList[i] <- ifelse (trait %in% aux_traits, 1, 0)
+          }
+          
+          chosenTrait <- sample(learnableTraits, 1, prob = pList * wList)
+          repertoire[chosenTrait] <- 1
+          return(repertoire)
+        }
+      } else {
+        wList <- payoffs[which(1:length(repertoire) %in% learnableTraits)]
+        chosenTrait <- sample(learnableTraits, 1, prob = pList * wList)
+        repertoire[chosenTrait] <- 1
+      }
     }
   }
+  return(repertoire)
 }
 
 initializePopulation <- function(params, blockers, tree) {
@@ -148,7 +168,7 @@ initializePopulation <- function(params, blockers, tree) {
   for (ind in 1:N) {
     blockedTraits <- which(blockers[ind, ] == 1)
     numTraits <- sample(1:(num_nodes - length(blockedTraits) - 1), 1)
-    repertoires[ind, ] <- sample_initial_traits(ind, repertoires[ind, ], blockedTraits, numTraits, payoffs)
+    repertoires[ind, ] <- sample_initial_traits(ind, repertoires, blockedTraits, numTraits, payoffs, params$num_nodes, attributes(tree)$requirements)
   }
   return(repertoires)
 }
@@ -183,8 +203,6 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
   return(trDistances)
 }
 
-
-
 getEnvironmentalLearnability <- function(params, inds, repertoires, adj_matrix, tree, blockers){
   requirements <- attributes(tree)$requirements
   p <- c()
@@ -202,7 +220,7 @@ getEnvironmentalLearnability <- function(params, inds, repertoires, adj_matrix, 
     blockedTraits <- which(blockers[ind,] == 1)
     learnableTraits <- unknownTraits[which(!unknownTraits %in% blockedTraits)]
     
-    pList <- RcppFunctions::getTraitLearningProbability(repertoires, ind, attributes(tree)$requirements, learnableTraits)
+    pList <- getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, learnableTraits)
     
     learnableTraits <- learnableTraits[which(pList == 1)]
     
@@ -244,7 +262,6 @@ getPayoffs <- function(tree, params) {
   adjusted_payoffs <- (1 - weight) * (2 * random_payoffs / max(random_payoffs)) + weight * distance_payoffs
   adjusted_payoffs[params$root_node] <- 0
   adjusted_payoffs <- c(adjusted_payoffs, rep(1 / numSteps, numBlocked * numSteps * 2)) # all auxiliary nodes get a partial payoff
-  print(adjusted_payoffs)
   return(adjusted_payoffs)
 }
 
@@ -287,7 +304,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
   if (length(observedTraits) > 0) {
     wList <- numeric(length = length(learnableTraits))
-    pList <- RcppFunctions::getTraitLearningProbability(repertoires, ind, attributes(tree)$requirements, learnableTraits)
+    pList <- getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, learnableTraits)
 
     root_node <- params$root_node
     # Exit if the probability of learning any trait is zero
@@ -417,9 +434,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
 
 
 # Not used
-getTraitLearningProbability_R <- function(repertoires, ind, tree, learnableTraits) {
-  requirements <- attributes(tree)$requirements
-  
+getTraitLearningProbability_R <- function(repertoires, ind, requirements, learnableTraits) {
   if (length(learnableTraits) == 0) {
     return(numeric(0))
   }
