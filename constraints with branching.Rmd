@@ -36,23 +36,20 @@ params <- list(
   root_node = 1,                  # root node of the tree
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
-  timesteps =  5000,              # number of time steps in the simulation
-  replicateSimulations = 1,       # number of simulations per parameter setting
+  timesteps =  2000,              # number of time steps in the simulation
+  replicateSimulations = 30,      # number of simulations per parameter setting
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
   olderPref = 0,
-  payoff_scaling = 4,             # Constant that is added/subtracted for each step away from the root node
-  payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
+  payoff_scaling = 1,             # Constant that is added/subtracted for each step away from the root node
+  payoff_weight = 0.5,            # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
-  propBlocked = 0.5,              # proportion of individuals that have blocked traits
+  propBlocked = 0.1,              # proportion of individuals that have blocked traits
   numSteps = 3,                   # number of auxiliary traits necessary for overcoming a block
   detourType = "parallel"         # type of detour (parallel or serial)
 )
-
 ``` 
-
-
 
 ## Run Simulation
 
@@ -65,10 +62,9 @@ tree <- generate_rooted_tree()
 attr(tree, "requirements") <- trRequirements(tree)
 set.seed(1)
 
-
 iterations <- expand.grid(
-  learningStrategy = c(0,1,6),
-  numSteps = c(1, 2, 3),
+  learningStrategy = c(0,1,6, 7),
+  numSteps = c(4, 5, 6),
   blockedLayer = c(1, 2, 3),
   propBlocked = c(0.1, 0.3),
   repl = 1:params$replicateSimulations
@@ -94,10 +90,10 @@ tree <- generate_rooted_tree()
 attr(tree, "requirements") <- trRequirements(tree)
 
 iterations <- expand.grid(
-  learningStrategy = c(6),
-  numSteps = 2,
-  blockedLayer = 1,
-  propBlocked = c(0.3),
+  learningStrategy = c(0,1,6),
+  numSteps = c(4, 5, 6),
+  blockedLayer = c(1, 2, 3),
+  propBlocked = c(0.05, 0.1),
   repl = 1:params$replicateSimulations
 ) 
 
@@ -118,7 +114,7 @@ setnames(data, c("numNodes", "blockedLearningStrat", "olderPref", "repl", "payof
 #set first 8 columns to factor
 data[ , (1:5) := lapply(.SD, factor), .SDcols = 1:5]
 
-data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,6), labels = c("Random", "Payoff", "Similarity"))]
+data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,6,7), labels = c("Random", "Payoff", "Similarity", "Similarity2"))]
 
 summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked , data = data))
 
@@ -134,7 +130,7 @@ aggregated_data <- data %>%
             .groups = 'drop') %>%
   mutate(CI_lower = meanSumPayoffBlocked - (1.96 * SE),
          CI_upper = meanSumPayoffBlocked + (1.96 * SE),
-         blockedLearningStrat = factor(blockedLearningStrat, levels = c("0", "1", "2"), labels = c("Random", "Payoff", "Similarity")))
+         blockedLearningStrat = factor(blockedLearningStrat, levels = c("0", "1", "2"), labels = c("Random", "Payoff", "Similarity", "Similarity2")))
 
 prepare_aggregated_data <- function(data, dependent_var, independent_vars) {
   aggregated_data <- data %>%
@@ -163,7 +159,7 @@ ggplot(aggregated_data2, aes(x = as.factor(numSteps), y = mean_value, group = in
   geom_line(aes(linetype = as.factor(propBlocked))) +
   geom_point(aes(shape = as.factor(propBlocked))) +
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.2) +  # 95% CI error bars
-  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity"))) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity", Similarity2 = "Strategy: Similiarity 2"))) +
   labs(title = "Average SumPayoffBlocked across NumSteps, BlockedLayer, PropBlocked,\n and LearningStrategies",
        subtitle = "Data aggregated across unique combinations of factors",
        x = "Number of Steps",

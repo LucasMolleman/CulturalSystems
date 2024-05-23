@@ -14,7 +14,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   ## Total payoffs are stored in column 1, payoffs for unblocked individuals in
   ## column 2, and payoffs for blocked individuals in column 3
   SLpay<-matrix(nrow=params$timesteps, ncol = 3)	
-  
+
   # 		set payoffs for each trait
   attr(tree, "payoffs") <- getPayoffs(tree, params)
   ### SYSTEM AND NODE PAYOFFS ARE SET
@@ -28,7 +28,6 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   if (ncol(repertoires) !=  gorder(tree)) {
     stop("Number of nodes in the tree does not match the number of nodes in the repertoires")
   }
-  browser()
   popAge<-assignAges(repertoires)
   ### population is now initialized... start running the model
   probabilities <- rep(NA, params$timesteps)
@@ -117,7 +116,10 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
     
     #trait_dist[t] <- bookkeep_traits(repertoires, blockedInds)
     
-    
+    # if (ind == blockedInds[1]){
+    #   print(paste("time step:", t))
+    #   print(repertoires[ind,])
+    # }
     
     ## each time step the agent was sampled, their age increases by 1
     popAge[ind]<-popAge[ind]+1
@@ -136,7 +138,8 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   # png("probabilities_blocked.png")	
   # plot(probabilitiesBlocked, type = "l", ylim = c(0,1))	
   # dev.off()
-  trim <- (0.8 * params$timesteps):params$timesteps
+  #trim <- (0.8 * params$timesteps):params$timesteps
+  trim <- 1:params$timesteps
   sumThisSimulation<-c(gorder(tree), 
                         blockedLearningStrategy,
                         params$olderPref,
@@ -146,9 +149,9 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
                         params$numBlocked,
                         params$numSteps,
                         params$propBlocked,
-                        sum(SLpay[trim,1], na.rm=TRUE),
-                        sum(SLpay[trim,2], na.rm=TRUE),
-                        sum(SLpay[trim,3], na.rm=TRUE),
+                        mean(SLpay[trim,1], na.rm=TRUE),
+                        mean(SLpay[trim,2], na.rm=TRUE),
+                        mean(SLpay[trim,3], na.rm=TRUE),
                         failed_learning_count/params$timesteps,
                         failed_learning_count_blocked/sum(!is.na(SLpay[,3])))
   

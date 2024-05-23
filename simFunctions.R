@@ -23,7 +23,42 @@ generate_rooted_tree <- function() {
     g <- igraph::add_edges(g, edgeList)
     currentNodes <- newNodeIds
   }
+  
+  return(g)
+}
 
+generate_skewed_tree <- function() {
+  g <- igraph::graph.empty(directed = TRUE)
+  g <- igraph::add_vertices(g, 2)
+  g <- igraph::add_edges(g, c(1, 2))
+  
+  currentNodes <- c(2)
+  nextNodeId <- 3
+  
+  for (level in 1:2) {
+    newNodes <- vector("list", length(currentNodes) * 2)
+    edgeList <- c()
+    
+    for (i in seq_along(currentNodes)) {
+      node1 <- nextNodeId
+      node2 <- nextNodeId + 1
+      nextNodeId <- nextNodeId + 2
+      newNodes[[i]] <- c(node1, node2)
+      edgeList <- c(edgeList, c(currentNodes[i], node1), c(currentNodes[i], node2))
+    }
+    
+    newNodeIds <- unlist(newNodes)
+    g <- igraph::add_vertices(g, length(newNodeIds))
+    g <- igraph::add_edges(g, edgeList)
+    currentNodes <- newNodeIds
+  }
+  
+  additionalNodes <- 4
+  g <- igraph::add_vertices(g, additionalNodes)
+  newNodeIDs <- nextNodeId:(nextNodeId + additionalNodes - 1)
+  edgeList <- unlist(lapply(newNodeIDs, function(x) c(1, x)))
+  g <- igraph::add_edges(g, edgeList)
+  
   return(g)
 }
 
@@ -44,7 +79,9 @@ initializeBlockers <- function(params, tree) {
   blockedInds <- sample(1:N, round(N * propBlocked))
   trDistances <- igraph::distances(tree, v = root_node, mode = "out")
 
-  blockableTraits <- which(trDistances == blockedLayer)
+  possibleBlockableTraits <- which(trDistances == blockedLayer)
+  
+  blockableTraits <- possibleBlockableTraits[which(igraph::degree(tree, v = possibleBlockableTraits, mode = "out") > 0)]
   if (length(blockableTraits) == 1) {
     blockedTraitIndices <- blockableTraits
   } else {
@@ -120,16 +157,17 @@ addDetours <- function(params, tree, blockedTraits, type = "serial") {
 }
 
 sample_initial_traits <- function(ind, repertoires, blockedTraits, numTraits, payoffs, initialnodes, requirements){
-  repertoire <- repertoires[ind, ]
-  for(trait in seq_along(numTraits)){
-    unknownTraits <- which(repertoire == 0)
+  for(trait in seq_len(numTraits)){
+    unknownTraits <- which(repertoires[ind, ] == 0)
     learnableTraits <- setdiff(unknownTraits, blockedTraits)
     if (length(learnableTraits) == 1) {
-      repertoire[learnableTraits] <- 1
-      return(repertoire)
-    } 
+      repertoires[ind, learnableTraits] <- 1
+    }
+    aux_traits <- which(!1:ncol(repertoires) %in% 1:initialnodes)
+    if (length(blockedTraits == 0)) {
+      learnableTraits <- setdiff(learnableTraits, aux_traits)
+    }
     pList <- getTraitLearningProbability_R(repertoires, ind, requirements, learnableTraits)
-    aux_traits <- which(!1:length(repertoire) %in% 1:initialnodes)
     
     if (length(learnableTraits) > 1) {
       # individuals with blocked traits prefer learning auxiliary traits
@@ -143,17 +181,16 @@ sample_initial_traits <- function(ind, repertoires, blockedTraits, numTraits, pa
           }
           
           chosenTrait <- sample(learnableTraits, 1, prob = pList * wList)
-          repertoire[chosenTrait] <- 1
-          return(repertoire)
+          repertoires[ind, chosenTrait] <- 1
         }
       } else {
-        wList <- payoffs[which(1:length(repertoire) %in% learnableTraits)]
+        wList <- payoffs[which(1:ncol(repertoires) %in% learnableTraits)]
         chosenTrait <- sample(learnableTraits, 1, prob = pList * wList)
-        repertoire[chosenTrait] <- 1
+        repertoires[ind, chosenTrait] <- 1
       }
     }
   }
-  return(repertoire)
+  return(repertoires)
 }
 
 initializePopulation <- function(params, blockers, tree) {
@@ -162,13 +199,12 @@ initializePopulation <- function(params, blockers, tree) {
   num_nodes <- igraph::gorder(tree)
   repertoires <- matrix(0, nrow = N, ncol = num_nodes)
   repertoires[, root_node] <- 1
-  
   regularTraits <- which(igraph::V(tree) <= num_nodes)
   payoffs <- attributes(tree)$payoffs
   for (ind in 1:N) {
     blockedTraits <- which(blockers[ind, ] == 1)
-    numTraits <- sample(1:(num_nodes - length(blockedTraits) - 1), 1)
-    repertoires[ind, ] <- sample_initial_traits(ind, repertoires, blockedTraits, numTraits, payoffs, params$num_nodes, attributes(tree)$requirements)
+    numTraits <- sample(1:((num_nodes - length(blockedTraits)) - 1), 1)
+    repertoires <- sample_initial_traits(ind, repertoires, blockedTraits, numTraits, payoffs, params$num_nodes, attributes(tree)$requirements)
   }
   return(repertoires)
 }
@@ -302,8 +338,14 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
   unknownTraits <- which(repertoires[ind, ] == 0)
   blockedTraits <- which(blockers[ind, ] == 1)
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
+  aux_traits <- which(!1:ncol(repertoires) %in% 1:params$num_nodes)
+  if (length(blockedTraits) == 0) {
+    learnableTraits <- setdiff(learnableTraits, aux_traits)
+  }
   if (length(observedTraits) > 0) {
     wList <- numeric(length = length(learnableTraits))
+    dList <- numeric(length = length(learnableTraits))
+    sList <- numeric(length = length(learnableTraits))
     pList <- getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, learnableTraits)
 
     root_node <- params$root_node
@@ -314,9 +356,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
 
     ##### STRATEGY 1: payoff-based social learning #####
     if (learningStrategy == 1) {
-      if (sum(payoffs[learnableTraits], na.rm = T) != 0) { # handle case where all payoffs are zero
         wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits])
-      }
     }
 
     ###### STRATEGY 2: similarity based learning ######
@@ -373,8 +413,21 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       blockedInds <- which(rowSums(blockers) > 0)
       for (model in usefulModels) {
         modelIndex <- which(usefulModels == model)
-        wList[modelIndex] <- ifelse(model %in% blockedInds, 1, sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires))
+        dList[modelIndex] <- ifelse(model %in% blockedInds, 1, sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires))
+        sList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
       }
+      wList <- dList * sList
+    }
+    else if (learningStrategy == 7) {
+      # prefer individuals with learning difficulties. If none are available, choose randomly
+      usefulModels <- observedModels[observedTraits %in% learnableTraits]
+      blockedInds <- which(rowSums(blockers) > 0)
+      for (model in usefulModels) {
+        modelIndex <- which(usefulModels == model)
+        dList[modelIndex] <- ifelse(model %in% blockedInds, 1, sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires))
+        sList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
+      }
+      wList <- (dList + sList) / 2
     }
       
 
@@ -438,17 +491,16 @@ getTraitLearningProbability_R <- function(repertoires, ind, requirements, learna
   if (length(learnableTraits) == 0) {
     return(numeric(0))
   }
-  
   knownTraits <- which(repertoires[ind, ] == 1)
   pList <- rep(0, length(learnableTraits))
   for (i in 1:length(learnableTraits)) {
     targetTrait <- learnableTraits[i]
     if (length(requirements[targetTrait]) >= 2) {
-      if (all(requirements[targetTrait][[1]] %in% knownTraits) | all(requirements[targetTrait][[2]] %in% knownTraits)) {
+      if (all(requirements[targetTrait][[1]][[1]] %in% knownTraits) | all(requirements[targetTrait][[1]][[2]] %in% knownTraits)) {
         pList[i] <- 1
       }
     } else if (length(requirements[targetTrait]) >= 1) {
-      if (all(requirements[targetTrait][[1]] %in% knownTraits)) {
+      if (all(requirements[targetTrait][[1]][[1]] %in% knownTraits)) {
         pList[i] <- 1
       }
     }
