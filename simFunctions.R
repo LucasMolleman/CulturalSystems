@@ -297,7 +297,7 @@ getPayoffs <- function(tree, params) {
 
   adjusted_payoffs <- (1 - weight) * (2 * random_payoffs / max(random_payoffs)) + weight * distance_payoffs
   adjusted_payoffs[params$root_node] <- 0
-  adjusted_payoffs <- c(adjusted_payoffs, rep(0.1, numBlocked * numSteps * 2)) # all auxiliary nodes get a partial payoff
+  adjusted_payoffs <- c(adjusted_payoffs, rep(1/numSteps, numBlocked * numSteps * 2)) # all auxiliary nodes get a partial payoff
   return(adjusted_payoffs)
 }
 
@@ -468,13 +468,16 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     ### MAKE CHOICE ###
     if (length(learnableTraits) == 1) {
       selectedTrait <- learnableTraits
+      probability <- ifelse(selectedTrait %in% blockedTraits, 0.01, pList)
     } else {
-      selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList * pList)
+      selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList)
       selectedTrait <- observedTraits[selectedTraitIndex]
+      probability <- ifelse(selectedTrait %in% blockedTraits, 0.01, pList[selectedTraitIndex])
     }
 
     #blocked traits have a low probability of being learned
-    probability <- ifelse(selectedTrait %in% blockedTraits, 0.01, 1)
+    
+    
     
     # learn trait with probability
     if (length(pList) > 0) {

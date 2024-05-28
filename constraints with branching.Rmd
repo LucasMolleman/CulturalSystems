@@ -39,7 +39,7 @@ params <- list(
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
   olderPref = 0,
   payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
-  payoff_weight = 0.5,            # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
+  payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
   propBlocked = 0.1,              # proportion of individuals that have blocked traits
@@ -60,10 +60,10 @@ attr(tree, "requirements") <- trRequirements(tree)
 set.seed(1)
 
 iterations <- expand.grid(
-  learningStrategy = c(0,1,2,7),
-  numSteps = c(4, 5, 6),
+  learningStrategy = c(0,1,2),
+  numSteps = c(1, 2, 3),
   blockedLayer = c(1, 2, 3),
-  propBlocked = c(0.1, 0.3),
+  propBlocked = c(0.5, 0.1),
   repl = 1:params$replicateSimulations
 ) 
 
