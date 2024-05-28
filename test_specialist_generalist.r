@@ -322,7 +322,7 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
 N = 100
 M = 10
 num_nodes = 129 # (including root node)
-branching_factor = 1 # c(1,2, 4, 8, 16, 32, 64, 128)
+branching_factor = 128 # c(1,2, 4, 8, 16, 32, 64, 128)
 SLS = 0 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
@@ -506,12 +506,12 @@ for(SLS in 0:4){
 )
 
 # Export summary statistics
-write.csv(strategySuccess, file = "StrategySuccess")
-write.csv(summProbabilities, file = "EnvironmentalLearnability")
-write.csv(summSLSPayoff, file = "SLSPayoff")
-write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem")
-write.csv(summVarAcrossBranch, file = "VarianceAcrossBranch")
-saveRDS(summMeanTraitsInBranch, file = "MeanTraitsInBranch.RData")
+write.csv(strategySuccess, file = "StrategySuccess_Conformity")
+# write.csv(summProbabilities, file = "EnvironmentalLearnability")
+write.csv(summSLSPayoff, file = "SLSPayoff_Conformity")
+write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem_Conformity")
+# write.csv(summVarAcrossBranch, file = "VarianceAcrossBranch")
+# saveRDS(summMeanTraitsInBranch, file = "MeanTraitsInBranch.RData")
 
 # 6. PLOTTING
 
