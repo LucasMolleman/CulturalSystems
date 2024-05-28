@@ -106,6 +106,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
         selectedTrait <- sample(unknownTraits,1)
         # Calculate learning probability
         pList <- unique(getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, selectedTrait))
+        if (selectedTrait %in% blockedTraits) pList[1] <- pList[1] * 0.01
         if(length(pList) > 0){
           if (runif(1) < pList[1]){
             repertoires[ind,selectedTrait]<-1

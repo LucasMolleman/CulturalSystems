@@ -13,11 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(igraph)
-library(colorRamps)
 library(extraDistr)
 library(matrixStats)
-library(doParallel)
-library(foreach)
 library(Rcpp)
 library(dplyr)
 library(ggplot2)
@@ -41,13 +38,13 @@ params <- list(
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
   olderPref = 0,
-  payoff_scaling = 1,             # Constant that is added/subtracted for each step away from the root node
+  payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
   payoff_weight = 0.5,            # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
   propBlocked = 0.1,              # proportion of individuals that have blocked traits
   numSteps = 3,                   # number of auxiliary traits necessary for overcoming a block
-  detourType = "parallel"         # type of detour (parallel or serial)
+  detourType = "serial"           # type of detour (parallel or serial)
 )
 ``` 
 
@@ -63,7 +60,7 @@ attr(tree, "requirements") <- trRequirements(tree)
 set.seed(1)
 
 iterations <- expand.grid(
-  learningStrategy = c(0,1,6, 7),
+  learningStrategy = c(0,1,2,7),
   numSteps = c(4, 5, 6),
   blockedLayer = c(1, 2, 3),
   propBlocked = c(0.1, 0.3),
@@ -106,6 +103,7 @@ saveRDS(strategySuccess, "strategySuccess.rds")
 
 
 ```{r}
+strategySuccess <- readRDS("strategySuccess.rds")
 data <- as.data.frame(strategySuccess)
 library(data.table)
 setDT(data)
@@ -114,7 +112,7 @@ setnames(data, c("numNodes", "blockedLearningStrat", "olderPref", "repl", "payof
 #set first 8 columns to factor
 data[ , (1:5) := lapply(.SD, factor), .SDcols = 1:5]
 
-data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,6,7), labels = c("Random", "Payoff", "Similarity", "Similarity2"))]
+data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,2,7), labels = c("Random", "Payoff", "Similarity", "Similarity2"))]
 
 summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked , data = data))
 
@@ -122,15 +120,6 @@ summary(mod2 <- lm(sumPayoffBlocked ~ blockedLearningStrat*numSteps*blockedLayer
 
 #Probing the interaction numSteps:blockedLayer:propBlocked 
 
-aggregated_data <- data %>%
-  group_by(blockedLearningStrat, numSteps, blockedLayer, propBlocked) %>%
-  summarise(meanSumPayoffBlocked = mean(sumPayoffBlocked, na.rm = TRUE),
-            SE = sd(sumPayoffBlocked, na.rm = TRUE) / sqrt(n()),  # Standard Error
-            n = n(),
-            .groups = 'drop') %>%
-  mutate(CI_lower = meanSumPayoffBlocked - (1.96 * SE),
-         CI_upper = meanSumPayoffBlocked + (1.96 * SE),
-         blockedLearningStrat = factor(blockedLearningStrat, levels = c("0", "1", "2"), labels = c("Random", "Payoff", "Similarity", "Similarity2")))
 
 prepare_aggregated_data <- function(data, dependent_var, independent_vars) {
   aggregated_data <- data %>%

@@ -297,7 +297,7 @@ getPayoffs <- function(tree, params) {
 
   adjusted_payoffs <- (1 - weight) * (2 * random_payoffs / max(random_payoffs)) + weight * distance_payoffs
   adjusted_payoffs[params$root_node] <- 0
-  adjusted_payoffs <- c(adjusted_payoffs, rep(1 / numSteps, numBlocked * numSteps * 2)) # all auxiliary nodes get a partial payoff
+  adjusted_payoffs <- c(adjusted_payoffs, rep(0.1, numBlocked * numSteps * 2)) # all auxiliary nodes get a partial payoff
   return(adjusted_payoffs)
 }
 
@@ -337,7 +337,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
   payoffs <- attributes(tree)$payoffs
   unknownTraits <- which(repertoires[ind, ] == 0)
   blockedTraits <- which(blockers[ind, ] == 1)
-  learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits & !observedTraits %in% blockedTraits)]
+  learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits)]
   aux_traits <- which(!1:ncol(repertoires) %in% 1:params$num_nodes)
   if (length(blockedTraits) == 0) {
     learnableTraits <- setdiff(learnableTraits, aux_traits)
@@ -411,10 +411,11 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       # prefer individuals with learning difficulties. If none are available, choose randomly
       usefulModels <- observedModels[observedTraits %in% learnableTraits]
       blockedInds <- which(rowSums(blockers) > 0)
+      ageDif <- popAge[usefulModels] - popAge[ind]
+      sList <- ifelse(ageDif >= 0, 0.5^ageDif, 10^-8)
       for (model in usefulModels) {
         modelIndex <- which(usefulModels == model)
         dList[modelIndex] <- ifelse(model %in% blockedInds, 1, sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires))
-        sList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
       }
       wList <- dList * sList
     }
@@ -422,10 +423,11 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       # prefer individuals with learning difficulties. If none are available, choose randomly
       usefulModels <- observedModels[observedTraits %in% learnableTraits]
       blockedInds <- which(rowSums(blockers) > 0)
+      ageDif <- popAge[usefulModels] - popAge[ind]
+      sList <- ifelse(ageDif >= 0, 0.5^ageDif, 10^-8)
       for (model in usefulModels) {
         modelIndex <- which(usefulModels == model)
         dList[modelIndex] <- ifelse(model %in% blockedInds, 1, sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires))
-        sList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
       }
       wList <- (dList + sList) / 2
     }
@@ -466,20 +468,20 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     ### MAKE CHOICE ###
     if (length(learnableTraits) == 1) {
       selectedTrait <- learnableTraits
-      p <- pList
     } else {
       selectedTraitIndex <- sample(1:length(learnableTraits), 1, prob = wList * pList)
       selectedTrait <- observedTraits[selectedTraitIndex]
-      p <- pList[selectedTraitIndex]
     }
-    ## learn the trait with probability pList
 
+    #blocked traits have a low probability of being learned
+    probability <- ifelse(selectedTrait %in% blockedTraits, 0.01, 1)
+    
+    # learn trait with probability
     if (length(pList) > 0) {
-      # if(runif(1) < p){
-      repertoires[ind, selectedTrait] <- 1
-      learnedTrait <- selectedTrait
-      return(learnedTrait)
-      # }
+      if(runif(1) < probability){
+        learnedTrait <- selectedTrait
+        return(learnedTrait)
+      }
     }
   }
   return(numeric(0))
