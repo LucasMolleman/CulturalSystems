@@ -824,3 +824,20 @@ learnability <- as.data.frame(learnability)
 matplot(t(learnability[,1:20000]), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability",
         main = "Environmental Learnability for Different SLSs")
 legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"), col = 1:5, lty = 1, cex = 0.8, bg = "white", bty = "o")
+
+
+## Final Simulation Results (branching factor 1) ##
+
+random <- read.csv("StrategySuccess_Random")
+payoff <- read.csv("StrategySuccess_Payoff")
+similarity <- read.csv("StrategySuccess_Similarity")
+age <- read.csv("StrategySuccess_Age")
+conformity <- read.csv("StrategySuccess_Conformity")
+data <- rbind(random, payoff, similarity, age, conformity)
+
+# Boxplot of SLS success
+boxplot(TotalPayoff ~ SLS, data = data, main = "Total Payoff")
+legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
+
+# ANOVA of SLS success
+data <- as.factor(data$SLS)
