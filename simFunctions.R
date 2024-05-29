@@ -156,6 +156,31 @@ addDetours <- function(params, tree, blockedTraits, type = "serial") {
   return(tree)
 }
 
+getTraitLearningProbability_R <- function(repertoires, ind, requirements, learnableTraits) {
+  if (length(learnableTraits) == 0) {
+    return(numeric(0))
+  }
+  knownTraits <- which(repertoires[ind, ] == 1)
+  pList <- rep(0, length(learnableTraits))
+  for (i in 1:length(learnableTraits)) {
+    targetTrait <- learnableTraits[i]
+    if (length(requirements[targetTrait]) >= 2) {
+      if (all(requirements[targetTrait][[1]][[1]] %in% knownTraits) | all(requirements[targetTrait][[1]][[2]] %in% knownTraits)) {
+        pList[i] <- 1
+      }
+    } else if (length(requirements[targetTrait]) >= 1) {
+      if (all(requirements[targetTrait][[1]][[1]] %in% knownTraits)) {
+        pList[i] <- 1
+      }
+    }
+  }
+  
+  if (length(pList) != length(learnableTraits)) {
+    browser()
+  }
+  return(pList)
+}
+
 sample_initial_traits <- function(ind, repertoires, blockedTraits, numTraits, payoffs, initialnodes, requirements){
   for(trait in seq_len(numTraits)){
     unknownTraits <- which(repertoires[ind, ] == 0)
@@ -199,7 +224,6 @@ initializePopulation <- function(params, blockers, tree) {
   num_nodes <- igraph::gorder(tree)
   repertoires <- matrix(0, nrow = N, ncol = num_nodes)
   repertoires[, root_node] <- 1
-  regularTraits <- which(igraph::V(tree) <= num_nodes)
   payoffs <- attributes(tree)$payoffs
   for (ind in 1:N) {
     blockedTraits <- which(blockers[ind, ] == 1)
@@ -332,6 +356,17 @@ augmentTrRequirements <- function(tree) {
   return(requirements)
 }
 
+try_learning <- function(selectedTrait, p){
+  traits <- list(learned = NULL, failed = NULL)
+  if (length(p) > 0) {
+    if(runif(1) < p){
+      traits$learned <- selectedTrait
+    } else {
+      traits$failed <- selectedTrait
+    }
+  }
+  return(traits)
+}
 
 learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, popAge, tree, observedTraits, observedModels) {
   payoffs <- attributes(tree)$payoffs
@@ -430,41 +465,6 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
 }
 
 
-try_learning <- function(selectedTrait, p){
-  traits <- list(learned = NULL, failed = NULL)
-  if (length(p) > 0) {
-    if(runif(1) < p){
-      traits$learned <- selectedTrait
-    } else {
-      traits$failed <- selectedTrait
-    }
-  }
-  return(traits)
-}
 
-getTraitLearningProbability_R <- function(repertoires, ind, requirements, learnableTraits) {
-  if (length(learnableTraits) == 0) {
-    return(numeric(0))
-  }
-  knownTraits <- which(repertoires[ind, ] == 1)
-  pList <- rep(0, length(learnableTraits))
-  for (i in 1:length(learnableTraits)) {
-    targetTrait <- learnableTraits[i]
-    if (length(requirements[targetTrait]) >= 2) {
-      if (all(requirements[targetTrait][[1]][[1]] %in% knownTraits) | all(requirements[targetTrait][[1]][[2]] %in% knownTraits)) {
-        pList[i] <- 1
-      }
-    } else if (length(requirements[targetTrait]) >= 1) {
-      if (all(requirements[targetTrait][[1]][[1]] %in% knownTraits)) {
-        pList[i] <- 1
-      }
-    }
-  }
-  
-  if (length(pList) != length(learnableTraits)) {
-    browser()
-  }
-  return(pList)
-}
 
 

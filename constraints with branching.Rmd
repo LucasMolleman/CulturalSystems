@@ -137,6 +137,7 @@ animation::saveGIF({
   }
 }, movie.name = "layer_1_payoff.gif", interval = 1/50)
 ```
+
 ```{r}
 library(magick)
 
@@ -156,7 +157,7 @@ gif_combined <- image_montage(
 )
 
 # Write the combined GIF to a new file
-image_write(gif_combined, "combined_grid.gif")
+image_write_gif(gif_combined, "combined_grid.gif")
 
 
 
