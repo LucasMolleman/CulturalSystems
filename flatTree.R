@@ -1,5 +1,5 @@
 source("new functions cleanup_new.R")
-
+source("functions_flatTree.R")
 
 # get current time in correct format for folder name
 current_time <- Sys.time() %>% 
@@ -23,9 +23,9 @@ dir.create(data_folder)
 # set up population
 population <- 1:100
 skills <- 40
-timesteps <- 2500
+timesteps <- 500
 rounds <- 100
-reset_rate <- 0.001	
+reset_rate <- 0.1	
 social_learning <- 0.99
 skill_probs <- c(rep(0.06, 24), rep(0.05, 6), rep(0.026, 10))
 
