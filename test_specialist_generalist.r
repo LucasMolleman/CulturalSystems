@@ -115,24 +115,17 @@ getLearnableTraits <- function(repertoires, ind, adj_matrix){
   
   # For which of these traits is the parent trait in the repertoire?
   # These are the traits currently 'learnable' to the individual
-  learnableTraits <- c()
-  for (trait in unknownTraits){
+
+    
+  learnableTraits <- vapply(unknownTraits, function(trait) {
     parent <- which(adj_matrix[,trait] == 1)
-    if (prod(repertoires[ind, parent] == 1)){
-      learnableTraits <- c(learnableTraits, trait)
-    }
-  }
+    all(repertoires[ind, parent] == 1)
+  }, logical(1))
   
-  # If there are any negative mutual relationships between traits, remove them from the set of learnable traits
-  for (trait in learnableTraits){
-    blocker <- which(adj_matrix[,trait] == -1)
-    if (sum(repertoires[ind,blocker]) > 0){
-      learnableTraits<-learnableTraits[!learnableTraits==trait]
-    }
-  }
-  
-  return(learnableTraits)
+  return(unknownTraits[learnableTraits])
 }
+  
+
 
 getEnvironmentalLearnability <- function(repertoires, adj_matrix){
   p <- c()
@@ -264,19 +257,13 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
     ##################
     
     ###### STRATEGY 2: Similarity-Based Social Learning ######
-     if (learningStrategy == 2){
-      # Check for all agents how similar they are to self
-      for (mod in observedModels){
-        simToFocal <- 0
-        for (k in 1:num_nodes){ # Loop over all traits and sum similarity
-          if (repertoires[ind,k] == repertoires[mod,k]){
-            simToFocal <- simToFocal + 1
-          }
-        }
-        wList<-c(wList, simToFocal)
+    if (learningStrategy == 2) {
+      for (model in observedModels) {
+        modelIndex <- which(observedModels == model)
+        wList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
       }
-      wList <- wList / sum(wList)
     }
+    
     ##################	
     
     ######	STRATEGY 3: Age-Based Social Learning #####				
@@ -294,6 +281,7 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
     
     ######	STRATEGY 4: Conformist Social Learning #####				
     if (learningStrategy == 4){
+      browser()
       # Count the selected behaviours and weigh common ones more
       for (mod in 1:length(observedBehaviours)){
         w <- length(which(observedBehaviours == observedBehaviours[mod]))
@@ -352,7 +340,10 @@ summSLSPayoff <- matrix(nrow = 0, ncol = t_max)
 ## summVarAcrossBranch <- matrix(nrow = 0, ncol = t_max)
 ## summProbabilities <- matrix(nrow = 0, ncol = t_max)
 
+
 # Loop over social learning strategies 
+
+
 system.time(
 for(SLS in 0:4){
   
@@ -504,6 +495,9 @@ for(SLS in 0:4){
   }
 }
 )
+
+
+
 
 # Export summary statistics
 write.csv(strategySuccess, file = "StrategySuccess")
