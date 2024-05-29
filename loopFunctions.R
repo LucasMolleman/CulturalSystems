@@ -24,6 +24,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   blockedInds <- which(rowSums(blockers) > 0)
   tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
   attr(tree, "requirements") <- augmentTrRequirements(tree) #add alternative routes around blocked traits
+  attr(tree, "blockedTraits") <- blockedTraits
   repertoires<-initializePopulation(params, blockers, tree)
   if (ncol(repertoires) !=  gorder(tree)) {
     stop("Number of nodes in the tree does not match the number of nodes in the repertoires")
@@ -34,19 +35,19 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   probabilitiesBlocked <- rep(NA, params$timesteps)
   failed_learning_count <- 0
   failed_learning_count_blocked <- 0
+  tr_sums <- vector("list", params$timesteps)
+  attr(tr_sums, "tree") <- tree
+  tr_sums_blocked <- vector("list", params$timesteps)
+  attr(tr_sums_blocked, "tree") <- tree
   for (t in 1:params$timesteps){
     #probabilities[t] <- getEnvironmentalLearnability(params, 1:params$N, repertoires, tree, blockers)
     #probabilitiesBlocked[t] <- getEnvironmentalLearnability(params, blockedInds, repertoires, tree, blockers)
     
-    #trait_dist <- vector("list", length = params$timesteps)
-    
-    ## sample a random individual
     ind<-sample(1:params$N,1)
-    #if ind is blocked 
     if (ind %in% blockedInds){
       learningStrategy <- blockedLearningStrategy
     } else {
-      learningStrategy <- 1 #typical learners always employ payoff-based learning
+      learningStrategy <- params$typical_learning_strategy
     }
     ## will they learn individually or socially?
     r<-runif(1)
@@ -112,8 +113,12 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
             repertoires[ind,selectedTrait]<-1
           }
         }
-      }							
+      }
+      tr_sums[[t]] <- colSums(repertoires[-blockedInds, ], na.rm =T)
+      tr_sums_blocked[[t]] <- colSums(repertoires[blockedInds, ], na.rm =T)
     }
+    
+
     
     #trait_dist[t] <- bookkeep_traits(repertoires, blockedInds)
     
@@ -132,6 +137,16 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
       popAge[ind]<-0  ## reset the age of the agent to 0
     }
   }
+
+  
+  if (TRUE) {
+    for(i in 2:length(tr_sums_blocked)){
+      if(is.null(tr_sums_blocked[[i]])) tr_sums_blocked[[i]] <- tr_sums_blocked[[i-1]]
+    }
+    saveRDS(tr_sums, "tr_sums.rds")
+    saveRDS(tr_sums_blocked, "tr_sums_blocked.rds")
+  }
+  
   # png("probabilities.png")	
   # plot(probabilities, type = "l", ylim = c(0,1))	
   # dev.off()	
@@ -143,7 +158,6 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   trim <- 1:params$timesteps
   sumThisSimulation<-c(gorder(tree), 
                         blockedLearningStrategy,
-                        params$olderPref,
                         repl,
                         params$payoff_scaling,
                         params$blockedLayer,
@@ -195,7 +209,7 @@ run_all_simulations <- function(iterations, params, tree) {
     params$numSteps <- numSteps
     params$blockedLayer <- blockedLayer
     params$propBlocked <- propBlocked
-    
+    print(paste("Learning Strategy:", learningStrategy))
     sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree)
   })
   do.call(rbind, results)

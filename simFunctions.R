@@ -297,7 +297,7 @@ getPayoffs <- function(tree, params) {
 
   adjusted_payoffs <- (1 - weight) * (2 * random_payoffs / max(random_payoffs)) + weight * distance_payoffs
   adjusted_payoffs[params$root_node] <- 0
-  adjusted_payoffs <- c(adjusted_payoffs, rep(1/numSteps, numBlocked * numSteps * 2)) # all auxiliary nodes get a partial payoff
+  adjusted_payoffs <- c(adjusted_payoffs, rep(0.1, numBlocked * numSteps * 2)) # all auxiliary nodes get a partial payoff
   return(adjusted_payoffs)
 }
 
@@ -340,7 +340,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits)]
   aux_traits <- which(!1:ncol(repertoires) %in% 1:params$num_nodes)
   if (length(blockedTraits) == 0) {
-    learnableTraits <- setdiff(learnableTraits, aux_traits)
+    learnableTraits <- learnableTraits[!learnableTraits %in% aux_traits]
   }
   if (length(observedTraits) > 0) {
     wList <- numeric(length = length(learnableTraits))
@@ -353,7 +353,12 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     if (sum(pList, na.rm = T) == 0 | all(learnableTraits == root_node)) {
       return(numeric(0))
     }
-
+    
+    if (length(learnableTraits) == 1) {
+      learnedTrait <- try_learning(learnableTraits, pList)
+      return(learnedTrait)
+    }
+    
     ##### STRATEGY 1: payoff-based social learning #####
     if (learningStrategy == 1) {
         wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits])
@@ -480,18 +485,22 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     
     
     # learn trait with probability
-    if (length(pList) > 0) {
-      if(runif(1) < probability){
-        learnedTrait <- selectedTrait
-        return(learnedTrait)
-      }
-    }
+    learnedTrait <- try_learning(selectedTrait, probability)
+    return(learnedTrait)
   }
   return(numeric(0))
 }
 
 
-# Not used
+try_learning <- function(selectedTrait, p){
+  if (length(p) > 0) {
+    if(runif(1) < p){
+      return(selectedTrait)
+    }
+  }
+  return(numeric(0))
+}
+
 getTraitLearningProbability_R <- function(repertoires, ind, requirements, learnableTraits) {
   if (length(learnableTraits) == 0) {
     return(numeric(0))
@@ -516,3 +525,5 @@ getTraitLearningProbability_R <- function(repertoires, ind, requirements, learna
   }
   return(pList)
 }
+
+

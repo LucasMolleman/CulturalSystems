@@ -19,7 +19,6 @@ library(Rcpp)
 library(dplyr)
 library(ggplot2)
 
-
 source("simFunctions.R")
 source("loopFunctions.R")
 ```
@@ -34,17 +33,17 @@ params <- list(
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
   timesteps =  2000,              # number of time steps in the simulation
-  replicateSimulations = 30,      # number of simulations per parameter setting
+  replicateSimulations = 1,       # number of simulations per parameter setting
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
-  olderPref = 0,
   payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
   payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
   propBlocked = 0.1,              # proportion of individuals that have blocked traits
   numSteps = 3,                   # number of auxiliary traits necessary for overcoming a block
-  detourType = "serial"           # type of detour (parallel or serial)
+  detourType = "parallel",        # type of detour (parallel or serial)
+  typical_learning_strategy = 4   # social learning strategy used by unblocked learners
 )
 ``` 
 
@@ -53,25 +52,20 @@ params <- list(
 ```{r}
 ### define a summary matrix with success of learning strategies
 ## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=14)
-
+set.seed(1)
 tree <- generate_rooted_tree()
 attr(tree, "requirements") <- trRequirements(tree)
-set.seed(1)
-
-iterations <- expand.grid(
-  learningStrategy = c(0,1,2),
-  numSteps = c(1, 2, 3),
-  blockedLayer = c(1, 2, 3),
-  propBlocked = c(0.5, 0.1),
-  repl = 1:params$replicateSimulations
-) 
-
 future::plan(future::multisession, workers = (parallel::detectCores() - 1))
 
-strategySuccess <- rbind(strategySuccess, run_all_simulations_parallel(iterations, params, tree))
 
-saveRDS(strategySuccess, "strategySuccess.rds")
+expand.grid(learningStrategy = c(0:4),
+            numSteps = c(1, 2, 3),
+            blockedLayer = c(1, 2, 3),
+            propBlocked = c(0.05, 0.1),
+            repl = 1:params$replicateSimulations) %>%
+run_all_simulations_parallel(params, tree) %>%
+saveRDS("strategySuccess.rds")
+
 future::plan(future::sequential)
 ```
 
@@ -79,27 +73,43 @@ future::plan(future::sequential)
 For debugging and testing
 
 ```{r}
-### define a summary matrix with success of learning strategies
-## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess<-matrix(nrow=0, ncol=14)
 set.seed(1)
 tree <- generate_rooted_tree()
 attr(tree, "requirements") <- trRequirements(tree)
 
-iterations <- expand.grid(
-  learningStrategy = c(0,1,6),
-  numSteps = c(4, 5, 6),
-  blockedLayer = c(1, 2, 3),
-  propBlocked = c(0.05, 0.1),
-  repl = 1:params$replicateSimulations
-) 
-
-strategySuccess <- run_all_simulations(iterations, params, tree)
-
-saveRDS(strategySuccess, "strategySuccess.rds")
+expand.grid(learningStrategy = c(2),
+            numSteps = c(2),
+            blockedLayer = c(1),
+            propBlocked = c(0.1),
+            repl = 1:params$replicateSimulations) %>%
+run_all_simulations(params, tree) %>%
+saveRDS("strategySuccess.rds")
 ```
 
+```{r}
+tr_sums_blocked <- readRDS("tr_sums_blocked.rds")
 
+tree <- attributes(tr_sums_blocked)$tree
+
+aux_nodes <- which(!1:gorder(tree) %in% 1:params$num_nodes)
+blocked_nodes <- attributes(tree)$blockedTraits
+
+node_colors <- rep("forestgreen", gorder(tree))
+node_colors[aux_nodes] <- "lightblue"
+node_colors[blocked_nodes] <- "firebrick"
+
+#sizes
+min_new <- 10
+max_new <- 30
+animation::saveGIF({
+  for(t in seq(1,2000,5)) {
+    tr_sums <- tr_sums_blocked[[t]]
+    scaled_sizes <- (tr_sums - min(tr_sums)) / (max(tr_sums) - min(tr_sums)) * (max_new - min_new) + min_new
+    plot(tree, layout = layout.reingold.tilford(tree), vertex.size=scaled_sizes, vertex.label=NA, vertex.color=node_colors,main = "Blocked Layer = 1", sub = paste("Time Step", t))
+    
+  }
+}, movie.name = "layer_1.gif", interval = 1/50)
+```
 
 
 ```{r}
@@ -107,19 +117,18 @@ strategySuccess <- readRDS("strategySuccess.rds")
 data <- as.data.frame(strategySuccess)
 library(data.table)
 setDT(data)
-setnames(data, c("numNodes", "blockedLearningStrat", "olderPref", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked", "failed_learning_prop", "failed_learning_prop_blocked"))
+setnames(data, c("numNodes", "blockedLearningStrat", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked", "failed_learning_prop", "failed_learning_prop_blocked"))
 
 #set first 8 columns to factor
 data[ , (1:5) := lapply(.SD, factor), .SDcols = 1:5]
 
-data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,2,7), labels = c("Random", "Payoff", "Similarity", "Similarity2"))]
+data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,2,3,4,7), labels = c("Random", "Payoff", "Similarity", "Age-Based", "Conformity", "Similarity2"))]
 
 summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked , data = data))
 
-summary(mod2 <- lm(sumPayoffBlocked ~ blockedLearningStrat*numSteps*blockedLayer*propBlocked, data = data))
+summary(mod2 <- lm(sumPayoffBlocked ~ blockedLearningStrat*blockedLayer*propBlocked, data = data))
 
 #Probing the interaction numSteps:blockedLayer:propBlocked 
-
 
 prepare_aggregated_data <- function(data, dependent_var, independent_vars) {
   aggregated_data <- data %>%
@@ -160,6 +169,41 @@ ggplot(aggregated_data2, aes(x = as.factor(numSteps), y = mean_value, group = in
   theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X labels for better visualization
         strip.text.x = element_text(size = 12, face = "bold"))
 ``` 
+
+```{r}
+
+ggplot(aggregated_data2, aes(x = as.factor(blockedLayer), y = mean_value, group = interaction(blockedLayer, propBlocked), color = as.factor(blockedLayer))) +
+
+  geom_line(aes(linetype = as.factor(propBlocked))) +
+
+  geom_point(aes(shape = as.factor(propBlocked))) +
+
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.2) +
+
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity", Similarity2 = "Strategy: Similiarity 2"))) +
+
+  labs(title = "Average SumPayoffBlocked across BlockedLayer, PropBlocked,\n and LearningStrategies",
+
+       subtitle = "Data aggregated across unique combinations of factors\n(Considering a constant Number of Steps)",
+
+       x = "Blocked Layer",
+
+       y = "Average Sum Payoff Blocked",
+
+       color = "Blocked Layer",
+
+       linetype = "Proportion Blocked",
+
+       shape = "Proportion Blocked") +
+
+  theme_minimal() +
+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+
+        strip.text.x = element_text(size = 12, face = "bold"))
+
+```
+
 ## Plot Results
 
 ```{r}
