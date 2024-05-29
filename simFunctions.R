@@ -344,14 +344,12 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
   }
   
   if (length(learnableTraits) == 0) {
-    learning_result <- list(learned = numeric(0), failed = numeric(0))
+    learning_result <- list(learned = NULL, failed = NULL)
     return(learning_result)
   }
   
   if (length(learnableTraits) > 0) {
     wList <- numeric(length = length(learnableTraits))
-    dList <- numeric(length = length(learnableTraits))
-    sList <- numeric(length = length(learnableTraits))
     pList <- getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, learnableTraits)
 
     root_node <- params$root_node
@@ -385,11 +383,12 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     }
 
     ###### 	STRATEGY 4: conformist social learning #####
-    ## Count the selected behaviours and weigh common ones more
+    ## Count the selected behaviors and weigh common ones more
     else if (learningStrategy == 4) {
-      wList <- table(learnableTraits)[as.character(learnableTraits)]
+      modelRepertoires <- repertoires[observedModels, learnableTraits]
+      traitCounts <- colSums(modelRepertoires == 1)
+      wList <- if (sum(traitCounts) > 0) traitCounts / sum(traitCounts) else rep(1 / length(learnableTraits), length(learnableTraits))
     }
-    
     ###### STRATEGY 0: random learning benchmark
     ## Randomly select a trait that is not yet learned
     else if (learningStrategy == 0) {
@@ -432,7 +431,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
 
 
 try_learning <- function(selectedTrait, p){
-  traits <- list(learned = numeric(0), failed = numeric(0))
+  traits <- list(learned = NULL, failed = NULL)
   if (length(p) > 0) {
     if(runif(1) < p){
       traits$learned <- selectedTrait

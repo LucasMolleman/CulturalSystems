@@ -33,7 +33,7 @@ params <- list(
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
   timesteps =  2000,              # number of time steps in the simulation
-  replicateSimulations = 1,       # number of simulations per parameter setting
+  replicateSimulations = 50,       # number of simulations per parameter setting
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
   payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
@@ -57,16 +57,18 @@ tree <- generate_rooted_tree()
 attr(tree, "requirements") <- trRequirements(tree)
 future::plan(future::multisession, workers = (parallel::detectCores() - 1))
 
-
+start_time <- Sys.time()
 expand.grid(learningStrategy = c(0:4),
-            numSteps = c(1, 2, 3),
-            blockedLayer = c(1, 2, 3),
+            numSteps = c(1, 2),
+            blockedLayer = c(1, 2),
             propBlocked = c(0.05, 0.1),
             repl = 1:params$replicateSimulations) %>%
 run_all_simulations_parallel(params, tree) %>%
 saveRDS("strategySuccess.rds")
-
+end_time <- Sys.time()
 future::plan(future::sequential)
+
+print(paste("The simulation took", end_time - start_time, "seconds"))
 ```
 
 ## Non-Parallel Version

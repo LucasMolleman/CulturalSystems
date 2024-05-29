@@ -121,9 +121,9 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
           }
         }
       }
-      tr_sums[[t]] <- colSums(repertoires[-blockedInds, ], na.rm =T)
-      tr_sums_blocked[[t]] <- colSums(repertoires[blockedInds, ], na.rm =T)
-      failure_sums_blocked[[t]] <- colSums(failures[blockedInds, ], na.rm =T)
+      # tr_sums[[t]] <- colSums(repertoires[-blockedInds, ], na.rm =T)
+      # tr_sums_blocked[[t]] <- colSums(repertoires[blockedInds, ], na.rm =T)
+      # failure_sums_blocked[[t]] <- colSums(failures[blockedInds, ], na.rm =T)
     }
     
 
@@ -147,7 +147,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   }
 
   
-  if (TRUE) {
+  if (FALSE) {
     for(i in 2:length(tr_sums_blocked)){
       if(is.null(tr_sums_blocked[[i]])) tr_sums_blocked[[i]] <- tr_sums_blocked[[i-1]]
       if(is.null(failure_sums_blocked[[i]])) failure_sums_blocked[[i]] <- failure_sums_blocked[[i-1]]
