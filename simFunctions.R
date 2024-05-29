@@ -342,21 +342,23 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
   if (length(blockedTraits) == 0) {
     learnableTraits <- learnableTraits[!learnableTraits %in% aux_traits]
   }
-  if (length(observedTraits) > 0) {
+  
+  if (length(learnableTraits) == 0) {
+    learning_result <- list(learned = numeric(0), failed = numeric(0))
+    return(learning_result)
+  }
+  
+  if (length(learnableTraits) > 0) {
     wList <- numeric(length = length(learnableTraits))
     dList <- numeric(length = length(learnableTraits))
     sList <- numeric(length = length(learnableTraits))
     pList <- getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, learnableTraits)
 
     root_node <- params$root_node
-    # Exit if the probability of learning any trait is zero
-    if (sum(pList, na.rm = T) == 0 | all(learnableTraits == root_node)) {
-      return(numeric(0))
-    }
-    
+
     if (length(learnableTraits) == 1) {
-      learnedTrait <- try_learning(learnableTraits, pList)
-      return(learnedTrait)
+      learning_result <- try_learning(learnableTraits, pList)
+      return(learning_result)
     }
     
     ##### STRATEGY 1: payoff-based social learning #####
@@ -388,65 +390,10 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       wList <- table(learnableTraits)[as.character(learnableTraits)]
     }
     
-    else if (learningStrategy == 5) {
-      usefulModels <- observedModels[observedTraits %in% learnableTraits]
-      blockedInds <- which(rowSums(blockers) > 0)
-      #if blocked, set weight of all models that are also blocked to 1, others to 0
-      if (ind %in% blockedInds) {
-        if (any(usefulModels %in% blockedInds)) {
-          for (model in usefulModels) {
-            modelIndex <- which(usefulModels == model)
-            wList[modelIndex] <- ifelse(model %in% blockedInds, 1, 0)
-          }
-        } else { #else, regular similarity-based learning
-          for (model in usefulModels) {
-            modelIndex <- which(usefulModels == model)
-            wList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
-          }
-        }
-     } else { #if not blocked, regular similarity-based learning
-        for (model in usefulModels) {
-          modelIndex <- which(usefulModels == model)
-          wList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
-        }
-      }
-    }
-    
-    else if (learningStrategy == 6) {
-      # prefer individuals with learning difficulties. If none are available, choose randomly
-      usefulModels <- observedModels[observedTraits %in% learnableTraits]
-      blockedInds <- which(rowSums(blockers) > 0)
-      ageDif <- popAge[usefulModels] - popAge[ind]
-      sList <- ifelse(ageDif >= 0, 0.5^ageDif, 10^-8)
-      for (model in usefulModels) {
-        modelIndex <- which(usefulModels == model)
-        dList[modelIndex] <- ifelse(model %in% blockedInds, 1, sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires))
-      }
-      wList <- dList * sList
-    }
-    else if (learningStrategy == 7) {
-      # prefer individuals with learning difficulties. If none are available, choose randomly
-      usefulModels <- observedModels[observedTraits %in% learnableTraits]
-      blockedInds <- which(rowSums(blockers) > 0)
-      ageDif <- popAge[usefulModels] - popAge[ind]
-      sList <- ifelse(ageDif >= 0, 0.5^ageDif, 10^-8)
-      for (model in usefulModels) {
-        modelIndex <- which(usefulModels == model)
-        dList[modelIndex] <- ifelse(model %in% blockedInds, 1, sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires))
-      }
-      wList <- (dList + sList) / 2
-    }
-      
-
     ###### STRATEGY 0: random learning benchmark
     ## Randomly select a trait that is not yet learned
     else if (learningStrategy == 0) {
       wList <- rep(1, length(learnableTraits))
-    }
-
-
-    if (sum(wList, na.rm = T) == 0) {
-      return(numeric(0))
     }
 
     if (any(is.na(wList * pList))) {
@@ -458,10 +405,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       print("Negative value in wList * pList")
       browser()
     }
-    if (sum(pList) == 0) {
-      print("Sum of pList is zero")
-      browser()
-    }
+
     if (length(wList) != length(pList)) {
       print("Length of wList and pList do not match")
       browser()
@@ -480,25 +424,23 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       probability <- ifelse(selectedTrait %in% blockedTraits, 0.01, pList[selectedTraitIndex])
     }
 
-    #blocked traits have a low probability of being learned
+    learning_result <- try_learning(selectedTrait, probability)
     
-    
-    
-    # learn trait with probability
-    learnedTrait <- try_learning(selectedTrait, probability)
-    return(learnedTrait)
   }
-  return(numeric(0))
+  return(learning_result)
 }
 
 
 try_learning <- function(selectedTrait, p){
+  traits <- list(learned = numeric(0), failed = numeric(0))
   if (length(p) > 0) {
     if(runif(1) < p){
-      return(selectedTrait)
+      traits$learned <- selectedTrait
+    } else {
+      traits$failed <- selectedTrait
     }
   }
-  return(numeric(0))
+  return(traits)
 }
 
 getTraitLearningProbability_R <- function(repertoires, ind, requirements, learnableTraits) {

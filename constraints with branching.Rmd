@@ -77,7 +77,7 @@ set.seed(1)
 tree <- generate_rooted_tree()
 attr(tree, "requirements") <- trRequirements(tree)
 
-expand.grid(learningStrategy = c(2),
+expand.grid(learningStrategy = c(1),
             numSteps = c(2),
             blockedLayer = c(1),
             propBlocked = c(0.1),
@@ -87,30 +87,78 @@ saveRDS("strategySuccess.rds")
 ```
 
 ```{r}
+
 tr_sums_blocked <- readRDS("tr_sums_blocked.rds")
+failure_sums_blocked <- readRDS("failure_sums_blocked.rds")
+
+if (max(unlist(failure_sums_blocked)) > 50) {
+  print("Warning: failure_sums_blocked contains values greater than 50")
+}
 
 tree <- attributes(tr_sums_blocked)$tree
 
 aux_nodes <- which(!1:gorder(tree) %in% 1:params$num_nodes)
 blocked_nodes <- attributes(tree)$blockedTraits
 
-node_colors <- rep("forestgreen", gorder(tree))
-node_colors[aux_nodes] <- "lightblue"
-node_colors[blocked_nodes] <- "firebrick"
+# Edge colors
+targets <- ends(tree, E(tree))[, 2]
+edge_colors <- rep("darkgrey", ecount(tree))
+edge_colors[targets %in% aux_nodes] <- "forestgreen"
+edge_colors[targets %in% blocked_nodes] <- "firebrick"
 
-#sizes
+
+# Size scaling
 min_new <- 10
 max_new <- 30
+
+
+col_palette <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))(51)
+break_points <- seq(0, 50, length.out = 52)
+
+legend_colors <- col_palette[c(1, 11, 21, 31, 41, 51)] 
+
 animation::saveGIF({
-  for(t in seq(1,2000,5)) {
+  for(t in seq(1, 2000, 5)) {
     tr_sums <- tr_sums_blocked[[t]]
     scaled_sizes <- (tr_sums - min(tr_sums)) / (max(tr_sums) - min(tr_sums)) * (max_new - min_new) + min_new
-    plot(tree, layout = layout.reingold.tilford(tree), vertex.size=scaled_sizes, vertex.label=NA, vertex.color=node_colors,main = "Blocked Layer = 1", sub = paste("Time Step", t))
     
-  }
-}, movie.name = "layer_1.gif", interval = 1/50)
-```
+    bin_indices <- findInterval(failure_sums_blocked[[t]], vec = break_points, left.open = TRUE)
+    vertex_colors <- col_palette[bin_indices]
 
+    plot(tree, layout = layout.reingold.tilford(tree),
+         vertex.size = scaled_sizes, vertex.label=NA,
+         vertex.color = vertex_colors,
+         edge.color = edge_colors,
+         main = "Learning Strategy = Payoff | Blocked Layer = 1", sub = paste("Time Step", t))
+ 
+    legend("topleft", legend=c("0", "10", "20", "30", "40", "50"), fill=legend_colors, title="Failure Sum")
+  }
+}, movie.name = "layer_1_payoff.gif", interval = 1/50)
+```
+```{r}
+library(magick)
+
+gif_layer_1 <- image_read("layer_1.gif")
+gif_layer_2 <- image_read("layer_2.gif")
+gif_layer1_payoff <- image_read("layer_1_payoff.gif")
+gif_layer_2_payoff <- image_read("layer_2_payoff.gif")
+
+# Verify that the number of frames in each GIF is the same prior to combining
+# This might require adjusting your GIFs to have the same duration and frame rate 
+
+# Combine the GIFs into a 2x2 grid
+gif_combined <- image_montage(
+  c(gif_layer_1, gif_layer_2, gif_layer1_payoff, gif_layer_2_payoff), 
+  tile = "2x2", 
+  geometry = "1000x1000+0+0"
+)
+
+# Write the combined GIF to a new file
+image_write(gif_combined, "combined_grid.gif")
+
+
+
+```
 
 ```{r}
 strategySuccess <- readRDS("strategySuccess.rds")

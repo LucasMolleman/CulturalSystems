@@ -30,7 +30,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
     stop("Number of nodes in the tree does not match the number of nodes in the repertoires")
   }
   popAge<-assignAges(repertoires)
-  ### population is now initialized... start running the model
+  
   probabilities <- rep(NA, params$timesteps)
   probabilitiesBlocked <- rep(NA, params$timesteps)
   failed_learning_count <- 0
@@ -39,6 +39,11 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   attr(tr_sums, "tree") <- tree
   tr_sums_blocked <- vector("list", params$timesteps)
   attr(tr_sums_blocked, "tree") <- tree
+  
+  failure_sums_blocked <- vector("list", params$timesteps)
+  failures <- matrix(0, nrow = params$N, ncol = ncol(repertoires))
+  
+  ### population is now initialized... start running the model
   for (t in 1:params$timesteps){
     #probabilities[t] <- getEnvironmentalLearnability(params, 1:params$N, repertoires, tree, blockers)
     #probabilitiesBlocked[t] <- getEnvironmentalLearnability(params, blockedInds, repertoires, tree, blockers)
@@ -72,29 +77,31 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
             observedModels<-c(observedModels, model)
           }
         }
-        learnedTrait <- learnSocially(params,
-                                      repertoires,
-                                      blockers,
-                                      ind,
-                                      learningStrategy, 
-                                      popAge,
-                                      tree,
-                                      observedTraits,
-                                      observedModels)														
-        
-        if (length(learnedTrait)==1){
+        learning_result <- learnSocially(params,
+                                          repertoires,
+                                          blockers,
+                                          ind,
+                                          learningStrategy, 
+                                          popAge,
+                                          tree,
+                                          observedTraits,
+                                          observedModels)														
+        learnedTrait <- learning_result$learned
+        failed_trait <- learning_result$failed
+        if (length(learnedTrait) == 1) {
         ######## calculate payoffs of learning
           repertoires[ind, learnedTrait] <- 1
           focalPay <- attributes(tree)$payoffs[learnedTrait]
-          SLpay[t,1]<- focalPay
+          SLpay[t, 1] <- focalPay
           if (ind %in% blockedInds){
-            SLpay[t,3]<- focalPay
+            SLpay[t, 3] <- focalPay
           } else {
-            SLpay[t,2]<- focalPay
+            SLpay[t, 2] <- focalPay
           } 
         } else {
-          SLpay[t,1]<-0
+          SLpay[t,1] <- 0
           failed_learning_count <- failed_learning_count + 1
+          failures[ind, failed_trait] <- failures[ind, failed_trait] + 1
           if (ind %in% blockedInds){
             failed_learning_count_blocked <- failed_learning_count_blocked + 1
             SLpay[t,3]<-0
@@ -116,6 +123,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
       }
       tr_sums[[t]] <- colSums(repertoires[-blockedInds, ], na.rm =T)
       tr_sums_blocked[[t]] <- colSums(repertoires[blockedInds, ], na.rm =T)
+      failure_sums_blocked[[t]] <- colSums(failures[blockedInds, ], na.rm =T)
     }
     
 
@@ -142,9 +150,11 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   if (TRUE) {
     for(i in 2:length(tr_sums_blocked)){
       if(is.null(tr_sums_blocked[[i]])) tr_sums_blocked[[i]] <- tr_sums_blocked[[i-1]]
+      if(is.null(failure_sums_blocked[[i]])) failure_sums_blocked[[i]] <- failure_sums_blocked[[i-1]]
     }
     saveRDS(tr_sums, "tr_sums.rds")
     saveRDS(tr_sums_blocked, "tr_sums_blocked.rds")
+    saveRDS(failure_sums_blocked, "failure_sums_blocked.rds")
   }
   
   # png("probabilities.png")	
