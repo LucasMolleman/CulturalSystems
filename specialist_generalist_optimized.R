@@ -104,6 +104,7 @@ getLearnableTraits <- function(repertoires, ind, adj_matrix){
 }
 
 # Social learning
+# (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 
 learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, popAge, N, num_nodes, payoffs){
   
@@ -340,16 +341,18 @@ run_all_simulations_parallel <- function(parameters) {
 
 # You can add both ranges of parameters and individual values, and the
 # simulation will run for all combinations
+# branching_factor: 1, 2, 4, 8, 16, 32, 64, 128
+
 parameters <- expand.grid(
   N = 100,
   M = 10,
   num_nodes = 129,
-  branching_factor = 128,
+  branching_factor = c(1, 4, 32, 128),
   SLS = 0:4,
   SL_rate = 0.99,
   reset_rate = 0.01,
   t_max = 20000,
-  r = 1
+  r = 1:5
 )
 
 # Run sequentially 
