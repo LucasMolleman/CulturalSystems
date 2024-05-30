@@ -37,7 +37,7 @@ generate_specialist_generalist_tree <- function(num_nodes, branching_factor) {
   return(g)
 }
 
-## 2. GENERATE POPULATION
+# Generating the population
 
 initializePopulation <- function(N, num_nodes, adj_matrix){
   # Start with empty repertoires (but fill them up in the next step)
@@ -73,6 +73,8 @@ initializePopulation <- function(N, num_nodes, adj_matrix){
   return(repertoires)
 }
 
+# Assigning ages to the population
+
 assignAges <- function(repertoires){
   # For age-based social learning, we need to assume initial ages. 
   # Assume the age is proportional to the repertoire size
@@ -84,13 +86,14 @@ assignAges <- function(repertoires){
   return (popAge)
 }
 
+# Determining the learnable traits
+
 getLearnableTraits <- function(repertoires, ind, adj_matrix){
   # Which traits are currently not in the individual's repertoire?
   unknownTraits <- which(repertoires[ind,] == 0)
   
   # For which of these traits is the parent trait in the repertoire?
   # These are the traits currently 'learnable' to the individual
-  
   
   learnableTraits <- vapply(unknownTraits, function(trait) {
     parent <- which(adj_matrix[,trait] == 1)
@@ -100,87 +103,7 @@ getLearnableTraits <- function(repertoires, ind, adj_matrix){
   return(unknownTraits[learnableTraits])
 }
 
-
-
-getEnvironmentalLearnability <- function(repertoires, adj_matrix){
-  p <- c()
-  
-  for(ind in 1:nrow(repertoires)){
-    
-    knownTraits <- which(repertoires[ind,] == 1)
-    
-    unknownTraits <- which(repertoires[ind,] == 0)
-    
-    if(length(unknownTraits) == 0){
-      p[ind] <- NA 
-      next
-    }
-    
-    learnableTraits <- getLearnableTraits(repertoires, ind, adj_matrix)
-    
-    freqLearnable <- 0
-    
-    popOthers <- repertoires[-ind,]
-    
-    
-    for(trait in learnableTraits){
-      freqLearnable <- freqLearnable + sum(popOthers[,trait])
-    }
-    
-    freqUnknown <- 0
-    
-    for(trait in unknownTraits){
-      freqUnknown <- freqUnknown + sum(popOthers[,trait])
-    }
-    
-    p[ind] <- freqLearnable / freqUnknown
-  }
-  
-  return(mean(p, na.rm=T))
-}
-
-# Environmental learnability function that's faster than the one above
-getEnvironmentalLearnability2 <- function(repertoires, adj_matrix) {
-  # Calculate known and unknown traits for all individuals
-  knownTraits <- apply(repertoires, 1, function(ind) which(ind == 1))
-  unknownTraits <- apply(repertoires, 1, function(ind) which(ind == 0))
-  
-  # Initialize a vector to store the probabilities
-  p <- numeric(nrow(repertoires))
-  
-  # Function to calculate learnable traits for an individual
-  getLearnable <- function(ind) {
-    getLearnableTraits(repertoires, ind, adj_matrix)
-  }
-  
-  # Calculate learnable traits for all individuals
-  learnableTraits <- lapply(1:nrow(repertoires), getLearnable)
-  
-  # Function to calculate the frequency of traits in a subset of the population
-  traitFrequency <- function(traits, pop) {
-    colSums(pop[, traits, drop = FALSE])
-  }
-  
-  # Calculate probabilities for each individual
-  for (ind in 1:nrow(repertoires)) {
-    if (length(unknownTraits[[ind]]) == 0) {
-      p[ind] <- NA
-      next
-    }
-    
-    popOthers <- repertoires[-ind, , drop = FALSE]
-    
-    freqLearnable <- sum(traitFrequency(learnableTraits[[ind]], popOthers))
-    freqUnknown <- sum(traitFrequency(unknownTraits[[ind]], popOthers))
-    
-    p[ind] <- freqLearnable / freqUnknown
-  }
-  
-  # Return the mean probability, excluding NA values
-  return(mean(p, na.rm = TRUE))
-}
-
-## 3. SOCIAL LEARNING 
+# Social learning
 
 learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, popAge, N, num_nodes, payoffs){
   
@@ -291,26 +214,7 @@ reset_rate = 0.01
 t_max = 20000
 r_max = 1000
 
-## 5. SIMULATION
-
-# Functions needed for this simulation:
-# 1. generate_specialist_generalist
-# 2. verticesInBranches
-# 3. initializePopulation
-# 4. assignAges
-# 5. getLearnableTraits
-# 6. getEnvironmentalLearnability
-# 7. learnSocially
-
-# Summary matrix with success of learning strategies 
-# Simulation replicate, number of nodes, branching factor, learning strategy, payoff at the end of the simulation, successful trials
-
-
-# Bookkeeping overall summaries
-## summMeanTraitsInBranch <- list()
-## summVarAcrossBranch <- matrix(nrow = 0, ncol = t_max)
-## summProbabilities <- matrix(nrow = 0, ncol = t_max)
-
+## SIMULATION
 
 # Loop over social learning strategies 
 
@@ -319,9 +223,6 @@ run_simulation <- function(N, M, num_nodes, branching_factor, SLS, SL_rate, rese
   # Bookkeeping individual replications
   SLSPayoff <- rep(NA, t_max) # SLS payoff at each timestep
   meanTraitsInSystem <- rep(NA, t_max) # Number of traits in population at each timestep
-  ## probabilities <- rep(NA, t_max) # Environmental learnability
-  ## meanTraitsInBranch <- matrix(nrow = 0, ncol = branching_factor) # Mean traits in each branch
-  ## varTraitsAcrossBranch <- c() # Variance in mean traits
   
   # Create trait model
   trait_model <- generate_specialist_generalist_tree(num_nodes, branching_factor)
@@ -331,21 +232,13 @@ run_simulation <- function(N, M, num_nodes, branching_factor, SLS, SL_rate, rese
   # Root trait (at position 1,1) is its own parent
   adj_matrix[1,1] <- 1
   
-  # Vertices in each branch
-  ## branches <- verticesInBranches(trait_model)
-  ## vertBranches <- do.call(cbind, branches)
-  ## vertBranches <- vertBranches[-1,]
-  
   # Node depths 			
   nodeDepths <- 1 + distances(trait_model, v = 1, to = V(trait_model), mode = "out")
   maxNodeDepth <- max(nodeDepths)
   
   # Set payoffs
-  #	payoffs <- rep(1, num_nodes) # Equal uniform 
-  # payoffs <- runif(num_nodes)	# Random payoffs from uniform distribution
   payoffs <- runif(num_nodes) * nodeDepths # Payoffs increase with depth
-  #	payoffs <- runif(num_nodes) * (max(nodeDepths) - nodeDepths + 1) # Payoffs decrease with depth
-  payoffs <- 2 * payoffs / max(payoffs) # I believe this is used to make the payoffs all between 0-2
+  payoffs <- 2 * payoffs / max(payoffs) # Payoffs between 0 and 2
   
   # Initialize the population
   popn <- initializePopulation(N, num_nodes, adj_matrix)
@@ -355,41 +248,6 @@ run_simulation <- function(N, M, num_nodes, branching_factor, SLS, SL_rate, rese
   
   # Loop over timesteps 
   for(t in 1:t_max){
-    
-    ##probabilities[t] <- getEnvironmentalLearnability(popn, adj_matrix)
-    
-    # Mean number of traits per branch (over all individuals, not per individual)
-    ## meanKnownTraitsBranch <- c()
-    
-    ## if(branching_factor == 1){ # Completely constrained (one branch)
-    ##  meanKnownTraitsBranch <- sum(popn)/(num_nodes-1)
-    ##  varTraitsBranch <- NA
-    ##} else if (branching_factor == (num_nodes-1)){ # Completely unconstrained (independent traits)
-    ## 
-    ##   for(trait in vertBranches){
-    ##    meanKnownTraitsBranch[trait] <- colSums(popn)[trait]
-    ##   }
-    ##  meanKnownTraitsBranch <- na.omit(meanKnownTraitsBranch)
-    ##  varTraitsBranch <- var(meanKnownTraitsBranch) # Variance between the branches
-    ##} else { # All other branching factors other than 1 or 128
-    ##  for(col in 1:branching_factor){
-    ##    subset <- vertBranches[,col]
-    ##    
-    ##    traitsInBranch <- 0
-    ##    
-    ##    for(trait in subset){
-    ##      traitsInBranch <- traitsInBranch + colSums(popn)[trait]
-    ##    }
-    ##    
-    ##    meanKnownTraitsBranch[col] <- traitsInBranch / ((num_nodes-1)/branching_factor)
-    ##  }
-    ##  
-    # Variance between the branches
-    ##  varTraitsBranch <- var(meanKnownTraitsBranch)
-    ##}
-    
-    ##meanTraitsInBranch <- rbind(meanTraitsInBranch, meanKnownTraitsBranch)
-    ##varTraitsAcrossBranch <- c(varTraitsAcrossBranch, varTraitsBranch)
     
     # Sample an individual
     ind <- sample(1:N, 1)
@@ -439,11 +297,6 @@ run_simulation <- function(N, M, num_nodes, branching_factor, SLS, SL_rate, rese
     meanTraitsInSystem[t] <- sum(popn) / (num_nodes * N)
   }
   
-
-  ##summMeanTraitsInBranch <- c(summMeanTraitsInBranch, list(meanTraitsInBranch))
-  ##summVarAcrossBranch <- rbind(summVarAcrossBranch, varTraitsAcrossBranch)
-  ##summProbabilities <- rbind(summProbabilities, probabilities)
-  
   # Overall summaries
   summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(SLSPayoff), sum(SLSPayoff>0)/t_max)
   return(list(summThisSimulation, SLSPayoff, meanTraitsInSystem))
@@ -467,7 +320,6 @@ run_all_simulations <- function(parameters) {
   return(list(strategySuccess, summSLSPayoff, summMeanTraitsInSystem))
 }
 
-
 run_all_simulations_parallel <- function(parameters) {
   print(paste("starting", nrow(parameters), "simulations in parallel..."))
   
@@ -486,12 +338,8 @@ run_all_simulations_parallel <- function(parameters) {
   return(list(strategySuccess, summSLSPayoff, summMeanTraitsInSystem))
 }
 
-
-
-
-
-## You can add both ranges of parameters and individual values, and the
-## simulation will run for all combinations
+# You can add both ranges of parameters and individual values, and the
+# simulation will run for all combinations
 parameters <- expand.grid(
   N = 100,
   M = 10,
@@ -503,23 +351,20 @@ parameters <- expand.grid(
   t_max = 20000,
   r = 1
 )
-### Run sequentially 
+
+# Run sequentially 
 results <- run_all_simulations(parameters)
 
-### Run in parallel 
+# Run in parallel 
 plan(multisession, workers = parallelly::availableCores(omit = 1)) # omit 1 if you want to keep using your computer during the simulation
 system.time(results <- run_all_simulations_parallel(parameters))
 
-### Unpack results
+# Unpack results
 strategySuccess <- results[[1]]
 summSLSPayoff <- results[[2]]
 summMeanTraitsInSystem <- results[[3]]
 
-
 # Export summary statistics
 write.csv(strategySuccess, file = "StrategySuccess_Payoff")
-# write.csv(summProbabilities, file = "EnvironmentalLearnability")
 write.csv(summSLSPayoff, file = "SLSPayoff_Payoff")
 write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem_Payoff")
-# write.csv(summVarAcrossBranch, file = "VarianceAcrossBranch")
-# saveRDS(summMeanTraitsInBranch, file = "MeanTraitsInBranch.RData")
