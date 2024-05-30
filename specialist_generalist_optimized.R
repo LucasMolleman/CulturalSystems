@@ -1,11 +1,9 @@
-## Specialists vs Generalists
+## Specialists vs Generalists Final Simulation
 ## Hannah Armstrong
 
-## Libraries
+## LIBRARIES
+
 library(igraph)
-# library(colorRamps)
-# library(extraDistr)
-# library(matrixStats)
 library(ggplot2)
 library(reshape2)
 library(purrr)
@@ -13,12 +11,13 @@ library(furrr)
 library(future)
 library(parallelly)
 
-## 1. GENERATE TRAIT MODELS
+## FUNCTIONS
+
+# Generating the tree (specialist vs generalist)
 
 # Number of nodes includes the root node
 # Branching factor can be maximum num_nodes-1
 
-# Trait model showing specialist vs generalist
 generate_specialist_generalist_tree <- function(num_nodes, branching_factor) {
   g <- graph.empty(n = num_nodes, directed = TRUE)
   edgeList <- c()
@@ -36,34 +35,6 @@ generate_specialist_generalist_tree <- function(num_nodes, branching_factor) {
   }  
   g <- add_edges(g, c(edgeList))
   return(g)
-}
-
-# Determine the nodes in each branch
-verticesInBranches <- function(graph) {
-  branches <- list()
-  visited <- logical(vcount(graph))
-  
-  dfs <- function(vertex, branch) {
-    visited[vertex] <<- TRUE
-    branch <- c(branch, vertex)
-    neighbors <- neighbors(graph, vertex)
-    unvisited_neighbors <- neighbors[!visited[neighbors]]
-    if (length(unvisited_neighbors) > 0) {
-      for (neighbor in unvisited_neighbors) {
-        dfs(neighbor, branch)
-      }
-    } else {
-      branches <<- c(branches, list(branch))
-    }
-  }
-  
-  for (vertex in 1:vcount(graph)) {
-    if (!visited[vertex]) {
-      dfs(vertex, numeric(0))
-    }
-  }
-  
-  return(branches)
 }
 
 ## 2. GENERATE POPULATION
@@ -285,7 +256,6 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
     
     ######	STRATEGY 4: Conformist Social Learning #####				
     if (learningStrategy == 4){
-      browser()
       # Count the selected behaviours and weigh common ones more
       for (mod in 1:length(observedBehaviours)){
         w <- length(which(observedBehaviours == observedBehaviours[mod]))
@@ -521,7 +491,7 @@ run_all_simulations_parallel <- function(parameters) {
 
 
 ## You can add both ranges of parameters and individual values, and the
-## simulation willl run for all combinations
+## simulation will run for all combinations
 parameters <- expand.grid(
   N = 100,
   M = 10,
@@ -530,15 +500,15 @@ parameters <- expand.grid(
   SLS = 0:4,
   SL_rate = 0.99,
   reset_rate = 0.01,
-  t_max = 2000,
-  r = 1:100
+  t_max = 20000,
+  r = 1
 )
 ### Run sequentially 
 results <- run_all_simulations(parameters)
 
 ### Run in parallel 
 plan(multisession, workers = parallelly::availableCores(omit = 1)) # omit 1 if you want to keep using your computer during the simulation
-results <- run_all_simulations_parallel(parameters)
+system.time(results <- run_all_simulations_parallel(parameters))
 
 ### Unpack results
 strategySuccess <- results[[1]]
@@ -553,332 +523,3 @@ write.csv(summSLSPayoff, file = "SLSPayoff_Payoff")
 write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem_Payoff")
 # write.csv(summVarAcrossBranch, file = "VarianceAcrossBranch")
 # saveRDS(summMeanTraitsInBranch, file = "MeanTraitsInBranch.RData")
-
-# 6. PLOTTING
-
-## 30-03-24 Simulation Results ##
-
-bf1 <- read.csv("SummaryStats_bf1")
-bf2 <- read.csv("SummaryStats_bf2")
-bf4 <- read.csv("SummaryStats_bf4")
-bf8 <- read.csv("SummaryStats_bf8")
-bf16 <- read.csv("SummaryStats_bf16")
-bf32 <- read.csv("SummaryStats_bf32")
-bf64 <- read.csv("SummaryStats_bf64")
-bf128 <- read.csv("SummaryStats_bf128")
-
-random <- rbind(bf1[bf1$SLS == 0,], bf2[bf2$SLS == 0,], bf4[bf4$SLS == 0,], bf8[bf8$SLS == 0,],
-                bf16[bf16$SLS == 0,], bf32[bf32$SLS == 0,], bf64[bf64$SLS == 0,], bf128[bf128$SLS == 0,])
-randomtotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(random$Payoff[random$Branching == 1]), mean(random$Payoff[random$Branching == 2]),
-                                                    mean(random$Payoff[random$Branching == 4]), mean(random$Payoff[random$Branching == 8]),
-                                                    mean(random$Payoff[random$Branching == 16]), mean(random$Payoff[random$Branching == 32]),
-                                                    mean(random$Payoff[random$Branching == 64]), mean(random$Payoff[random$Branching == 128])))
-randomtotal <- as.data.frame(randomtotal)
-colnames(randomtotal) <- c("BranchingFactor", "MeanPayoff")
-randomtotal$BranchingFactor <- factor(randomtotal$BranchingFactor, levels = rev(unique(randomtotal$BranchingFactor)))
-
-payoff <- rbind(bf1[bf1$SLS == 1,], bf2[bf2$SLS == 1,], bf4[bf4$SLS == 1,], bf8[bf8$SLS == 1,],
-                bf16[bf16$SLS == 1,], bf32[bf32$SLS == 1,], bf64[bf64$SLS == 1,], bf128[bf128$SLS == 1,])
-payofftotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(payoff$Payoff[payoff$Branching == 1]), mean(payoff$Payoff[payoff$Branching == 2]),
-                                                    mean(payoff$Payoff[payoff$Branching == 4]), mean(payoff$Payoff[payoff$Branching == 8]),
-                                                    mean(payoff$Payoff[payoff$Branching == 16]), mean(payoff$Payoff[payoff$Branching == 32]),
-                                                    mean(payoff$Payoff[payoff$Branching == 64]), mean(payoff$Payoff[payoff$Branching == 128])))
-payofftotal <- as.data.frame(payofftotal)
-payofftotal[,2] <- payofftotal[,2]/randomtotal[,2]
-colnames(payofftotal) <- c("BranchingFactor", "MeanPayoff (divided by Random)")
-payofftotal$BranchingFactor <- factor(payofftotal$BranchingFactor, levels = rev(unique(payofftotal$BranchingFactor)))
-
-
-similarity <- rbind(bf1[bf1$SLS == 2,], bf2[bf2$SLS == 2,], bf4[bf4$SLS == 2,], bf8[bf8$SLS == 2,],
-                    bf16[bf16$SLS == 2,], bf32[bf32$SLS == 2,], bf64[bf64$SLS == 2,], bf128[bf128$SLS == 2,])
-similaritytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(similarity$Payoff[similarity$Branching == 1]), mean(similarity$Payoff[similarity$Branching == 2]),
-                                                        mean(similarity$Payoff[similarity$Branching == 4]), mean(similarity$Payoff[similarity$Branching == 8]),
-                                                        mean(similarity$Payoff[similarity$Branching == 16]), mean(similarity$Payoff[similarity$Branching == 32]),
-                                                        mean(similarity$Payoff[similarity$Branching == 64]), mean(similarity$Payoff[similarity$Branching == 128])))
-similaritytotal <- as.data.frame(similaritytotal)
-similaritytotal[,2] <- similaritytotal[,2]/randomtotal[,2]
-colnames(similaritytotal) <- c("BranchingFactor", "MeanPayoff (divided by Random)")
-similaritytotal$BranchingFactor <- factor(similaritytotal$BranchingFactor, levels = rev(unique(similaritytotal$BranchingFactor)))
-
-age <- rbind(bf1[bf1$SLS == 3,], bf2[bf2$SLS == 3,], bf4[bf4$SLS == 3,], bf8[bf8$SLS == 3,],
-             bf16[bf16$SLS == 3,], bf32[bf32$SLS == 3,], bf64[bf64$SLS == 3,], bf128[bf128$SLS == 3,])
-agetotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(age$Payoff[age$Branching == 1]), mean(age$Payoff[age$Branching == 2]),
-                                                 mean(age$Payoff[age$Branching == 4]), mean(age$Payoff[age$Branching == 8]),
-                                                 mean(age$Payoff[age$Branching == 16]), mean(age$Payoff[age$Branching == 32]),
-                                                 mean(age$Payoff[age$Branching == 64]), mean(age$Payoff[age$Branching == 128])))
-agetotal <- as.data.frame(agetotal)
-agetotal[,2] <- agetotal[,2]/randomtotal[,2]
-colnames(agetotal) <- c("BranchingFactor", "MeanPayoff (divided by Random")
-agetotal$BranchingFactor <- factor(agetotal$BranchingFactor, levels = rev(unique(agetotal$BranchingFactor)))
-
-conformity <- rbind(bf1[bf1$SLS == 4,], bf2[bf2$SLS == 4,], bf4[bf4$SLS == 4,], bf8[bf8$SLS == 4,],
-                    bf16[bf16$SLS == 4,], bf32[bf32$SLS == 4,], bf64[bf64$SLS == 4,], bf128[bf128$SLS == 4,])
-conformitytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(conformity$Payoff[conformity$Branching == 1]), mean(conformity$Payoff[conformity$Branching == 2]),
-                                                        mean(conformity$Payoff[conformity$Branching == 4]), mean(conformity$Payoff[conformity$Branching == 8]),
-                                                        mean(conformity$Payoff[conformity$Branching == 16]), mean(conformity$Payoff[conformity$Branching == 32]),
-                                                        mean(conformity$Payoff[conformity$Branching == 64]), mean(conformity$Payoff[conformity$Branching == 128])))
-conformitytotal <- as.data.frame(conformitytotal)
-conformitytotal[,2] <- conformitytotal[,2]/randomtotal[,2]
-colnames(conformitytotal) <- c("BranchingFactor", "MeanPayoff (divided by Random")
-conformitytotal$BranchingFactor <- factor(conformitytotal$BranchingFactor, levels = rev(unique(conformitytotal$BranchingFactor)))
-
-plot(x = as.numeric(payofftotal[,1]), y = payofftotal[,2], type = "l", col = "red", 
-     xlab = "Branching Factor", ylab = "Total Payoff Divided by Random Learning",
-     main = "Mean payoff for each SLS and branching factor, averaged over 100 Simulations", 
-     ylim = c(0.8, 1.6), xaxt = "n")
-axis(1, at = 1:length(levels(randomtotal$BranchingFactor)), labels = levels(randomtotal$BranchingFactor))
-lines(x = as.numeric(similaritytotal[,1]), y = similaritytotal[,2], type = "l", col = "blue")
-lines(x = as.numeric(agetotal[,1]), y = agetotal[,2], type = "l", col = "green")
-lines(x = as.numeric(conformitytotal[,1]), y = conformitytotal[,2], type = "l", col = "orange")
-legend("topleft", legend = c("Payoff", "Similarity", "Age", "Conformity"),
-       col = c("red", "blue", "green", "orange"), lwd = 2, cex = 0.8)
-
-
-## 13-05-24 Simulation Results ##
-
-# Plotting Mean Traits in the Branches (bf = 4)
-data <- readRDS("MeanTraitsInBranch.RData")
-random <- data[1:20]
-payoff <- data[21:40]
-similarity <- data[41:60]
-age <- data[61:80]
-conformity <- data[81:100]
-
-plot(age[[2]][,1], type = "l", col = "red")
-lines(age[[2]][,2], type = "l", col = "blue")
-lines(age[[2]][,3], type = "l", col = "green")
-lines(age[[2]][,4], type = "l", col = "magenta")
-
-# Variance
-variance <- read.csv("VarianceAcrossBranch")
-random <- variance[1:20,]
-random$X <- factor(1:20)
-colnames(random) <- c("Simulation", paste("T", 1:5000, sep = ""))
-ranLong <- melt(random, id.vars = "Simulation", variable.name = "Variable", value.name = "Value")
-
-ggplot(ranLong, aes(x = Variable, y = Value, group = Simulation, color = Simulation)) +
-  geom_line() +
-  theme_minimal() + 
-  labs(title = "Variance in Mean Traits Across the Branches",
-       x = "Timesteps",
-       y = "Variance",
-       color = "Simulation")
-
-## 14-05-24 Simulation Results ##
-
-write.csv(summSLSPayoff, file = "SLSPayoff (No Labels)")
-sls_payoff <- cbind(labels, summSLSPayoff)
-colnames(sls_payoff) <- c("Simulation", "SLS", 1:5000)
-rownames(sls_payoff) <- 1:100
-write.csv(sls_payoff, file = "SLSPayoff")
-
-write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem (No Labels)")
-traitsinenv <- cbind(labels, summMeanTraitsInSystem)
-colnames(traitsinenv) <- c("Simulation", "SLS", 1:5000)
-rownames(traitsinenv) <- 1:100
-write.csv(traitsinenv, file = "MeanTraitsInSystem")
-
-saveRDS(summMeanTraitsInBranch, file="MeanTraitsInBranch.RData")
-write.csv(summVarAcrossBranch, file = "VarianceAcrossBranch")
-
-write.csv(summProbabilities, file = "EnvironmentalLearnability (No Labels)")
-EnvironmentalLearnability <- cbind(labels, summProbabilities)
-colnames(EnvironmentalLearnability) <- c("Simulation", "SLS", 1:5000)
-rownames(EnvironmentalLearnability) <- 1:100
-write.csv(EnvironmentalLearnability, file = "EnvironmentalLearnability")
-
-# Plotting success of SLSs
-boxplot(TotalPayoff ~ SLS, data = strategySuccess, main = "Total Payoff")
-legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
-
-# Plotting proportion of successful trials
-boxplot(ProportionSuccessfulTrials ~ SLS, data = strategySuccess, main = "Proportion of Successful Traits")
-legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
-
-# Plotting environmental learnability
-
-# Random learning
-matplot(t(summProbabilities), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
-        main = "Environmental Learnability")
-lines(plot, lwd = 3)
-
-plot1 <- summProbabilities[1:20,]
-avy1 <- colMeans(plot1)
-
-matplot(t(plot1), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
-        main = "Random Learning", ylim = c(0.09,0.19))
-lines(avy1, lwd = 3)
-
-# Payoff based social learning 
-plot2 <- summProbabilities[21:40,]
-avy2 <- colMeans(plot2)
-
-matplot(t(plot2), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
-        main = "Payoff-Based Social Learning", ylim = c(0.09,0.19))
-lines(avy2, lwd = 3)
-
-# Similarity based social learning
-plot3 <- summProbabilities[41:60,]
-avy3 <- colMeans(plot3)
-
-matplot(t(plot3), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
-        main = "Similarity-Based Social Learning", ylim = c(0.09,0.19))
-lines(avy3, lwd = 3)
-
-# Age based social learning
-plot4 <- summProbabilities[61:80,]
-avy4 <- colMeans(plot4)
-
-matplot(t(plot4), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
-        main = "Age-Based Social Learning", ylim = c(0.09,0.19))
-lines(avy4, lwd = 3)
-
-# Conformity social learning
-plot5 <- summProbabilities[81:100,]
-avy5 <- colMeans(plot5)
-
-matplot(t(plot5), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability", 
-        main = "Conformity Social Learning", ylim = c(0.09,0.19))
-lines(avy5, lwd = 3)
-
-# Plotting mean traits in the environment
-randomMean <- colMeans(summMeanTraitsInSystem[1:20,])
-payoffMean <- colMeans(summMeanTraitsInSystem[21:40,])
-similarityMean <- colMeans(summMeanTraitsInSystem[41:60,])
-ageMean <- colMeans(summMeanTraitsInSystem[61:80,])
-conformityMean <- colMeans(summMeanTraitsInSystem[81:100,])
-
-plot(randomMean, type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in the Environment",
-     main = "Mean Traits in the Environment for Each SLS", ylim = c(0.35,0.52))
-lines(payoffMean, col = "blue")
-lines(similarityMean, col = "purple")
-lines(ageMean, col = "green")
-lines(conformityMean, col = "orange")
-legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
-       col = c("red", "blue", "purple", "green", "orange"), lwd = 2, cex = 0.8)
-
-# Comparing agent's age and the number of traits they have
-AgeTraits <- rbind(Age = popAge, N_Traits = rowSums(popn))
-
-# Mean traits in the branches
-data <- readRDS("MeanTraitsInBranch.RData")
-
-dev.new()
-par(mfrow = c(2,3))
-plot(data[[1]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
-     main = "Mean Traits in the Branches for bf = 4 (Simulation 1)", ylim = c(21,60))
-lines(data[[1]][,2], type = "l", col = "blue")
-lines(data[[1]][,3], type = "l", col = "green")
-lines(data[[1]][,4], type = "l", col = "magenta")
-
-plot(data[[2]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
-     main = "Mean Traits in the Branches for bf = 4 (Simulation 2)", ylim = c(21,60))
-lines(data[[2]][,2], type = "l", col = "blue")
-lines(data[[2]][,3], type = "l", col = "green")
-lines(data[[2]][,4], type = "l", col = "magenta")
-
-plot(data[[3]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
-     main = "Mean Traits in the Branches for bf = 4 (Simulation 3)", ylim = c(21,60))
-lines(data[[3]][,2], type = "l", col = "blue")
-lines(data[[3]][,3], type = "l", col = "green")
-lines(data[[3]][,4], type = "l", col = "magenta")
-
-plot(data[[4]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
-     main = "Mean Traits in the Branches for bf = 4 (Simulation 4)", ylim = c(21,60))
-lines(data[[4]][,2], type = "l", col = "blue")
-lines(data[[4]][,3], type = "l", col = "green")
-lines(data[[4]][,4], type = "l", col = "magenta")
-
-plot(data[[5]][,1], type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in a Branch",
-     main = "Mean Traits in the Branches for bf = 4 (Simulation 5)", ylim = c(21,60))
-lines(data[[5]][,2], type = "l", col = "blue")
-lines(data[[5]][,3], type = "l", col = "green")
-lines(data[[5]][,4], type = "l", col = "magenta")
-
-# Variance in mean traits in the branches
-variance <- read.csv("VarianceAcrossBranch")
-variance$X <- factor(1:5)
-colnames(variance) <- c("Simulation", paste("T", 1:20000, sep = ""))
-varLong <- melt(variance, id.vars = "Simulation", variable.name = "Variable", value.name = "Value")
-
-ggplot(varLong, aes(x = Variable, y = Value, group = Simulation, color = Simulation)) +
-  geom_line() +
-  theme_minimal() + 
-  labs(title = "Variance in Mean Traits Across the Branches",
-       x = "Timesteps",
-       y = "Variance",
-       color = "Simulation")
-
-## 21-05-24 Simulation Results ##
-
-# Mean traits in each branch
-dev.new()
-par(mfrow = c(2,3))
-plot(summMeanTraitsInBranch[[1]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
-     xlab = "Timesteps", main = "Random", ylim = c(17,53))
-lines(summMeanTraitsInBranch[[1]][,2], type = "l", col = "blue")
-lines(summMeanTraitsInBranch[[1]][,3], type = "l", col = "green")
-lines(summMeanTraitsInBranch[[1]][,4], type = "l", col = "magenta")
-
-plot(summMeanTraitsInBranch[[2]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
-     xlab = "Timesteps", main = "Payoff", ylim = c(17,53))
-lines(summMeanTraitsInBranch[[2]][,2], type = "l", col = "blue")
-lines(summMeanTraitsInBranch[[2]][,3], type = "l", col = "green")
-lines(summMeanTraitsInBranch[[2]][,4], type = "l", col = "magenta")
-
-plot(summMeanTraitsInBranch[[3]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
-     xlab = "Timesteps", main = "Similarity", ylim = c(17,53))
-lines(summMeanTraitsInBranch[[3]][,2], type = "l", col = "blue")
-lines(summMeanTraitsInBranch[[3]][,3], type = "l", col = "green")
-lines(summMeanTraitsInBranch[[3]][,4], type = "l", col = "magenta")
-
-plot(summMeanTraitsInBranch[[4]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
-     xlab = "Timesteps", main = "Age", ylim = c(17,53))
-lines(summMeanTraitsInBranch[[4]][,2], type = "l", col = "blue")
-lines(summMeanTraitsInBranch[[4]][,3], type = "l", col = "green")
-lines(summMeanTraitsInBranch[[4]][,4], type = "l", col = "magenta")
-
-plot(summMeanTraitsInBranch[[5]][,1], type = "l", col = "red", ylab = "Mean Traits in Each Branch",
-     xlab = "Timesteps", main = "Conformity", ylim = c(17,53))
-lines(summMeanTraitsInBranch[[5]][,2], type = "l", col = "blue")
-lines(summMeanTraitsInBranch[[5]][,3], type = "l", col = "green")
-lines(summMeanTraitsInBranch[[5]][,4], type = "l", col = "magenta")
-
-# Variance
-variance <- read.csv("VarianceAcrossBranch")
-variance$X <- factor(1:5)
-colnames(variance) <- c("Simulation", paste("T", 1:20000, sep = ""))
-varLong <- melt(variance, id.vars = "Simulation", variable.name = "Variable", value.name = "Value")
-
-ggplot(varLong, aes(x = Variable, y = Value, group = Simulation, color = Simulation)) +
-  geom_line() +
-  theme_minimal() + 
-  labs(title = "Variance in Mean Traits Across the Branches",
-       x = "Timesteps",
-       y = "Variance",
-       color = "Simulation")
-
-# Environmental learnability
-learnability <- read.csv("EnvironmentalLearnability")
-learnability <- learnability[,-1]
-learnability <- as.data.frame(learnability)
-matplot(t(learnability[,1:20000]), type = "l", xlab = "Timesteps", ylab = "Environmental Learnability",
-        main = "Environmental Learnability for Different SLSs")
-legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"), col = 1:5, lty = 1, cex = 0.8, bg = "white", bty = "o")
-
-
-## Final Simulation Results (branching factor 1) ##
-
-random <- read.csv("StrategySuccess_Random")
-payoff <- read.csv("StrategySuccess_Payoff")
-similarity <- read.csv("StrategySuccess_Similarity")
-age <- read.csv("StrategySuccess_Age")
-conformity <- read.csv("StrategySuccess_Conformity")
-data <- rbind(random, payoff, similarity, age, conformity)
-
-# Boxplot of SLS success
-boxplot(TotalPayoff ~ SLS, data = data, main = "Total Payoff")
-legend('topright', c('0 = Random', '1 = Payoff', '2 = Similarity', '3 = Age', '4 = Conformity'))
-
-# ANOVA of SLS success
-data <- as.factor(data$SLS)
