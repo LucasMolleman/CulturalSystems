@@ -94,7 +94,6 @@ getLearnableTraits <- function(repertoires, ind, adj_matrix){
   
   # For which of these traits is the parent trait in the repertoire?
   # These are the traits currently 'learnable' to the individual
-  
   learnableTraits <- vapply(unknownTraits, function(trait) {
     parent <- which(adj_matrix[,trait] == 1)
     all(repertoires[ind, parent] == 1)
@@ -170,7 +169,7 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
       # Based on age similarity
       # Check for all agents how similar they are to self
       for (mod in observedModels){
-        ageDif <- popAge[mod] - popAge[ind]								
+        ageDif <- abs(popAge[mod] - popAge[ind])								
         w <- 0.5^ageDif
         wList <- c(wList, w)
       }
@@ -192,7 +191,8 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
     ###### STRATEGY 0: Random Learning
     if (learningStrategy == 0){
       # Select a trait you don't have at random
-      wList <- rep(1, length(observedBehaviours))							
+      wList <- rep(1, length(observedBehaviours))		
+      wList <- wList / sum(wList)
     }
     ############
     
@@ -356,6 +356,6 @@ summSLSPayoff <- results[[2]]
 summMeanTraitsInSystem <- results[[3]]
 
 # Export summary statistics
-write.csv(strategySuccess, file = "StrategySuccess_Payoff")
-write.csv(summSLSPayoff, file = "SLSPayoff_Payoff")
-write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem_Payoff")
+write.csv(strategySuccess, file = "StrategySuccess")
+write.csv(summSLSPayoff, file = "SLSPayoff")
+write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem")
