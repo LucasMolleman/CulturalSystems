@@ -160,8 +160,8 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
         modelIndex <- which(observedModels == model)
         wList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
       }
+      wList <- wList / sum(wList)
     }
-    
     ##################	
     
     ######	STRATEGY 3: Age-Based Social Learning #####				
