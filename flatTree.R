@@ -23,9 +23,9 @@ dir.create(data_folder)
 # set up population
 population <- 1:100
 skills <- 40
-timesteps <- 500
-rounds <- 100
-reset_rate <- 0.1	
+timesteps <- 5000
+rounds <- 1
+reset_rate <- 0.05	
 social_learning <- 0.99
 skill_probs <- c(rep(0.06, 24), rep(0.05, 6), rep(0.026, 10))
 
@@ -76,6 +76,7 @@ ID <- c()
 
 
 for (r in 1: rounds) {
+  skill_matrix <- matrix(0, nrow = skills, ncol = length(population))
   ID <- append(ID, population)
   t_ID <- c()
   # vectors to collect data from all rounds and 
@@ -129,6 +130,7 @@ for (r in 1: rounds) {
     r_IL_success[n] <- NA
     r_learner_payoffs[n] <- r_payoffs[r_skills[n]]
     r_eligible_teachers[n] <- NA
+    skill_matrix[1:r_skills[n], n] <- 1
   }
   
   # create lists to track for each time step
@@ -220,18 +222,21 @@ for (r in 1: rounds) {
       t_learner_payoffs[individual] <- r_payoffs[1]
       t_IL_rate[individual] <- 0
       t_SL_rate[individual] <- 0
+      skill_matrix[2:skills, individual] <- 0
     }
     if(state == "IL"){ # individual learning 
       t_IL_rate[individual] <- t_IL_rate[individual]  + 1
       if(t_skills[individual] == skills) t_skills[individual] <- practice_skills()
       if (t_skills[individual] < skills){
         selected_trait <- individual_learning()
-        if (selected_trait == t_skills[individual]){ # IL fail
-          t_IL_success[individual] <- 0
-        } else { # IL success
+        if(skill_matrix[selected_trait, individual] == 0){ # IL success
           t_IL_success[individual] <- 1
           t_learner_payoffs[individual] <- t_learner_payoffs[individual] + r_payoffs[t_skills[individual] + 1]
-          t_skills[individual] <- selected_trait
+          t_skills[individual] <- t_skills[individual] + 1
+          skill_matrix[selected_trait, individual] <- 1
+          t_skill_attempt[individual] <- selected_trait
+        } else { # IL success
+          t_IL_success[individual] <- 0 
         }
       }
     }
@@ -242,10 +247,11 @@ for (r in 1: rounds) {
         select_teacher_behavior <- fixed_strategy(learningstrat)
         t_teacherID[individual] <- unlist(select_teacher_behavior[1])
         t_skill_attempt[individual] <- unlist(select_teacher_behavior[2])
-        if(t_skill_attempt[individual] > t_skills[individual]){
+        if(skill_matrix[t_skill_attempt[individual], individual] == 0){ # this must be changed based on skill tree
           t_learner_payoffs[individual] <- t_learner_payoffs[individual] + r_payoffs[t_skill_attempt[individual]]
-          t_skills[individual] <- t_skill_attempt[individual]
+          t_skills[individual] <- t_skills[individual] + 1 # this is number of skills
           t_SL_success[individual] <- 1
+          skill_matrix[t_skill_attempt[individual], individual] <- 1
         } else t_SL_success[individual] <- 0
       }
       if(r_meta_strat[individual] == 2){ # flexible meta-strategy
@@ -256,10 +262,11 @@ for (r in 1: rounds) {
         select_teacher_behavior <- fixed_strategy(learningstrat)
         t_teacherID[individual] <- unlist(select_teacher_behavior[1])
         t_skill_attempt[individual] <- unlist(select_teacher_behavior[2])
-        if(t_skill_attempt[individual] > t_skills[individual]){
+        if(skill_matrix[t_skill_attempt[individual], individual] == 0){ # this must be changed based on skill tree
           t_learner_payoffs[individual] <- t_learner_payoffs[individual] + r_payoffs[t_skill_attempt[individual]]
-          t_skills[individual] <- t_skill_attempt[individual]
+          t_skills[individual] <- t_skills[individual] + 1 # this is number of skills
           t_SL_success[individual] <- 1
+          skill_matrix[t_skill_attempt[individual], individual] <- 1
           new_weights <- update_weights_success(learningstrat)
           t_strat1_success[individual] <- unlist(new_weights[1])
           t_strat2_success[individual] <- unlist(new_weights[2])
@@ -285,10 +292,11 @@ for (r in 1: rounds) {
         weights_similarity <- unlist(integrative_learner[5])
         weights_age <- unlist(integrative_learner[6])
         weights_conformity <- unlist(integrative_learner[7])
-        if(t_skill_attempt[individual] > t_skills[individual]){
+        if(skill_matrix[t_skill_attempt[individual], individual] == 0){ # this must be changed based on skill tree
           t_learner_payoffs[individual] <- t_learner_payoffs[individual] + r_payoffs[t_skill_attempt[individual]]
-          t_skills[individual] <- t_skill_attempt[individual]
+          t_skills[individual] <- t_skills[individual] + 1 # this is number of skills
           t_SL_success[individual] <- 1
+          skill_matrix[t_skill_attempt[individual], individual] <- 1
           new_weights <- update_integrative_success()
           t_strat1_success[individual] <- unlist(new_weights[1])
           t_strat2_success[individual] <- unlist(new_weights[2])
@@ -365,7 +373,7 @@ for (r in 1: rounds) {
                        ID = ID, 
                        MetaStrat = meta_strat, 
                        LearningStrat = learning_strat, 
-                       Skilllevel = n_skills,
+                       NumberSkills = n_skills,
                        Age = ages,
                        Payoff = learner_payoffs,
                        ILrate = IL_rate, 
