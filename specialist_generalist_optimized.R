@@ -335,12 +335,12 @@ parameters <- expand.grid(
   N = 100,
   M = 10,
   num_nodes = 129,
-  branching_factor = c(1, 4, 32, 128),
+  branching_factor = c(2, 8, 16, 64),
   SLS = 0:4,
   SL_rate = 0.99,
   reset_rate = 0.01,
   t_max = 20000,
-  r = 1:5
+  r = 1:100
 )
 
 # Run sequentially 
