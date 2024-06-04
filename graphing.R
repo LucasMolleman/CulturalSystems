@@ -289,15 +289,23 @@ random <- rbind(strategysuccess1[strategysuccess1$SLS == 0,], strategysuccess2[s
 randomtotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(random$TotalPayoff[random$Branching == 1]), mean(random$TotalPayoff[random$Branching == 2]),
                                                     mean(random$TotalPayoff[random$Branching == 4]), mean(random$TotalPayoff[random$Branching == 8]),
                                                     mean(random$TotalPayoff[random$Branching == 16]), mean(random$TotalPayoff[random$Branching == 32]),
-                                                    mean(random$TotalPayoff[random$Branching == 64]), mean(random$TotalPayoff[random$Branching == 128])))
-colnames(randomtotal) <- c("BranchingFactor", "MeanPayoff")
+                                                    mean(random$TotalPayoff[random$Branching == 64]), mean(random$TotalPayoff[random$Branching == 128])),
+                     rbind(mean(random$ProportionSuccessfulTrials[random$Branching == 1]), mean(random$ProportionSuccessfulTrials[random$Branching == 2]),
+                           mean(random$ProportionSuccessfulTrials[random$Branching == 4]), mean(random$ProportionSuccessfulTrials[random$Branching == 8]),
+                           mean(random$ProportionSuccessfulTrials[random$Branching == 16]), mean(random$ProportionSuccessfulTrials[random$Branching == 32]),
+                           mean(random$ProportionSuccessfulTrials[random$Branching == 64]), mean(random$ProportionSuccessfulTrials[random$Branching == 128])))
+colnames(randomtotal) <- c("BranchingFactor", "MeanPayoff", "ProportionSuccessfulTrials")
 
 payoff <- rbind(strategysuccess1[strategysuccess1$SLS == 1,], strategysuccess2[strategysuccess2$SLS == 1,])
 payofftotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(payoff$TotalPayoff[payoff$Branching == 1]), mean(payoff$TotalPayoff[payoff$Branching == 2]),
                                                     mean(payoff$TotalPayoff[payoff$Branching == 4]), mean(payoff$TotalPayoff[payoff$Branching == 8]),
                                                     mean(payoff$TotalPayoff[payoff$Branching == 16]), mean(payoff$TotalPayoff[payoff$Branching == 32]),
-                                                    mean(payoff$TotalPayoff[payoff$Branching == 64]), mean(payoff$TotalPayoff[payoff$Branching == 128])))
-colnames(payofftotal) <- c("BranchingFactor", "MeanPayoff")
+                                                    mean(payoff$TotalPayoff[payoff$Branching == 64]), mean(payoff$TotalPayoff[payoff$Branching == 128])),
+                     rbind(mean(payoff$ProportionSuccessfulTrials[payoff$Branching == 1]), mean(payoff$ProportionSuccessfulTrials[payoff$Branching == 2]),
+                           mean(payoff$ProportionSuccessfulTrials[payoff$Branching == 4]), mean(payoff$ProportionSuccessfulTrials[payoff$Branching == 8]),
+                           mean(payoff$ProportionSuccessfulTrials[payoff$Branching == 16]), mean(payoff$ProportionSuccessfulTrials[payoff$Branching == 32]),
+                           mean(payoff$ProportionSuccessfulTrials[payoff$Branching == 64]), mean(payoff$ProportionSuccessfulTrials[payoff$Branching == 128])))
+colnames(payofftotal) <- c("BranchingFactor", "MeanPayoff", "ProportionSuccessfulTrials")
 payofftotal[,2] <- payofftotal[,2]/randomtotal[,2]
 payofftotal <- as.data.frame(payofftotal)
 payofftotal$BranchingFactor <- factor(payofftotal$BranchingFactor)
@@ -306,8 +314,12 @@ similarity <- rbind(strategysuccess1[strategysuccess1$SLS == 2,], strategysucces
 similaritytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(similarity$TotalPayoff[similarity$Branching == 1]), mean(similarity$TotalPayoff[similarity$Branching == 2]),
                                                         mean(similarity$TotalPayoff[similarity$Branching == 4]), mean(similarity$TotalPayoff[similarity$Branching == 8]),
                                                         mean(similarity$TotalPayoff[similarity$Branching == 16]), mean(similarity$TotalPayoff[similarity$Branching == 32]),
-                                                        mean(similarity$TotalPayoff[similarity$Branching == 64]), mean(similarity$TotalPayoff[similarity$Branching == 128])))
-colnames(similaritytotal) <- c("BranchingFactor", "MeanPayoff")
+                                                        mean(similarity$TotalPayoff[similarity$Branching == 64]), mean(similarity$TotalPayoff[similarity$Branching == 128])),
+                         rbind(mean(similarity$ProportionSuccessfulTrials[similarity$Branching == 1]), mean(similarity$ProportionSuccessfulTrials[similarity$Branching == 2]),
+                               mean(similarity$ProportionSuccessfulTrials[similarity$Branching == 4]), mean(similarity$ProportionSuccessfulTrials[similarity$Branching == 8]),
+                               mean(similarity$ProportionSuccessfulTrials[similarity$Branching == 16]), mean(similarity$ProportionSuccessfulTrials[similarity$Branching == 32]),
+                               mean(similarity$ProportionSuccessfulTrials[similarity$Branching == 64]), mean(similarity$ProportionSuccessfulTrials[similarity$Branching == 128])))
+colnames(similaritytotal) <- c("BranchingFactor", "MeanPayoff", "ProportionSuccessfulTrials")
 similaritytotal[,2] <- similaritytotal[,2]/randomtotal[,2]
 similaritytotal <- as.data.frame(similaritytotal)
 similaritytotal$BranchingFactor <- factor(similaritytotal$BranchingFactor)
@@ -316,8 +328,12 @@ age <- rbind(strategysuccess1[strategysuccess1$SLS == 3,], strategysuccess2[stra
 agetotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(age$TotalPayoff[age$Branching == 1]), mean(age$TotalPayoff[age$Branching == 2]),
                                                  mean(age$TotalPayoff[age$Branching == 4]), mean(age$TotalPayoff[age$Branching == 8]),
                                                  mean(age$TotalPayoff[age$Branching == 16]), mean(age$TotalPayoff[age$Branching == 32]),
-                                                 mean(age$TotalPayoff[age$Branching == 64]), mean(age$TotalPayoff[age$Branching == 128])))
-colnames(agetotal) <- c("BranchingFactor", "MeanPayoff") 
+                                                 mean(age$TotalPayoff[age$Branching == 64]), mean(age$TotalPayoff[age$Branching == 128])),
+                  rbind(mean(age$ProportionSuccessfulTrials[age$Branching == 1]), mean(age$ProportionSuccessfulTrials[age$Branching == 2]),
+                        mean(age$ProportionSuccessfulTrials[age$Branching == 4]), mean(age$ProportionSuccessfulTrials[age$Branching == 8]),
+                        mean(age$ProportionSuccessfulTrials[age$Branching == 16]), mean(age$ProportionSuccessfulTrials[age$Branching == 32]),
+                        mean(age$ProportionSuccessfulTrials[age$Branching == 64]), mean(age$ProportionSuccessfulTrials[age$Branching == 128])))
+colnames(agetotal) <- c("BranchingFactor", "MeanPayoff", "ProportionSuccessfulTrials") 
 agetotal[,2] <- agetotal[,2]/randomtotal[,2]
 agetotal <- as.data.frame(agetotal)
 agetotal$BranchingFactor <- factor(agetotal$BranchingFactor)
@@ -326,8 +342,12 @@ conformity <- rbind(strategysuccess1[strategysuccess1$SLS == 4,], strategysucces
 conformitytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(conformity$TotalPayoff[conformity$Branching == 1]), mean(conformity$TotalPayoff[conformity$Branching == 2]),
                                                         mean(conformity$TotalPayoff[conformity$Branching == 4]), mean(conformity$TotalPayoff[conformity$Branching == 8]),
                                                         mean(conformity$TotalPayoff[conformity$Branching == 16]), mean(conformity$TotalPayoff[conformity$Branching == 32]),
-                                                        mean(conformity$TotalPayoff[conformity$Branching == 64]), mean(conformity$TotalPayoff[conformity$Branching == 128])))
-colnames(conformitytotal) <- c("BranchingFactor", "MeanPayoff") 
+                                                        mean(conformity$TotalPayoff[conformity$Branching == 64]), mean(conformity$TotalPayoff[conformity$Branching == 128])),
+                         rbind(mean(conformity$ProportionSuccessfulTrials[conformity$Branching == 1]), mean(conformity$ProportionSuccessfulTrials[conformity$Branching == 2]),
+                               mean(conformity$ProportionSuccessfulTrials[conformity$Branching == 4]), mean(conformity$ProportionSuccessfulTrials[conformity$Branching == 8]),
+                               mean(conformity$ProportionSuccessfulTrials[conformity$Branching == 16]), mean(conformity$ProportionSuccessfulTrials[conformity$Branching == 32]),
+                               mean(conformity$ProportionSuccessfulTrials[conformity$Branching == 64]), mean(conformity$ProportionSuccessfulTrials[conformity$Branching == 128])))
+colnames(conformitytotal) <- c("BranchingFactor", "MeanPayoff", "ProportionSuccessfulTrials") 
 conformitytotal[,2] <- conformitytotal[,2]/randomtotal[,2]
 conformitytotal <- as.data.frame(conformitytotal)
 conformitytotal$BranchingFactor <- factor(conformitytotal$BranchingFactor)
@@ -347,3 +367,6 @@ ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, gro
   xlab("Branching Factor") +
   ylab("Mean Payoff") +
   labs(color = "Social Learning Strategy")
+
+
+## Proportion of successful trials per SLS
