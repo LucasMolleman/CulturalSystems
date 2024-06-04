@@ -280,3 +280,42 @@ TukeyHSD(modelbf128)
 
 combinedfigure1 <- ggarrange(fig1, fig2, fig3, fig4)
 combinedfigure2 <- ggarrange(fig5, fig6, fig7, fig8)
+
+
+## Branching factor versus payoff for each SLS
+
+random <- rbind(strategysuccess1[strategysuccess1$SLS == 0,], strategysuccess2[strategysuccess2$SLS == 0,])
+randomtotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(random$TotalPayoff[random$Branching == 1]), mean(random$TotalPayoff[random$Branching == 2]),
+                                                    mean(random$TotalPayoff[random$Branching == 4]), mean(random$TotalPayoff[random$Branching == 8]),
+                                                    mean(random$TotalPayoff[random$Branching == 16]), mean(random$TotalPayoff[random$Branching == 32]),
+                                                    mean(random$TotalPayoff[random$Branching == 64]), mean(random$TotalPayoff[random$Branching == 128])))
+colnames(randomtotal) <- c("BranchingFactor", "MeanPayoff")
+
+payoff <- rbind(strategysuccess1[strategysuccess1$SLS == 1,], strategysuccess2[strategysuccess2$SLS == 1,])
+payofftotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(payoff$TotalPayoff[payoff$Branching == 1]), mean(payoff$TotalPayoff[payoff$Branching == 2]),
+                                                    mean(payoff$TotalPayoff[payoff$Branching == 4]), mean(payoff$TotalPayoff[payoff$Branching == 8]),
+                                                    mean(payoff$TotalPayoff[payoff$Branching == 16]), mean(payoff$TotalPayoff[payoff$Branching == 32]),
+                                                    mean(payoff$TotalPayoff[payoff$Branching == 64]), mean(payoff$TotalPayoff[payoff$Branching == 128])))
+colnames(payofftotal) <- c("BranchingFactor", "MeanPayoff")
+
+similarity <- rbind(strategysuccess1[strategysuccess1$SLS == 2,], strategysuccess2[strategysuccess2$SLS == 2,])
+similaritytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(similarity$TotalPayoff[similarity$Branching == 1]), mean(similarity$TotalPayoff[similarity$Branching == 2]),
+                                                        mean(similarity$TotalPayoff[similarity$Branching == 4]), mean(similarity$TotalPayoff[similarity$Branching == 8]),
+                                                        mean(similarity$TotalPayoff[similarity$Branching == 16]), mean(similarity$TotalPayoff[similarity$Branching == 32]),
+                                                        mean(similarity$TotalPayoff[similarity$Branching == 64]), mean(similarity$TotalPayoff[similarity$Branching == 128])))
+colnames(similaritytotal) <- c("BranchingFactor", "MeanPayoff")
+
+age <- rbind(strategysuccess1[strategysuccess1$SLS == 3,], strategysuccess2[strategysuccess2$SLS == 3,])
+agetotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(age$TotalPayoff[age$Branching == 1]), mean(age$TotalPayoff[age$Branching == 2]),
+                                                 mean(age$TotalPayoff[age$Branching == 4]), mean(age$TotalPayoff[age$Branching == 8]),
+                                                 mean(age$TotalPayoff[age$Branching == 16]), mean(age$TotalPayoff[age$Branching == 32]),
+                                                 mean(age$TotalPayoff[age$Branching == 64]), mean(age$TotalPayoff[age$Branching == 128])))
+colnames(agetotal) <- c("BranchingFactor", "MeanPayoff") 
+
+conformity <- rbind(strategysuccess1[strategysuccess1$SLS == 4,], strategysuccess2[strategysuccess2$SLS == 4,])
+conformitytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(conformity$TotalPayoff[conformity$Branching == 1]), mean(conformity$TotalPayoff[conformity$Branching == 2]),
+                                                        mean(conformity$TotalPayoff[conformity$Branching == 4]), mean(conformity$TotalPayoff[conformity$Branching == 8]),
+                                                        mean(conformity$TotalPayoff[conformity$Branching == 16]), mean(conformity$TotalPayoff[conformity$Branching == 32]),
+                                                        mean(conformity$TotalPayoff[conformity$Branching == 64]), mean(conformity$TotalPayoff[conformity$Branching == 128])))
+colnames(conformitytotal) <- c("BranchingFactor", "MeanPayoff") 
+
