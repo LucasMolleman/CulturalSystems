@@ -3,6 +3,7 @@
 
 library(ggplot2)
 library(ggpubr)
+library(dplyr)
 
 ## Load data
 
@@ -297,6 +298,9 @@ payofftotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(payoff$TotalPayoff[payo
                                                     mean(payoff$TotalPayoff[payoff$Branching == 16]), mean(payoff$TotalPayoff[payoff$Branching == 32]),
                                                     mean(payoff$TotalPayoff[payoff$Branching == 64]), mean(payoff$TotalPayoff[payoff$Branching == 128])))
 colnames(payofftotal) <- c("BranchingFactor", "MeanPayoff")
+payofftotal[,2] <- payofftotal[,2]/randomtotal[,2]
+payofftotal <- as.data.frame(payofftotal)
+payofftotal$BranchingFactor <- factor(payofftotal$BranchingFactor)
 
 similarity <- rbind(strategysuccess1[strategysuccess1$SLS == 2,], strategysuccess2[strategysuccess2$SLS == 2,])
 similaritytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(similarity$TotalPayoff[similarity$Branching == 1]), mean(similarity$TotalPayoff[similarity$Branching == 2]),
@@ -304,6 +308,9 @@ similaritytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(similarity$TotalPay
                                                         mean(similarity$TotalPayoff[similarity$Branching == 16]), mean(similarity$TotalPayoff[similarity$Branching == 32]),
                                                         mean(similarity$TotalPayoff[similarity$Branching == 64]), mean(similarity$TotalPayoff[similarity$Branching == 128])))
 colnames(similaritytotal) <- c("BranchingFactor", "MeanPayoff")
+similaritytotal[,2] <- similaritytotal[,2]/randomtotal[,2]
+similaritytotal <- as.data.frame(similaritytotal)
+similaritytotal$BranchingFactor <- factor(similaritytotal$BranchingFactor)
 
 age <- rbind(strategysuccess1[strategysuccess1$SLS == 3,], strategysuccess2[strategysuccess2$SLS == 3,])
 agetotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(age$TotalPayoff[age$Branching == 1]), mean(age$TotalPayoff[age$Branching == 2]),
@@ -311,6 +318,9 @@ agetotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(age$TotalPayoff[age$Branch
                                                  mean(age$TotalPayoff[age$Branching == 16]), mean(age$TotalPayoff[age$Branching == 32]),
                                                  mean(age$TotalPayoff[age$Branching == 64]), mean(age$TotalPayoff[age$Branching == 128])))
 colnames(agetotal) <- c("BranchingFactor", "MeanPayoff") 
+agetotal[,2] <- agetotal[,2]/randomtotal[,2]
+agetotal <- as.data.frame(agetotal)
+agetotal$BranchingFactor <- factor(agetotal$BranchingFactor)
 
 conformity <- rbind(strategysuccess1[strategysuccess1$SLS == 4,], strategysuccess2[strategysuccess2$SLS == 4,])
 conformitytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(conformity$TotalPayoff[conformity$Branching == 1]), mean(conformity$TotalPayoff[conformity$Branching == 2]),
@@ -318,4 +328,22 @@ conformitytotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(conformity$TotalPay
                                                         mean(conformity$TotalPayoff[conformity$Branching == 16]), mean(conformity$TotalPayoff[conformity$Branching == 32]),
                                                         mean(conformity$TotalPayoff[conformity$Branching == 64]), mean(conformity$TotalPayoff[conformity$Branching == 128])))
 colnames(conformitytotal) <- c("BranchingFactor", "MeanPayoff") 
+conformitytotal[,2] <- conformitytotal[,2]/randomtotal[,2]
+conformitytotal <- as.data.frame(conformitytotal)
+conformitytotal$BranchingFactor <- factor(conformitytotal$BranchingFactor)
 
+combineddata <- bind_rows(
+  mutate(payofftotal, Group = "Payoff"),
+  mutate(similaritytotal, Group = "Similarity"),
+  mutate(agetotal, Group = "Age"),
+  mutate(conformitytotal, Group = "Conformity")
+)
+
+ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, group = Group)) +
+  theme_light() +
+  geom_line(size = 0.75) +  # Add lines with grouping and color
+  ggtitle("SLS Efficacy Given Different Branching Factors") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  xlab("Branching Factor") +
+  ylab("Mean Payoff") +
+  labs(color = "Social Learning Strategy")
