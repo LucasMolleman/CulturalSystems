@@ -383,4 +383,15 @@ ggplot(combineddata, aes(x = BranchingFactor, y = ProportionSuccessfulTrials, co
   labs(color = "Social Learning Strategy") +
   scale_y_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8))
 
+## Mean traits in the system over time 
+
+meantraits <- rbind(cbind(strategysuccess1[,c(2,4,5)], meantraits1[,-1]), 
+                    cbind(strategysuccess2[,c(2,4,5)], meantraits2[,-1]))
+
+# bf 1
+
+meantraitsbf1 <- meantraits[meantraits$Branching == 1 & meantraits$SLS == 0,]
+
+matplot(meantraitsbf1[,3:2003], type = "l")
                      
+                    
