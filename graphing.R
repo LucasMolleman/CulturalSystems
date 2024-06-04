@@ -295,6 +295,8 @@ randomtotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(random$TotalPayoff[rand
                            mean(random$ProportionSuccessfulTrials[random$Branching == 16]), mean(random$ProportionSuccessfulTrials[random$Branching == 32]),
                            mean(random$ProportionSuccessfulTrials[random$Branching == 64]), mean(random$ProportionSuccessfulTrials[random$Branching == 128])))
 colnames(randomtotal) <- c("BranchingFactor", "MeanPayoff", "ProportionSuccessfulTrials")
+randomtotal <- as.data.frame(randomtotal)
+randomtotal$BranchingFactor <- factor(randomtotal$BranchingFactor)
 
 payoff <- rbind(strategysuccess1[strategysuccess1$SLS == 1,], strategysuccess2[strategysuccess2$SLS == 1,])
 payofftotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(payoff$TotalPayoff[payoff$Branching == 1]), mean(payoff$TotalPayoff[payoff$Branching == 2]),
@@ -353,20 +355,32 @@ conformitytotal <- as.data.frame(conformitytotal)
 conformitytotal$BranchingFactor <- factor(conformitytotal$BranchingFactor)
 
 combineddata <- bind_rows(
+  mutate(randomtotal, Group = "Random"),
   mutate(payofftotal, Group = "Payoff"),
   mutate(similaritytotal, Group = "Similarity"),
   mutate(agetotal, Group = "Age"),
   mutate(conformitytotal, Group = "Conformity")
 )
 
-ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, group = Group)) +
+ggplot(combineddata[9:40,], aes(x = BranchingFactor, y = MeanPayoff, color = Group, group = Group)) +
   theme_light() +
-  geom_line(size = 0.75) +  # Add lines with grouping and color
+  geom_line(size = 0.75) +
   ggtitle("SLS Efficacy Given Different Branching Factors") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
   xlab("Branching Factor") +
   ylab("Mean Payoff") +
   labs(color = "Social Learning Strategy")
 
-
 ## Proportion of successful trials per SLS
+
+ggplot(combineddata, aes(x = BranchingFactor, y = ProportionSuccessfulTrials, color = Group, group = Group)) +
+  theme_light() +
+  geom_line(size = 0.75) +  
+  ggtitle("Proportion of Successful Trials per SLS") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  xlab("Branching Factor") +
+  ylab("Proportion of Successful Trials") +
+  labs(color = "Social Learning Strategy") +
+  scale_y_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8))
+
+                     
