@@ -385,7 +385,14 @@ ggplot(combineddata, aes(x = BranchingFactor, y = ProportionSuccessfulTrials, co
 
 ## Branching factor versus payoff for each SLS (last 5000 timesteps)
 
-randomlast5000 <- 
+sumpayofflast1 <- cbind(strategysuccess1[,c(2,4,5)], rowSums(SLSpayoff1[,15002:20001]))
+colnames(sumpayofflast1) <- c("Simulation", "Branching", "SLS", "Payoff")
+sumpayofflast2 <- cbind(strategysuccess2[,c(2,4,5)], rowSums(SLSpayoff2[,15002:20001]))
+colnames(sumpayofflast2) <- c("Simulation", "Branching", "SLS", "Payoff")
+
+last5000 <- rbind(sumpayofflast1, sumpayofflast2)
+
+randomlast <- 
 
 random <- rbind(strategysuccess1[strategysuccess1$SLS == 0,], strategysuccess2[strategysuccess2$SLS == 0,])
 randomtotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(random$TotalPayoff[random$Branching == 1]), mean(random$TotalPayoff[random$Branching == 2]),
