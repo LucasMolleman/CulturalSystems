@@ -363,9 +363,9 @@ combineddata <- bind_rows(
 )
 
 ggplot(combineddata[9:40,], aes(x = BranchingFactor, y = MeanPayoff, color = Group, group = Group)) +
-  theme_light() +
+  theme_classic() +
   geom_line(size = 0.75) +
-  ggtitle("SLS Efficacy Given Different Branching Factors") +
+  #ggtitle("SLS Efficacy Given Different Branching Factors") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
   xlab("Branching Factor") +
   ylab("Mean Payoff") +
@@ -592,3 +592,7 @@ lines(ageMeanbf128, col = "#F8766D", lwd = 1.5)
 lines(conformityMeanbf128, col = "#A3A500", lwd = 1.5)
 legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
        col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
+
+legend("bottom", legend=c("Random", "Payoff", "Similarity", "Age", "Conformity"),
+       col=c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd=2, horiz=TRUE,
+       x="center")
