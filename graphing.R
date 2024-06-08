@@ -466,14 +466,30 @@ similarityMeanbf1 <- colMeans(meantraitsbf1[meantraitsbf1$SLS == 2, 4:20003])
 ageMeanbf1 <- colMeans(meantraitsbf1[meantraitsbf1$SLS == 3, 4:20003])
 conformityMeanbf1 <- colMeans(meantraitsbf1[meantraitsbf1$SLS == 4, 4:20003])
 
-plot(randomMeanbf1, type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in the Environment",
-     main = "Mean Traits in the Environment for Each SLS (bf = 1)", ylim = c(0.1,0.5))
-lines(payoffMeanbf1, col = "blue")
-lines(similarityMeanbf1, col = "purple")
-lines(ageMeanbf1, col = "green")
-lines(conformityMeanbf1, col = "orange")
+plot(randomMeanbf1, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
+    main = "Branching Factor = 1", ylim = c(0.1,0.5), lwd = 1.5, bty = "l")
+lines(payoffMeanbf1, col = "#00B0F6", lwd = 1.5)
+lines(similarityMeanbf1, col = "#E76BF3", lwd = 1.5)
+lines(ageMeanbf1, col = "#F8766D", lwd = 1.5)
+lines(conformityMeanbf1, col = "#A3A500", lwd = 1.5)
 legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
-       col = c("red", "blue", "purple", "green", "orange"), lwd = 2, cex = 0.8)
+       col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
+
+# bf 2
+randomMeanbf2 <- colMeans(meantraitsbf2[meantraitsbf2$SLS == 0, 4:20003])
+payoffMeanbf2 <- colMeans(meantraitsbf2[meantraitsbf2$SLS == 1, 4:20003])
+similarityMeanbf2 <- colMeans(meantraitsbf2[meantraitsbf2$SLS == 2, 4:20003])
+ageMeanbf2 <- colMeans(meantraitsbf2[meantraitsbf2$SLS == 3, 4:20003])
+conformityMeanbf2 <- colMeans(meantraitsbf2[meantraitsbf2$SLS == 4, 4:20003])
+
+plot(randomMeanbf2, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
+     main = "Branching Factor = 2", ylim = c(0.15,0.5), lwd = 1.5, bty = "l")
+lines(payoffMeanbf2, col = "#00B0F6", lwd = 1.5)
+lines(similarityMeanbf2, col = "#E76BF3", lwd = 1.5)
+lines(ageMeanbf2, col = "#F8766D", lwd = 1.5)
+lines(conformityMeanbf2, col = "#A3A500", lwd = 1.5)
+legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
+       col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
 
 # bf 4
 
@@ -483,14 +499,48 @@ similarityMeanbf4 <- colMeans(meantraitsbf4[meantraitsbf4$SLS == 2, 4:20003])
 ageMeanbf4 <- colMeans(meantraitsbf4[meantraitsbf4$SLS == 3, 4:20003])
 conformityMeanbf4 <- colMeans(meantraitsbf4[meantraitsbf4$SLS == 4, 4:20003])
 
-plot(randomMeanbf4, type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in the Environment",
-     main = "Mean Traits in the Environment for Each SLS (bf = 4)", ylim = c(0.18,0.5))
-lines(payoffMeanbf4, col = "blue")
-lines(similarityMeanbf4, col = "purple")
-lines(ageMeanbf4, col = "green")
-lines(conformityMeanbf4, col = "orange")
+plot(randomMeanbf4, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
+     main = "Branching Factor = 4", ylim = c(0.15,0.5), lwd = 1.5, bty = "l")
+lines(payoffMeanbf4, col = "#00B0F6", lwd = 1.5)
+lines(similarityMeanbf4, col = "#E76BF3", lwd = 1.5)
+lines(ageMeanbf4, col = "#F8766D", lwd = 1.5)
+lines(conformityMeanbf4, col = "#A3A500", lwd = 1.5)
 legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
-       col = c("red", "blue", "purple", "green", "orange"), lwd = 2, cex = 0.8)
+       col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
+
+#bf 8
+
+randomMeanbf8 <- colMeans(meantraitsbf8[meantraitsbf8$SLS == 0, 4:20003])
+payoffMeanbf8 <- colMeans(meantraitsbf8[meantraitsbf8$SLS == 1, 4:20003])
+similarityMeanbf8 <- colMeans(meantraitsbf8[meantraitsbf8$SLS == 2, 4:20003])
+ageMeanbf8 <- colMeans(meantraitsbf8[meantraitsbf8$SLS == 3, 4:20003])
+conformityMeanbf8 <- colMeans(meantraitsbf8[meantraitsbf8$SLS == 4, 4:20003])
+
+plot(randomMeanbf8, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population", 
+     main = "Branching Factor = 8", ylim = c(0.22,0.55), lwd = 1.5, bty = "l")
+lines(payoffMeanbf8, col = "#00B0F6", lwd = 1.5)
+lines(similarityMeanbf8, col = "#E76BF3", lwd = 1.5)
+lines(ageMeanbf8, col = "#F8766D", lwd = 1.5)
+lines(conformityMeanbf8, col = "#A3A500", lwd = 1.5)
+legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
+       col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
+
+# bf 16
+
+randomMeanbf16 <- colMeans(meantraitsbf16[meantraitsbf16$SLS == 0, 4:20003])
+payoffMeanbf16 <- colMeans(meantraitsbf16[meantraitsbf16$SLS == 1, 4:20003])
+similarityMeanbf16 <- colMeans(meantraitsbf16[meantraitsbf16$SLS == 2, 4:20003])
+ageMeanbf16 <- colMeans(meantraitsbf16[meantraitsbf16$SLS == 3, 4:20003])
+conformityMeanbf16 <- colMeans(meantraitsbf16[meantraitsbf16$SLS == 4, 4:20003])
+
+plot(randomMeanbf16, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
+     main = "Branching Factor = 16", ylim = c(0.3,0.60), lwd = 1.5, bty = "l")
+lines(payoffMeanbf16, col = "#00B0F6", lwd = 1.5)
+lines(similarityMeanbf16, col = "#E76BF3", lwd = 1.5)
+lines(ageMeanbf16, col = "#F8766D", lwd = 1.5)
+lines(conformityMeanbf16, col = "#A3A500", lwd = 1.5)
+legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
+       col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
 
 # bf 32
 
@@ -500,14 +550,31 @@ similarityMeanbf32 <- colMeans(meantraitsbf32[meantraitsbf32$SLS == 2, 4:20003])
 ageMeanbf32 <- colMeans(meantraitsbf32[meantraitsbf32$SLS == 3, 4:20003])
 conformityMeanbf32 <- colMeans(meantraitsbf32[meantraitsbf32$SLS == 4, 4:20003])
 
-plot(randomMeanbf32, type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in the Environment",
-     main = "Mean Traits in the Environment for Each SLS (bf = 32)", ylim = c(0.35,0.6))
-lines(payoffMeanbf32, col = "blue")
-lines(similarityMeanbf32, col = "purple")
-lines(ageMeanbf32, col = "green")
-lines(conformityMeanbf32, col = "orange")
+plot(randomMeanbf32, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
+     main = "Branching Factor = 32", ylim = c(0.35,0.6), lwd = 1.5, bty = "l")
+lines(payoffMeanbf32, col = "#00B0F6", lwd = 1.5)
+lines(similarityMeanbf32, col = "#E76BF3", lwd = 1.5)
+lines(ageMeanbf32, col = "#F8766D", lwd = 1.5)
+lines(conformityMeanbf32, col = "#A3A500", lwd = 1.5)
 legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
-       col = c("red", "blue", "purple", "green", "orange"), lwd = 2, cex = 0.8)
+       col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
+
+# bf 64
+
+randomMeanbf64 <- colMeans(meantraitsbf64[meantraitsbf64$SLS == 0, 4:20003])
+payoffMeanbf64 <- colMeans(meantraitsbf64[meantraitsbf64$SLS == 1, 4:20003])
+similarityMeanbf64 <- colMeans(meantraitsbf64[meantraitsbf64$SLS == 2, 4:20003])
+ageMeanbf64 <- colMeans(meantraitsbf64[meantraitsbf64$SLS == 3, 4:20003])
+conformityMeanbf64 <- colMeans(meantraitsbf64[meantraitsbf64$SLS == 4, 4:20003])
+
+plot(randomMeanbf64, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
+     main = "Branching Factor = 64", ylim = c(0.45,0.62), lwd = 1.5, bty = "l")
+lines(payoffMeanbf64, col = "#00B0F6", lwd = 1.5)
+lines(similarityMeanbf64, col = "#E76BF3", lwd = 1.5)
+lines(ageMeanbf64, col = "#F8766D", lwd = 1.5)
+lines(conformityMeanbf64, col = "#A3A500", lwd = 1.5)
+legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
+       col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
 
 # bf 128
 
@@ -517,11 +584,11 @@ similarityMeanbf128 <- colMeans(meantraitsbf128[meantraitsbf128$SLS == 2, 4:2000
 ageMeanbf128 <- colMeans(meantraitsbf128[meantraitsbf128$SLS == 3, 4:20003])
 conformityMeanbf128 <- colMeans(meantraitsbf128[meantraitsbf128$SLS == 4, 4:20003])
 
-plot(randomMeanbf128, type = "l", col = "red", xlab = "Timesteps", ylab = "Mean Traits in the Environment",
-     main = "Mean Traits in the Environment for Each SLS (bf = 128)", ylim = c(0.5,0.6))
-lines(payoffMeanbf128, col = "blue")
-lines(similarityMeanbf128, col = "purple")
-lines(ageMeanbf128, col = "green")
-lines(conformityMeanbf128, col = "orange")
+plot(randomMeanbf128, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
+     main = "Branching Factor = 128", ylim = c(0.5,0.6), lwd = 1.5, bty = "l")
+lines(payoffMeanbf128, col = "#00B0F6", lwd = 1.5)
+lines(similarityMeanbf128, col = "#E76BF3", lwd = 1.5)
+lines(ageMeanbf128, col = "#F8766D", lwd = 1.5)
+lines(conformityMeanbf128, col = "#A3A500", lwd = 1.5)
 legend("topright", legend = c("Random", "Payoff", "Similarity", "Age", "Conformity"),
-       col = c("red", "blue", "purple", "green", "orange"), lwd = 2, cex = 0.8)
+       col = c("#00BF7D", "#00B0F6", "#E76BF3", "#F8766D", "#A3A500"), lwd = 2, cex = 0.8)
