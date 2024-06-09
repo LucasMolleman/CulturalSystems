@@ -288,7 +288,7 @@ run_simulation <- function(N, M, num_nodes, branching_factor, SLS, SL_rate, rese
   
   # Overall summaries
   summThisSimulation <- c(r, num_nodes, branching_factor, SLS, sum(SLSPayoff), sum(SLSPayoff>0)/t_max)
-  return(list(summThisSimulation, SLSPayoff, meanTraitsInSystem))
+  return(list(summThisSimulation, SLSPayoff, meanTraitsInSystem, popn))
 }
 
 run_all_simulations <- function(parameters) {
@@ -323,8 +323,9 @@ run_all_simulations_parallel <- function(parameters) {
   
   summSLSPayoff <- do.call(rbind, lapply(results, `[[`, 2))
   summMeanTraitsInSystem <- do.call(rbind, lapply(results, `[[`, 3))
+  popn <- do.call(rbind, lapply(results, `[[`, 4))
   
-  return(list(strategySuccess, summSLSPayoff, summMeanTraitsInSystem))
+  return(list(strategySuccess, summSLSPayoff, summMeanTraitsInSystem, popn))
 }
 
 # You can add both ranges of parameters and individual values, and the
@@ -335,7 +336,7 @@ parameters <- expand.grid(
   N = 100,
   M = 10,
   num_nodes = 129,
-  branching_factor = c(2, 8, 16, 64),
+  branching_factor = c(1, 4, 32, 128),
   SLS = 0:4,
   SL_rate = 0.99,
   reset_rate = 0.01,
@@ -354,6 +355,7 @@ system.time(results <- run_all_simulations_parallel(parameters))
 strategySuccess <- results[[1]]
 summSLSPayoff <- results[[2]]
 summMeanTraitsInSystem <- results[[3]]
+popn <- results[[4]]
 
 # Export summary statistics
 write.csv(strategySuccess, file = "StrategySuccess")
