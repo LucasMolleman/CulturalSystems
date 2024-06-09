@@ -207,7 +207,7 @@ getEnvironmentalLearnability2 <- function(repertoires, adj_matrix) {
 
 ## 3. SOCIAL LEARNING 
 
-learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, popAge){
+learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, N, M, popAge){
   
   # Sample M random other individuals
   pool <- 1:N
@@ -310,12 +310,12 @@ learnSocially <- function(repertoires, ind, adj_matrix, learningStrategy, M, pop
 N = 100
 M = 10
 num_nodes = 129 # (including root node)
-branching_factor = 128 # c(1,2, 4, 8, 16, 32, 64, 128)
-SLS = 1 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
+branching_factor = 1 # c(1,2, 4, 8, 16, 32, 64, 128)
+SLS = 0 # c(1, 2, 3, 4, 0) (0 = random, 1 = payoff-based, 2 = similarity-based, 3 = age-based, 4 = conformity)
 SL_rate = 0.99
 reset_rate = 0.01
 t_max = 20000
-r_max = 1000
+r_max = 1
 
 ## 5. SIMULATION
 
@@ -445,7 +445,7 @@ for(SLS in 0:4){
         
         # Do they learn socially or individually?
         if(runif(1) < SL_rate){ # Social learning
-          selectedTrait <- learnSocially(popn, ind, adj_matrix, SLS, M, popAge)
+          selectedTrait <- learnSocially(popn, ind, adj_matrix, SLS, M, popAge, N, payoffs, num_nodes)
           
           if(length(selectedTrait == 1)){ # If there is a potential trait 
             if(selectedTrait %in% learnableTraits){ # If the trait is learnable
