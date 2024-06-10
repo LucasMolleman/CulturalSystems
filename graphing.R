@@ -372,8 +372,8 @@ ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, gro
                                 "Age" = "#F8766D", "Conformity" = "#A3A500")) +  
   scale_linetype_manual(values = c("Random" = "dashed", "Payoff" = "solid", "Similarity" = "solid",
                                    "Age" = "solid", "Conformity" = "solid")) +
-  guides(color = guide_legend(override.aes = list(linetype = "solid")),  # Make the legend consistent
-         linetype = FALSE)  # Hide the linetype legend
+  guides(color = guide_legend(override.aes = list(linetype = "solid")),
+         linetype = FALSE)
 
 ## Proportion of successful trials per SLS
 
