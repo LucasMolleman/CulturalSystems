@@ -361,3 +361,4 @@ popn <- results[[4]]
 write.csv(strategySuccess, file = "StrategySuccess")
 write.csv(summSLSPayoff, file = "SLSPayoff")
 write.csv(summMeanTraitsInSystem, file = "MeanTraitsInSystem")
+write.csv(popn, file = "TraitDistribution")
