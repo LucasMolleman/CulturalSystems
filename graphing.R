@@ -361,14 +361,19 @@ combineddata <- bind_rows(
   mutate(conformitytotal, Group = "Conformity")
 )
 
-ggplot(combineddata[9:40,], aes(x = BranchingFactor, y = MeanPayoff, color = Group, group = Group)) +
+ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, group = Group, linetype = Group)) +
   theme_classic() +
   geom_line(size = 0.75) +
-  #ggtitle("SLS Efficacy Given Different Branching Factors") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
   xlab("Branching Factor") +
-  ylab("Mean Payoff") +
-  labs(color = "Social Learning Strategy")
+  ylab("Relative Payoff") +
+  labs(color = "Social Learning Strategy") +
+  scale_color_manual(values = c("Random" = "black", "Payoff" = "#00B0F6", "Similarity" = "#E76BF3",
+                                "Age" = "#F8766D", "Conformity" = "#A3A500")) +  
+  scale_linetype_manual(values = c("Random" = "dashed", "Payoff" = "solid", "Similarity" = "solid",
+                                   "Age" = "solid", "Conformity" = "solid")) +
+  guides(color = guide_legend(override.aes = list(linetype = "solid")),  # Make the legend consistent
+         linetype = FALSE)  # Hide the linetype legend
 
 ## Proportion of successful trials per SLS
 
