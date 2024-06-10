@@ -366,7 +366,7 @@ ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, gro
   geom_line(size = 0.75) +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
   xlab("Branching Factor") +
-  ylab("Relative Payoff") +
+  ylab("Relative Payoff Compared to Random Learning") +
   labs(color = "Social Learning Strategy") +
   scale_color_manual(values = c("Random" = "black", "Payoff" = "#00B0F6", "Similarity" = "#E76BF3",
                                 "Age" = "#F8766D", "Conformity" = "#A3A500")) +  
@@ -378,9 +378,8 @@ ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, gro
 ## Proportion of successful trials per SLS
 
 ggplot(combineddata, aes(x = BranchingFactor, y = ProportionSuccessfulTrials, color = Group, group = Group)) +
-  theme_light() +
+  theme_classic() +
   geom_line(size = 0.75) +  
-  ggtitle("Proportion of Successful Trials per SLS") +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
   xlab("Branching Factor") +
   ylab("Proportion of Successful Trials") +
