@@ -181,6 +181,7 @@ getTraitLearningProbability_R <- function(repertoires, ind, requirements, learna
   return(pList)
 }
 
+
 sample_initial_traits <- function(ind, repertoires, blockedTraits, numTraits, payoffs, initialnodes, requirements){
   for(trait in seq_len(numTraits)){
     unknownTraits <- which(repertoires[ind, ] == 0)

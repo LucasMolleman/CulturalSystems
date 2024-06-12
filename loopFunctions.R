@@ -1,14 +1,3 @@
-combineResults <- function(accum, new) {
-  if (is.null(accum)) { # Check if accum is null (for the first combination)
-    return(new) # Simply return new if accum has not been initialized
-  } else {
-    #logic to combine accumulated and new results
-    accum <- rbind(accum, new)
-    return(accum)
-  }
-}
-
-
 runsimulation <- function(params, blockedLearningStrategy, repl, tree){ 
   ### define the cultural system ###
   ## Total payoffs are stored in column 1, payoffs for unblocked individuals in
@@ -147,7 +136,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   }
 
   
-  if (FALSE) {
+  if (params$get_tr_sums) {
     for(i in 2:length(tr_sums_blocked)){
       if(is.null(tr_sums_blocked[[i]])) tr_sums_blocked[[i]] <- tr_sums_blocked[[i-1]]
       if(is.null(failure_sums_blocked[[i]])) failure_sums_blocked[[i]] <- failure_sums_blocked[[i-1]]
@@ -189,6 +178,10 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
 
 
 run_all_simulations_parallel <- function(iterations, params, tree) {
+  if (nrow(iterations) > 1 & params$get_tr_sums) {
+    warning("get_tr_sums is not supported when running multiple simulations\nsetting get_tr_sums to FALSE")
+    params$get_tr_sums <- FALSE
+  }
   
   print(paste("starting", nrow(iterations), "simulations in parallel..."))
   simulation_results <- furrr::future_pmap(
@@ -212,6 +205,10 @@ run_all_simulations_parallel <- function(iterations, params, tree) {
 
 
 run_all_simulations <- function(iterations, params, tree) {
+  if (nrow(iterations) > 1 & params$get_tr_sums) {
+    warning("get_tr_sums is not supported when running multiple simulations\nsetting get_tr_sums to FALSE")
+    params$get_tr_sums <- FALSE
+  }
   
   print(paste("starting", nrow(iterations), "simulations..."))
   
