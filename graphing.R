@@ -296,6 +296,7 @@ randomtotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(random$TotalPayoff[rand
 colnames(randomtotal) <- c("BranchingFactor", "MeanPayoff", "ProportionSuccessfulTrials")
 randomtotal <- as.data.frame(randomtotal)
 randomtotal$BranchingFactor <- factor(randomtotal$BranchingFactor)
+randomtotal[,2] <- randomtotal[,2]/randomtotal[,2]
 
 payoff <- rbind(strategysuccess1[strategysuccess1$SLS == 1,], strategysuccess2[strategysuccess2$SLS == 1,])
 payofftotal <- cbind(c(1,2,4,8,16,32,64,128), rbind(mean(payoff$TotalPayoff[payoff$Branching == 1]), mean(payoff$TotalPayoff[payoff$Branching == 2]),
@@ -368,12 +369,43 @@ ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, gro
   xlab("Branching Factor") +
   ylab("Relative Payoff Compared to Random Learning") +
   labs(color = "Social Learning Strategy") +
-  scale_color_manual(values = c("Random" = "black", "Payoff" = "#00B0F6", "Similarity" = "#E76BF3",
+  scale_color_manual(values =c("Payoff" = "#00B0F6", "Similarity" = "#E76BF3",
                                 "Age" = "#F8766D", "Conformity" = "#A3A500")) +  
   scale_linetype_manual(values = c("Random" = "dashed", "Payoff" = "solid", "Similarity" = "solid",
                                    "Age" = "solid", "Conformity" = "solid")) +
   guides(color = guide_legend(override.aes = list(linetype = "solid")),
          linetype = FALSE)
+
+## Plotting for presentation
+
+presdata <- combineddata
+presdata$BranchingFactor <- rep(1:8, 5)
+presdata$BranchingFactor <- as.factor(presdata$BranchingFactor)
+
+ggplot(presdata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, group = Group, linetype = Group)) +
+  theme_classic() +
+  geom_line(size = 0.75) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  xlab("Trait Model") +
+  ylab("Relative Payoff Compared to Random Learning") +
+  labs(color = "Social Learning Strategy") +
+  scale_color_manual(values =c("Payoff" = "#00B0F6", "Similarity" = "#E76BF3",
+                               "Age" = "#F8766D", "Conformity" = "#A3A500")) +  
+  scale_linetype_manual(values = c("Random" = "dashed", "Payoff" = "solid", "Similarity" = "solid",
+                                   "Age" = "solid", "Conformity" = "solid")) +
+  guides(color = guide_legend(override.aes = list(linetype = "solid")),
+         linetype = FALSE)
+
+ggplot(presdata, aes(x = BranchingFactor, y = ProportionSuccessfulTrials, color = Group, group = Group)) +
+  theme_classic() +
+  geom_line(size = 0.75) +  
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  xlab("Trait Model") +
+  ylab("Proportion of Successful Trials") +
+  labs(color = "Social Learning Strategy") +
+  scale_y_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8))
+
+
 
 ## Proportion of successful trials per SLS
 
