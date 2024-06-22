@@ -15,6 +15,145 @@ strategysuccess2 <- read.csv("StrategySuccess")
 SLSpayoff2 <- read.csv("SLSPayoff")
 meantraits2 <- read.csv("MeanTraitsInSystem")
 
+## Mean and SD of payoffs
+
+# bf = 1
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 0])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 0])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 1])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 1])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 2])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 2])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 3])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 3])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 4])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 1 & strategysuccess1$SLS == 4])
+
+# bf = 2
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 0])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 0])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 1])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 1])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 2])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 2])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 3])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 3])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 4])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 2 & strategysuccess2$SLS == 4])
+
+# bf = 4
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 0])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 0])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 1])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 1])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 2])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 2])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 3])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 3])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 4])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 4 & strategysuccess1$SLS == 4])
+
+# bf = 8
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 0])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 0])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 1])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 1])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 2])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 2])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 3])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 3])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 4])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 8 & strategysuccess2$SLS == 4])
+
+# bf = 16
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 0])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 0])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 1])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 1])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 2])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 2])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 3])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 3])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 4])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 16 & strategysuccess2$SLS == 4])
+
+# bf = 32
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 0])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 0])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 1])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 1])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 2])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 2])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 3])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 3])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 4])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 32 & strategysuccess1$SLS == 4])
+
+# bf = 64
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 0])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 0])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 1])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 1])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 2])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 2])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 3])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 3])
+
+mean(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 4])
+sd(strategysuccess2$TotalPayoff[strategysuccess2$Branching == 64 & strategysuccess2$SLS == 4])
+
+# bf = 128
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 0])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 0])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 1])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 1])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 2])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 2])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 3])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 3])
+
+mean(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 4])
+sd(strategysuccess1$TotalPayoff[strategysuccess1$Branching == 128 & strategysuccess1$SLS == 4])
+
+
 ## Payoff versus SLS (for each branching factor)
 
 # bf = 1
