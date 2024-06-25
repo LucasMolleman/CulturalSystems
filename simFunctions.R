@@ -63,7 +63,7 @@ generate_skewed_tree <- function() {
 }
 
 plot_tree <- function(tree) {
-  plot(tree, layout = layout.reingold.tilford(tree))
+  plot(tree, layout = igraph::layout.reingold.tilford(tree))
 }
 
 initializeBlockers <- function(params, tree) {
@@ -102,12 +102,11 @@ bookkeep_traits <- function(repertoires, blockedInds){
 }
 
 addDetours <- function(params, tree, blockedTraits, type = "serial") {
-  requirements <- attributes(tree)$requirements
   payoffs <- attributes(tree)$payoffs
-  num_nodes <- params$num_nodes
   root_node <- params$root_node
-  blockedLayer <- params$blockedLayer
   numSteps <- params$numSteps
+  num_nodes <- params$num_nodes
+  requirements <- attributes(tree)$requirements
   
   if (type == "serial") {
     rootDistances <- igraph::distances(tree, v = root_node, mode = "out")
@@ -152,6 +151,7 @@ addDetours <- function(params, tree, blockedTraits, type = "serial") {
     }
   }
   attributes(tree)$requirements <- requirements
+  attributes(tree)$aux_nodes <- setdiff(seq_along(igraph::V(tree)), seq_len(num_nodes))
   attributes(tree)$payoffs <- payoffs
   return(tree)
 }
@@ -180,7 +180,6 @@ getTraitLearningProbability_R <- function(repertoires, ind, requirements, learna
   }
   return(pList)
 }
-
 
 sample_initial_traits <- function(ind, repertoires, blockedTraits, numTraits, payoffs, initialnodes, requirements){
   for(trait in seq_len(numTraits)){
@@ -267,42 +266,28 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
 getEnvironmentalLearnability <- function(params, inds, repertoires, adj_matrix, tree, blockers){
   requirements <- attributes(tree)$requirements
   p <- c()
-  
   for(ind in inds){
-    
     knownTraits <- which(repertoires[ind,] == 1)
-    
     unknownTraits <- which(repertoires[ind,] == 0)
-    
     if(length(unknownTraits) == 0){
       p[ind] <- NA 
       next
     }
     blockedTraits <- which(blockers[ind,] == 1)
     learnableTraits <- unknownTraits[which(!unknownTraits %in% blockedTraits)]
-    
     pList <- getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, learnableTraits)
-    
     learnableTraits <- learnableTraits[which(pList == 1)]
-    
     freqLearnable <- 0
-    
     popOthers <- repertoires[-ind,]
-    
-    
     for(trait in learnableTraits){
       freqLearnable <- freqLearnable + sum(popOthers[,trait])
     }
-    
     freqUnknown <- 0
-    
     for(trait in unknownTraits){
       freqUnknown <- freqUnknown + sum(popOthers[,trait])
     }
-    
     p[ind] <- freqLearnable / freqUnknown
   }
-  
   return(mean(p, na.rm=T))
 }
 
@@ -313,7 +298,6 @@ getPayoffs <- function(tree, params) {
   weight <- params$payoff_weight # Determines how random the effect of distance on a trait is
   root_node <- params$root_node
   payoff_scaling <- params$payoff_scaling # Determines how much distance affects payoff
-
 
   distances_from_root <- igraph::distances(tree, v = root_node, mode = "out")[1:num_nodes]
   distance_payoffs <- 1 + (distances_from_root - 1) * payoff_scaling
@@ -328,15 +312,12 @@ getPayoffs <- function(tree, params) {
 
 trRequirements <- function(tree) {
   numTraits <- igraph::gorder(tree)
-
   # Initialize the list to store prerequisites for each trait
   requirements <- vector("list", numTraits)
-
   # Loop through each trait to find its prerequisites
   for (trait in 1:numTraits) {
     # Find direct predecessors (parents) of the trait
     predecessors <- igraph::neighbors(tree, trait, mode = "in")
-
     # Store the ids (or any other identifier) of required traits for the bonus
     requirements[[trait]] <- list(as.numeric(predecessors))
   }
@@ -348,11 +329,16 @@ augmentTrRequirements <- function(tree) {
   requirements <- attr(tree, "requirements")
   num_nodes <- length(requirements)
   unreachableTraits <- which(igraph::degree(tree, mode = "in") > 1)
-
+  aux_nodes <- attributes(tree)$aux_nodes
   for (trait in unreachableTraits) {
     # Find parents that are auxiliary nodes
     parents <- igraph::neighbors(tree, trait, mode = "in")[which(igraph::neighbors(tree, trait, mode = "in") > num_nodes)]
-    requirements[[trait]][[2]] <- c(parents)
+    requirements[[trait]][[2]] <- list(as.numeric(parents))
+  }
+  
+  for (aux_node in aux_nodes) {
+    parents <- igraph::neighbors(tree, aux_node, mode = "in")
+    requirements[[aux_node]] <- list(as.numeric(parents))
   }
   return(requirements)
 }
@@ -360,7 +346,7 @@ augmentTrRequirements <- function(tree) {
 try_learning <- function(selectedTrait, p){
   traits <- list(learned = NULL, failed = NULL)
   if (length(p) > 0) {
-    if(runif(1) < p){
+    if (runif(1) < p) {
       traits$learned <- selectedTrait
     } else {
       traits$failed <- selectedTrait
@@ -375,6 +361,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
   blockedTraits <- which(blockers[ind, ] == 1)
   learnableTraits <- observedTraits[which(observedTraits %in% unknownTraits)]
   aux_traits <- which(!1:ncol(repertoires) %in% 1:params$num_nodes)
+  
   if (length(blockedTraits) == 0) {
     learnableTraits <- learnableTraits[!learnableTraits %in% aux_traits]
   }
@@ -383,23 +370,19 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     learning_result <- list(learned = NULL, failed = NULL)
     return(learning_result)
   }
-  
+
   if (length(learnableTraits) > 0) {
     wList <- numeric(length = length(learnableTraits))
     pList <- getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, learnableTraits)
-
     root_node <- params$root_node
-
     if (length(learnableTraits) == 1) {
       learning_result <- try_learning(learnableTraits, pList)
       return(learning_result)
     }
-    
     ##### STRATEGY 1: payoff-based social learning #####
     if (learningStrategy == 1) {
         wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits])
     }
-
     ###### STRATEGY 2: similarity based learning ######
     ## check for all agents how similar they are to self in skills
     else if (learningStrategy == 2) {
@@ -409,7 +392,6 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
         wList[modelIndex] <- sum(repertoires[ind, ] == repertoires[model, ]) / ncol(repertoires)
       }
     }
-
     ###### 	STRATEGY 3: age-based social learning #####
     ## check for all agents how similar they are to self in age
     else if (learningStrategy == 3) {
@@ -417,7 +399,6 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       ageDif <- popAge[usefulModels] - popAge[ind]
       wList <- ifelse(ageDif >= 0, 0.5^ageDif, 10^-8)
     }
-
     ###### 	STRATEGY 4: conformist social learning #####
     ## Count the selected behaviors and weigh common ones more
     else if (learningStrategy == 4) {
@@ -430,7 +411,6 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     else if (learningStrategy == 0) {
       wList <- rep(1, length(learnableTraits))
     }
-
     if (any(is.na(wList * pList))) {
       print("NA in wList * pList")
       browser()
@@ -440,7 +420,6 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       print("Negative value in wList * pList")
       browser()
     }
-
     if (length(wList) != length(pList)) {
       print("Length of wList and pList do not match")
       browser()
@@ -448,7 +427,6 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
     if (!any((wList * pList) > 0)) {
       wList <- rep(1, length(wList))
     }
-
     ### MAKE CHOICE ###
     if (length(learnableTraits) == 1) {
       selectedTrait <- learnableTraits
@@ -458,9 +436,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       selectedTrait <- observedTraits[selectedTraitIndex]
       probability <- ifelse(selectedTrait %in% blockedTraits, 0.01, pList[selectedTraitIndex])
     }
-
     learning_result <- try_learning(selectedTrait, probability)
-    
   }
   return(learning_result)
 }

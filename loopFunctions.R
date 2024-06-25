@@ -67,14 +67,14 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
           }
         }
         learning_result <- learnSocially(params,
-                                          repertoires,
-                                          blockers,
-                                          ind,
-                                          learningStrategy, 
-                                          popAge,
-                                          tree,
-                                          observedTraits,
-                                          observedModels)														
+                                         repertoires,
+                                         blockers,
+                                         ind,
+                                         learningStrategy, 
+                                         popAge,
+                                         tree,
+                                         observedTraits,
+                                         observedModels)														
         learnedTrait <- learning_result$learned
         failed_trait <- learning_result$failed
         if (length(learnedTrait) == 1) {
