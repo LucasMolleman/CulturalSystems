@@ -1,5 +1,7 @@
 library(ggraph)
 library(igraph)
+library(grid)
+source("simFunctions.R")
 extrafont::loadfonts(device = "win")
 params <- list(
   num_nodes = 16,                 # size of the cultural systems (number of nodes)
@@ -32,7 +34,6 @@ tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
 attr(tree, "requirements") <- augmentTrRequirements(tree) #add alternative routes around blocked traits
 attr(tree, "blockedTraits") <- blockedTraits
 
-depths <- distances(tree, v = root, mode = "out")
 requirements <- attributes(tree)$requirements
 aux_nodes <- attributes(tree)$aux_nodes
 
@@ -69,11 +70,11 @@ E(tree)$type <- edge_types(tree)
 V(tree)$type <- node_types(tree)
 
 layer1 <- ggraph(tree, layout = adjust_layout(tree)) + 
-  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2))) + 
-  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1)) + 
+  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2)), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
+  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
   scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") + 
   scale_edge_color_manual(values = c("black", "firebrick", "cornflowerblue"), guide = "none") +
-  geom_node_point(size = 8, aes(color = type)) + 
+  geom_node_point(size = 7, aes(color = type)) + 
   scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
   theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
 
@@ -102,6 +103,7 @@ attr(tree, "requirements") <- trRequirements(tree)
 
 ### SYSTEM AND NODE PAYOFFS ARE SET
 ####### INITIALIZE POPULATION #####
+set.seed(1)
 blockers <- initializeBlockers(params, tree)
 blockedTraits <- which(colSums(blockers) > 0)
 blockedInds <- which(rowSums(blockers) > 0)
@@ -109,7 +111,6 @@ tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
 attr(tree, "requirements") <- augmentTrRequirements(tree) #add alternative routes around blocked traits
 attr(tree, "blockedTraits") <- blockedTraits
 
-depths <- distances(tree, v = root, mode = "out")
 requirements <- attributes(tree)$requirements
 aux_nodes <- attributes(tree)$aux_nodes
 
@@ -126,11 +127,11 @@ adjust_layout_2 <- function(tree) {
 }
 
 layer2 <- ggraph(tree, layout = adjust_layout_2(tree)) + 
-  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2))) + 
-  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1)) + 
+  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2)), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
+  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
   scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") + 
   scale_edge_color_manual(values = c("black", "firebrick", "cornflowerblue"), guide = "none") +
-  geom_node_point(size = 8, aes(color = type)) + 
+  geom_node_point(size = 7, aes(color = type)) + 
   scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
   theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
 
@@ -168,7 +169,6 @@ tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
 attr(tree, "requirements") <- augmentTrRequirements(tree) #add alternative routes around blocked traits
 attr(tree, "blockedTraits") <- blockedTraits
 
-depths <- distances(tree, v = root, mode = "out")
 requirements <- attributes(tree)$requirements
 aux_nodes <- attributes(tree)$aux_nodes
 
@@ -185,11 +185,28 @@ adjust_layout_3 <- function(tree) {
   layout
 }
 adjust_layout_3(tree)
-ggraph(tree, layout = adjust_layout_3(tree)) + 
-  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2))) + 
-  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1)) + 
+layer3 <- ggraph(tree, layout = adjust_layout_3(tree)) + 
+  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2)), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
+  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
   scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") + 
   scale_edge_color_manual(values = c("black", "firebrick", "cornflowerblue"), guide = "none") +
-  geom_node_point(size = 8, aes(color = type)) + 
+  geom_node_point(size = 7, aes(color = type)) + 
   scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
   theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
+
+library(cowplot)
+combined_plot <- plot_grid(
+  layer1 + theme(legend.position = "none"),
+  layer2 + theme(legend.position = "none"),
+  layer3 + theme(legend.position = "none"),
+  labels = c("A", "B", "C"), 
+  label_size = 20,
+  align = 'v', ncol = 1
+)
+
+legend <- get_legend(layer3)
+
+final_plot <- plot_grid(combined_plot, legend, ncol = 2, rel_widths = c(1, 0.2))
+
+print(final_plot)
+
