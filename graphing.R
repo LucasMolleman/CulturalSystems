@@ -518,7 +518,7 @@ ggplot(combineddata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, gro
 ## Plotting for presentation
 
 presdata <- combineddata
-presdata$BranchingFactor <- rep(1:8, 5)
+presdata$BranchingFactor <- rep(8:1, 5)
 presdata$BranchingFactor <- as.factor(presdata$BranchingFactor)
 
 ggplot(presdata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, group = Group, linetype = Group)) +
@@ -526,10 +526,10 @@ ggplot(presdata, aes(x = BranchingFactor, y = MeanPayoff, color = Group, group =
   geom_line(size = 0.75) +
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
   xlab("Trait Model") +
-  ylab("Relative Payoff Compared to Random Learning") +
+  ylab(" ") +
   labs(color = "Social Learning Strategy") +
   scale_color_manual(values =c("Payoff" = "#00B0F6", "Similarity" = "#E76BF3",
-                               "Age" = "#F8766D", "Conformity" = "#A3A500")) +  
+                               "Age" = "#F8766D", "Conformity" = "#00BF7D")) +  
   scale_linetype_manual(values = c("Random" = "dashed", "Payoff" = "solid", "Similarity" = "solid",
                                    "Age" = "solid", "Conformity" = "solid")) +
   guides(color = guide_legend(override.aes = list(linetype = "solid")),
