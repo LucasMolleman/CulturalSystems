@@ -553,7 +553,7 @@ ggplot(combineddata, aes(x = BranchingFactor, y = ProportionSuccessfulTrials, co
   geom_line(size = 0.75) +  
   theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
   xlab("Branching Factor") +
-  ylab("Proportion of Successful Trials") +
+  ylab("Proportion of Successful Timesteps") +
   labs(color = "Social Learning Strategy") +
   scale_y_continuous(breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8))
 
