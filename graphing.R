@@ -640,8 +640,8 @@ similarityMeanbf1 <- colMeans(meantraitsbf1[meantraitsbf1$SLS == 2, 4:20003])
 ageMeanbf1 <- colMeans(meantraitsbf1[meantraitsbf1$SLS == 3, 4:20003])
 conformityMeanbf1 <- colMeans(meantraitsbf1[meantraitsbf1$SLS == 4, 4:20003])
 
-plot(randomMeanbf1, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
-    main = "Branching Factor = 1", ylim = c(0.1,0.5), lwd = 1.5, bty = "l")
+plot(randomMeanbf1, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits",
+    main = "Branching Factor = 1", ylim = c(0.1,0.62), lwd = 1.5, bty = "l")
 lines(payoffMeanbf1, col = "#00B0F6", lwd = 1.5)
 lines(similarityMeanbf1, col = "#E76BF3", lwd = 1.5)
 lines(ageMeanbf1, col = "#F8766D", lwd = 1.5)
@@ -656,8 +656,8 @@ similarityMeanbf2 <- colMeans(meantraitsbf2[meantraitsbf2$SLS == 2, 4:20003])
 ageMeanbf2 <- colMeans(meantraitsbf2[meantraitsbf2$SLS == 3, 4:20003])
 conformityMeanbf2 <- colMeans(meantraitsbf2[meantraitsbf2$SLS == 4, 4:20003])
 
-plot(randomMeanbf2, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
-     main = "Branching Factor = 2", ylim = c(0.15,0.5), lwd = 1.5, bty = "l")
+plot(randomMeanbf2, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits",
+     main = "Branching Factor = 2", ylim = c(0.1,0.62), lwd = 1.5, bty = "l")
 lines(payoffMeanbf2, col = "#00B0F6", lwd = 1.5)
 lines(similarityMeanbf2, col = "#E76BF3", lwd = 1.5)
 lines(ageMeanbf2, col = "#F8766D", lwd = 1.5)
@@ -673,8 +673,8 @@ similarityMeanbf4 <- colMeans(meantraitsbf4[meantraitsbf4$SLS == 2, 4:20003])
 ageMeanbf4 <- colMeans(meantraitsbf4[meantraitsbf4$SLS == 3, 4:20003])
 conformityMeanbf4 <- colMeans(meantraitsbf4[meantraitsbf4$SLS == 4, 4:20003])
 
-plot(randomMeanbf4, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
-     main = "Branching Factor = 4", ylim = c(0.15,0.5), lwd = 1.5, bty = "l")
+plot(randomMeanbf4, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits",
+     main = "Branching Factor = 4", ylim = c(0.1,0.62), lwd = 1.5, bty = "l")
 lines(payoffMeanbf4, col = "#00B0F6", lwd = 1.5)
 lines(similarityMeanbf4, col = "#E76BF3", lwd = 1.5)
 lines(ageMeanbf4, col = "#F8766D", lwd = 1.5)
@@ -690,8 +690,8 @@ similarityMeanbf8 <- colMeans(meantraitsbf8[meantraitsbf8$SLS == 2, 4:20003])
 ageMeanbf8 <- colMeans(meantraitsbf8[meantraitsbf8$SLS == 3, 4:20003])
 conformityMeanbf8 <- colMeans(meantraitsbf8[meantraitsbf8$SLS == 4, 4:20003])
 
-plot(randomMeanbf8, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population", 
-     main = "Branching Factor = 8", ylim = c(0.22,0.55), lwd = 1.5, bty = "l")
+plot(randomMeanbf8, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits", 
+     main = "Branching Factor = 8", ylim = c(0.1,0.62), lwd = 1.5, bty = "l")
 lines(payoffMeanbf8, col = "#00B0F6", lwd = 1.5)
 lines(similarityMeanbf8, col = "#E76BF3", lwd = 1.5)
 lines(ageMeanbf8, col = "#F8766D", lwd = 1.5)
@@ -707,8 +707,8 @@ similarityMeanbf16 <- colMeans(meantraitsbf16[meantraitsbf16$SLS == 2, 4:20003])
 ageMeanbf16 <- colMeans(meantraitsbf16[meantraitsbf16$SLS == 3, 4:20003])
 conformityMeanbf16 <- colMeans(meantraitsbf16[meantraitsbf16$SLS == 4, 4:20003])
 
-plot(randomMeanbf16, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
-     main = "Branching Factor = 16", ylim = c(0.3,0.60), lwd = 1.5, bty = "l")
+plot(randomMeanbf16, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits",
+     main = "Branching Factor = 16", ylim = c(0.1,0.62), lwd = 1.5, bty = "l")
 lines(payoffMeanbf16, col = "#00B0F6", lwd = 1.5)
 lines(similarityMeanbf16, col = "#E76BF3", lwd = 1.5)
 lines(ageMeanbf16, col = "#F8766D", lwd = 1.5)
@@ -724,8 +724,8 @@ similarityMeanbf32 <- colMeans(meantraitsbf32[meantraitsbf32$SLS == 2, 4:20003])
 ageMeanbf32 <- colMeans(meantraitsbf32[meantraitsbf32$SLS == 3, 4:20003])
 conformityMeanbf32 <- colMeans(meantraitsbf32[meantraitsbf32$SLS == 4, 4:20003])
 
-plot(randomMeanbf32, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
-     main = "Branching Factor = 32", ylim = c(0.35,0.6), lwd = 1.5, bty = "l")
+plot(randomMeanbf32, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits",
+     main = "Branching Factor = 32", ylim = c(0.1,0.62), lwd = 1.5, bty = "l")
 lines(payoffMeanbf32, col = "#00B0F6", lwd = 1.5)
 lines(similarityMeanbf32, col = "#E76BF3", lwd = 1.5)
 lines(ageMeanbf32, col = "#F8766D", lwd = 1.5)
@@ -741,8 +741,8 @@ similarityMeanbf64 <- colMeans(meantraitsbf64[meantraitsbf64$SLS == 2, 4:20003])
 ageMeanbf64 <- colMeans(meantraitsbf64[meantraitsbf64$SLS == 3, 4:20003])
 conformityMeanbf64 <- colMeans(meantraitsbf64[meantraitsbf64$SLS == 4, 4:20003])
 
-plot(randomMeanbf64, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
-     main = "Branching Factor = 64", ylim = c(0.45,0.62), lwd = 1.5, bty = "l")
+plot(randomMeanbf64, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits",
+     main = "Branching Factor = 64", ylim = c(0.1,0.62), lwd = 1.5, bty = "l")
 lines(payoffMeanbf64, col = "#00B0F6", lwd = 1.5)
 lines(similarityMeanbf64, col = "#E76BF3", lwd = 1.5)
 lines(ageMeanbf64, col = "#F8766D", lwd = 1.5)
@@ -758,8 +758,8 @@ similarityMeanbf128 <- colMeans(meantraitsbf128[meantraitsbf128$SLS == 2, 4:2000
 ageMeanbf128 <- colMeans(meantraitsbf128[meantraitsbf128$SLS == 3, 4:20003])
 conformityMeanbf128 <- colMeans(meantraitsbf128[meantraitsbf128$SLS == 4, 4:20003])
 
-plot(randomMeanbf128, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits in the Population",
-     main = "Branching Factor = 128", ylim = c(0.5,0.6), lwd = 1.5, bty = "l")
+plot(randomMeanbf128, type = "l", col = "#00BF7D", xlab = "Timesteps", ylab = "Mean Traits",
+     main = "Branching Factor = 128", ylim = c(0.1,0.62), lwd = 1.5, bty = "l")
 lines(payoffMeanbf128, col = "#00B0F6", lwd = 1.5)
 lines(similarityMeanbf128, col = "#E76BF3", lwd = 1.5)
 lines(ageMeanbf128, col = "#F8766D", lwd = 1.5)
