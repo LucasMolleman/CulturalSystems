@@ -19,7 +19,6 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
     stop("Number of nodes in the tree does not match the number of nodes in the repertoires")
   }
   popAge<-assignAges(repertoires)
-  
   probabilities <- rep(NA, params$timesteps)
   probabilitiesBlocked <- rep(NA, params$timesteps)
   failed_learning_count <- 0
@@ -109,10 +108,13 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
             repertoires[ind,selectedTrait]<-1
           }
         }
+      } 
+      if (params$get_tr_sums) {
+        tr_sums[[t]] <- colSums(repertoires[-blockedInds, ], na.rm =T)
+        tr_sums_blocked[[t]] <- colSums(repertoires[blockedInds, ], na.rm =T)
+        failure_sums_blocked[[t]] <- colSums(failures[blockedInds, ], na.rm =T)
       }
-      # tr_sums[[t]] <- colSums(repertoires[-blockedInds, ], na.rm =T)
-      # tr_sums_blocked[[t]] <- colSums(repertoires[blockedInds, ], na.rm =T)
-      # failure_sums_blocked[[t]] <- colSums(failures[blockedInds, ], na.rm =T)
+
     }
     
 
@@ -141,9 +143,9 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
       if(is.null(tr_sums_blocked[[i]])) tr_sums_blocked[[i]] <- tr_sums_blocked[[i-1]]
       if(is.null(failure_sums_blocked[[i]])) failure_sums_blocked[[i]] <- failure_sums_blocked[[i-1]]
     }
-    saveRDS(tr_sums, "tr_sums.rds")
-    saveRDS(tr_sums_blocked, "tr_sums_blocked.rds")
-    saveRDS(failure_sums_blocked, "failure_sums_blocked.rds")
+    saveRDS(tr_sums, paste0(params$data_path,"tr_sums.rds"))
+    saveRDS(tr_sums_blocked, paste0(params$data_path,"tr_sums_blocked.rds"))
+    saveRDS(failure_sums_blocked, paste0(params$data_path,"failure_sums_blocked.rds"))
   }
   
   # png("probabilities.png")	
@@ -171,7 +173,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   
   #trait_dist <- do.call(rbind, trait_dist)
   
-  #saveRDS(trait_dist, "trait_dist.rds")
+  #saveRDS(trait_dist, paste(params$data_path,"trait_dist.rds"))
   
   return(sumThisSimulation)
 }

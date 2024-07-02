@@ -32,10 +32,10 @@ params <- list(
   root_node = 1,                  # root node of the tree
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
-  timesteps =  2000,              # number of time steps in the simulation
+  timesteps =  5000,              # number of time steps in the simulation
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
-  payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
+  payoff_scaling = 0,             # Constant that is added/subtracted for each step away from the root node
   payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
@@ -43,35 +43,34 @@ params <- list(
   numSteps = 3,                   # number of auxiliary traits necessary for overcoming a block
   detourType = "parallel",        # type of detour (parallel or serial)
   typical_learning_strategy = 1,  # social learning strategy used by unblocked learners
-  get_tr_sums = TRUE              # save trait distributions (Only do this if when running one simulation at a time)
+  get_tr_sums = TRUE,             # save trait distributions (Only do this if when running one simulation at a time)
+  data_path = "./data/"
 )
 ``` 
 
 ## Run Simulation
 
 ```{r}
-### define a summary matrix with success of learning strategies
-## it records the number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
 set.seed(1)
 tree <- generate_rooted_tree()
 attr(tree, "requirements") <- trRequirements(tree)
 future::plan(future::multisession, workers = (parallel::detectCores() - 1))
 
 start_time <- Sys.time()
-expand.grid(learningStrategy = c(0:2),
+expand.grid(learningStrategy = c(0:2, 4),
             numSteps = c(1, 2, 3),
             blockedLayer = c(1, 2, 3),
-            propBlocked = c(0.1),
-            repl = 1:30) %>%
-run_all_simulations_parallel(params, tree) %>%
-saveRDS("strategySuccess.rds")
+            propBlocked = round(seq(0.02, 1, length.out = 50),2),
+            repl = 1:10) %>%
+run_all_simulations_parallel(params, tree) %>% 
+saveRDS("strategySuccess_2.rds")
 end_time <- Sys.time()
 future::plan(future::sequential)
 
 end_time - start_time
 ```
 
-## Non-Parallel Version
+## Sequential Execution
 For debugging and testing
 
 ```{r}
@@ -79,19 +78,20 @@ set.seed(1)
 tree <- generate_rooted_tree()
 attr(tree, "requirements") <- trRequirements(tree)
 
-expand.grid(learningStrategy = c(1),
+res <- expand.grid(learningStrategy = c(1),
             numSteps = c(2),
-            blockedLayer = c(1),
-            propBlocked = c(0.1),
-            repl = 1:30) %>%
-run_all_simulations(params, tree) %>%
-saveRDS("strategySuccess.rds")
+            blockedLayer = c(2),
+            propBlocked = c(0.2),
+            repl = 1) %>%
+  run_all_simulations(params, tree) #%>%
+  saveRDS("strategySuccess_3.rds")
 ```
 
 
 
 ```{r}
-strategySuccess <- readRDS("strategySuccess.rds")
+strategySuccess <- readRDS("strategySuccess_2.rds")
+#strategySuccess <- read.csv("../CulturalSystemscpp/SimulationResults.csv", na.strings = "nan")
 data <- as.data.frame(strategySuccess)
 library(data.table)
 setDT(data)
@@ -100,14 +100,13 @@ setnames(data, c("numNodes", "blockedLearningStrat", "repl", "payoff_scaling", "
 #set first 8 columns to factor
 data[ , (1:5) := lapply(.SD, factor), .SDcols = 1:5]
 
-data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,2,3,4,7), labels = c("Random", "Payoff", "Similarity", "Age-Based", "Conformity", "Similarity2"))]
+data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,2,3,4,7), labels = c("Random", "Payoff", "Similarity", "Age-Based", "Conformity", "Similarity2"))] # nolint
 
 summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked , data = data))
 
 summary(mod2 <- lm(sumPayoffBlocked ~ blockedLearningStrat*blockedLayer*propBlocked, data = data))
 
 #Probing the interaction numSteps:blockedLayer:propBlocked 
-
 prepare_aggregated_data <- function(data, dependent_var, independent_vars) {
   aggregated_data <- data %>%
     group_by(across(all_of(independent_vars))) %>%
@@ -131,26 +130,72 @@ independent_vars <- c("blockedLearningStrat", "numSteps", "blockedLayer", "propB
 aggregated_data2 <- prepare_aggregated_data(data, dependent_var, independent_vars)
 
 # Plotting the aggregated means
-ggplot(aggregated_data2, aes(x = as.factor(numSteps), y = mean_value, group = interaction(blockedLayer, propBlocked), color = as.factor(blockedLayer))) +
-  geom_line(aes(linetype = as.factor(propBlocked))) +
-  geom_point(aes(shape = as.factor(propBlocked))) +
-  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.2) +  # 95% CI error bars
-  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity", Similarity2 = "Strategy: Similiarity 2"))) +
-  labs(title = "Average SumPayoffBlocked across NumSteps, BlockedLayer, PropBlocked,\n and LearningStrategies",
-       subtitle = "Data aggregated across unique combinations of factors",
-       x = "Number of Steps",
-       y = "Average Sum Payoff Blocked",
-       color = "Blocked Layer",
-       linetype = "Proportion Blocked",
-       shape = "Proportion Blocked") +
+p <- ggplot(aggregated_data2, aes(x = propBlocked, y = mean_value, group = interaction(blockedLayer, numSteps), color = as.factor(blockedLayer))) +
+  geom_smooth(aes(linetype = as.factor(numSteps), fill = as.factor(blockedLayer)), method = "loess", span = 4, alpha = 0.2, se = TRUE) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "A) Random", Payoff = "B) Payoff", Similarity = "C) Similarity", Similarity2 = "Strategy: Similiarity 2", Conformity = "D) Conformity")), nrow = 1) +
+  labs(title = "Average Payoff for Individuals with Learning Difficulties (LD)", x = "Proportion of Population with LD", y = "Average Payoff per Learning Attempt", color = "Depth of Learning Difficulty", linetype = "Learning Steps Required\nto Compensate for LD", fill = "Depth of Learning Difficulty") +
+  scale_color_manual(labels = c('1' = 'Layer 1', '2' = 'Layer 2', '3' = 'Layer 3'), values = c('1' = 'red2', '2' = 'gold1', '3' = 'green3')) +
+  scale_fill_manual(labels = c('1' = 'Layer 1', '2' = 'Layer 2', '3' = 'Layer 3'), values = c('1' = 'red2', '2' = 'gold1', '3' = 'green3')) +
+  scale_linetype_manual(values = c(1, 2, 3)) +
+  guides(linetype = guide_legend(override.aes = list(color = "black"))) +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate X labels for better visualization
-        strip.text.x = element_text(size = 12, face = "bold"))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), strip.text.x = element_text(size = 12, face = "bold"), legend.position = "top")
+p
 ``` 
+## Plot Results without payoff-scaling
+
+```{r}
+p2 <- ggplot(aggregated_data2, aes(x = propBlocked, y = mean_value, group = interaction(blockedLayer, numSteps), color = as.factor(blockedLayer))) +
+  geom_smooth(aes(linetype = as.factor(numSteps), fill = as.factor(blockedLayer)), method = "loess", span = 4, alpha = 0.2, se = TRUE) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "A) Random", Payoff = "B) Payoff", Similarity = "C) Similarity", Similarity2 = "Strategy: Similiarity 2", Conformity = "D) Conformity")),nrow = 1) +
+  labs(title = "Average Payoff for Individuals with Learning Difficulties (LD)", x = "Proportion of Population with LD", y = "Average Payoff per Learning Attempt", color = "Depth of Learning Difficulty", linetype = "Learning Steps Required\nto Compensate for LD", fill = "Depth of Learning Difficulty") +
+  scale_color_manual(labels = c('1' = 'Layer 1', '2' = 'Layer 2', '3' = 'Layer 3'), values = c('1' = 'red2', '2' = 'gold1', '3' = 'green3')) +
+  scale_fill_manual(labels = c('1' = 'Layer 1', '2' = 'Layer 2', '3' = 'Layer 3'), values = c('1' = 'red2', '2' = 'gold1', '3' = 'green3')) +
+  scale_linetype_manual(values = c(1, 2, 3)) +
+  guides(linetype = guide_legend(override.aes = list(color = "black"))) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), strip.text.x = element_text(size = 12, face = "bold"), legend.position = "top")
+print(p2)
+```
+
+```{r}
+p <-ggplot(aggregated_data2, aes(x = propBlocked, y = mean_value, group = interaction(blockedLayer, numSteps), color = as.factor(blockedLayer))) +
+  geom_smooth(aes(linetype = as.factor(numSteps), fill = as.factor(blockedLayer)), method = "lm", alpha = 0.2, se = TRUE) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity", Similarity2 = "Strategy: Similiarity 2", Conformity = "Strategy: Conformity")), nrow = 1) +
+  labs(title = "Average Payoff for Individuals with Learning Difficulties (LD)",
+       x = "Proportion of Population with LD",
+       y = "Average Payoff per Learning Attempt",
+       color = "LD Depth",
+       linetype = "Number of Learning Steps",
+       fill = "LD Depth") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        strip.text.x = element_text(size = 12, face = "bold"))
+
+p
+```
+
+```{r}
+ggplot(aggregated_data2, aes(x = propBlocked, y = mean_value, group = interaction(blockedLayer, as.factor(numSteps)), color = as.factor(numSteps))) +
+  geom_line(aes(linetype = as.factor(blockedLayer))) +
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.01) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity", Similarity2 = "Strategy: Similiarity 2", Conformity = "Strategy: Conformity"))) +
+  labs(title = "Average Payoff for Individuals with Learning Difficulties (LD)",
+       x = "Proportion of Population with LD",
+       y = "Average Payoff per Learning Attempt",
+       color = "Number of Learning Steps",
+       linetype = "LD Depth") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        strip.text.x = element_text(size = 12, face = "bold"))
+```
+
+
+
 ```{r}
 
-tr_sums_blocked <- readRDS("tr_sums_blocked.rds")
-failure_sums_blocked <- readRDS("failure_sums_blocked.rds")
+tr_sums_blocked <- readRDS("./data/tr_sums_blocked.rds")
+failure_sums_blocked <- readRDS("./data/failure_sums_blocked.rds")
 
 if (max(unlist(failure_sums_blocked)) > 50) {
   print("Warning: failure_sums_blocked contains values greater than 50")
@@ -158,7 +203,7 @@ if (max(unlist(failure_sums_blocked)) > 50) {
 
 tree <- attributes(tr_sums_blocked)$tree
 
-aux_nodes <- which(!1:gorder(tree) %in% 1:params$num_nodes)
+aux_nodes <- which(!1:gorder(tree) %in% 1:16)
 blocked_nodes <- attributes(tree)$blockedTraits
 
 # Edge colors
@@ -174,7 +219,7 @@ max_new <- 30
 
 
 col_palette <- colorRampPalette(c("#00007F", "blue", "#007FFF", "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))(51)
-break_points <- seq(0, 50, length.out = 52)
+break_points <- seq(0, 129, length.out = 52)
 
 legend_colors <- col_palette[c(1, 11, 21, 31, 41, 51)] 
 
@@ -219,86 +264,8 @@ gif_combined <- image_montage(
 
 # Write the combined GIF to a new file
 image_write_gif(gif_combined, "combined_grid.gif")
-
-
-
-```
-```{r}
-
-ggplot(aggregated_data2, aes(x = as.factor(blockedLayer), y = mean_value, group = interaction(blockedLayer, propBlocked), color = as.factor(blockedLayer))) +
-
-  geom_line(aes(linetype = as.factor(propBlocked))) +
-
-  geom_point(aes(shape = as.factor(propBlocked))) +
-
-  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), width = 0.2) +
-
-  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "Strategy: Random", Payoff = "Strategy: Payoff", Similarity = "Strategy: Similarity", Similarity2 = "Strategy: Similiarity 2"))) +
-
-  labs(title = "Average SumPayoffBlocked across BlockedLayer, PropBlocked,\n and LearningStrategies",
-
-       subtitle = "Data aggregated across unique combinations of factors\n(Considering a constant Number of Steps)",
-
-       x = "Blocked Layer",
-
-       y = "Average Sum Payoff Blocked",
-
-       color = "Blocked Layer",
-
-       linetype = "Proportion Blocked",
-
-       shape = "Proportion Blocked") +
-
-  theme_minimal() +
-
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-
-        strip.text.x = element_text(size = 12, face = "bold"))
-
 ```
 
-## Plot Results
-
-```{r}
-## give names to the columns of the simulation summary matrix: number of nodes, the branching factor, the learning strategy, the simulation replicates, and the mean payoff
-strategySuccess <- readRDS("strategySuccess.rds")
-
-plotPayoffScaling <- function(strategySuccess, independent, dependent, subset = TRUE){
-  strategySuccess <- data.frame(strategySuccess)
-  strategySuccess <- strategySuccess[subset, ]
-  names(strategySuccess) <- c('numNodes', 'learningStrat', 'olderPref', 'repl', 'payoff_scaling', 'blockedLayer', 'numBlocked', 'numSteps', 'propBlocked', 'sumPayoff', 'sumPayoffUnblocked', 'sumPayoffBlocked')
-  rownames(strategySuccess) <- NULL
-  strats <- unique(strategySuccess$learningStrat) + 1
-  stratCols <- c('black', 'deepskyblue', 'firebrick', 'violet', 'forestgreen')[strats]
-  stratNames <- c('random','payoff', 'similarity', 'age-based', 'conformity')[strats]
-
-  # Update mar to provide more space at the bottom for the legend
-  par(mfrow=c(1,5), mar=c(7, 4, 4, 2) + 0.1) # Increase the bottom margin substantially
-
-  for (level in sort(unique(strategySuccess[,independent]))[seq_along(unique(strategySuccess[,independent]))]) {
-
-    b <- strategySuccess[strategySuccess[,independent] == level,]
-    boxplot(b[[dependent]] ~ b$learningStrat, main=paste(independent,"=",level), col=stratCols, xaxt='n',xlab="", ylab=dependent)
-    axis(1, at=seq_along(unique(b$learningStrat)), labels=FALSE)
-    if(level == min(unique(strategySuccess[,independent]))) { # changed condition for clarity
-      axis(1, at=seq_along(unique(b$learningStrat)), labels=names(stratCols), las=2)
-    }
-  }
-
-  # Add the legend after restoring default par settings best suited for overall plot characteristics
-  # For placing legend, might need adjustment or use more specific settings
-  par(mfrow=c(1,1), mar=c(5, 4, 4, 2) + 0.1, xpd=TRUE)
-  legend("bottom", inset=c(-3,-0.25), legend=stratNames, fill=stratCols, horiz=TRUE, xpd=NA)
-}
-
-
-```
-
-```{r}
-plotPayoffScaling(strategySuccess[data$propBlocked == 0.3,], "blockedLayer",'sumPayoffBlocked')
-plotPayoffScaling(strategySuccess, "numSteps",'sumPayoffBlocked')
-plotPayoffScaling(strategySuccess, "propBlocked",'sumPayoffBlocked')
-```
 
 
 

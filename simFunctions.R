@@ -164,8 +164,8 @@ getTraitLearningProbability_R <- function(repertoires, ind, requirements, learna
   pList <- rep(0, length(learnableTraits))
   for (i in 1:length(learnableTraits)) {
     targetTrait <- learnableTraits[i]
-    if (length(requirements[targetTrait]) >= 2) {
-      if (all(requirements[targetTrait][[1]][[1]] %in% knownTraits) | all(requirements[targetTrait][[1]][[2]] %in% knownTraits)) {
+    if (length(requirements[[targetTrait]]) >= 2) {
+      if (all(requirements[[targetTrait]][[1]] %in% knownTraits) | all(unlist(requirements[[targetTrait]][[2]]) %in% knownTraits)) {
         pList[i] <- 1
       }
     } else if (length(requirements[targetTrait]) >= 1) {
@@ -184,34 +184,25 @@ getTraitLearningProbability_R <- function(repertoires, ind, requirements, learna
 sample_initial_traits <- function(ind, repertoires, blockedTraits, numTraits, payoffs, initialnodes, requirements){
   for(trait in seq_len(numTraits)){
     unknownTraits <- which(repertoires[ind, ] == 0)
-    learnableTraits <- setdiff(unknownTraits, blockedTraits)
-    if (length(learnableTraits) == 1) {
-      repertoires[ind, learnableTraits] <- 1
+    unblocked_traits <- setdiff(unknownTraits, blockedTraits)
+    if (length(unblocked_traits) == 1) {
+      repertoires[ind, unblocked_traits] <- 1
     }
     aux_traits <- which(!1:ncol(repertoires) %in% 1:initialnodes)
-    if (length(blockedTraits == 0)) {
-      learnableTraits <- setdiff(learnableTraits, aux_traits)
+    if (length(blockedTraits) == 0) {
+      unblocked_traits <- setdiff(unblocked_traits, aux_traits)
     }
-    pList <- getTraitLearningProbability_R(repertoires, ind, requirements, learnableTraits)
-    
+    pList <- getTraitLearningProbability_R(repertoires, ind, requirements, unblocked_traits)
+    learnableTraits <- unblocked_traits[which(pList == 1)]
     if (length(learnableTraits) > 1) {
       # individuals with blocked traits prefer learning auxiliary traits
-      if (length(blockedTraits) > 0) {
-        if (any(aux_traits %in% learnableTraits)) {
-          # aux traits 1, else 0
-          wList <- rep(0, length(learnableTraits))
-          for (i in seq_along(learnableTraits)) {
-            trait <- learnableTraits[i]
-            wList[i] <- ifelse (trait %in% aux_traits, 1, 0)
-          }
-          
-          chosenTrait <- sample(learnableTraits, 1, prob = pList * wList)
-          repertoires[ind, chosenTrait] <- 1
-        }
-      } else {
-        wList <- payoffs[which(1:ncol(repertoires) %in% learnableTraits)]
-        chosenTrait <- sample(learnableTraits, 1, prob = pList * wList)
-        repertoires[ind, chosenTrait] <- 1
+      wList <- payoffs[which(1:ncol(repertoires) %in% unblocked_traits)]
+      if (sum(wList * pList) <= 0) browser()
+      chosenTrait <- sample(unblocked_traits, 1, prob = pList * wList)
+      repertoires[ind, chosenTrait] <- 1
+    } else if (length(learnableTraits) == 1){
+      if (learnableTraits * pList[1] != 0) {
+      repertoires[ind, learnableTraits] <- 1
       }
     }
   }
