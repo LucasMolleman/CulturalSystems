@@ -52,7 +52,7 @@ params <- list(
 )
 
 tree <- generate_rooted_tree()
-attr(tree, "requirements") <- trRequirements(tree)
+
 
 ### SYSTEM AND NODE PAYOFFS ARE SET
 ####### INITIALIZE POPULATION #####
@@ -60,7 +60,7 @@ blockers <- initializeBlockers(params, tree)
 blockedTraits <- which(colSums(blockers) > 0)
 blockedInds <- which(rowSums(blockers) > 0)
 tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
-attr(tree, "requirements") <- augmentTrRequirements(tree) #add alternative routes around blocked traits
+attr(tree, "requirements") <- get_requirements(tree)
 attr(tree, "blockedTraits") <- blockedTraits
 
 requirements <- attributes(tree)$requirements
@@ -79,7 +79,7 @@ adjust_layout <- function(tree) {
 E(tree)$type <- edge_types(tree)
 V(tree)$type <- node_types(tree)
 
-layer1 <- ggraph(tree, layout = adjust_layout(tree)) + 
+layer1 <- ggraph::ggraph(tree, layout = adjust_layout(tree)) + 
   geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2)), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
   geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
   scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") + 
@@ -256,4 +256,29 @@ ggraph(tree, layout = igraph::layout.reingold.tilford(tree)) +
   geom_node_point(size = 7, aes(color = type, shape = type)) +  
   geom_node_text(aes(label = label), color = "black") + 
   theme(text = element_text(family = "Times New Roman"), panel.background = element_blank(), legend.position = "none")
+
+
+
+
+tr_sums_blocked <- readRDS("./tr_sums_blocked.rds")
+failure_sums_blocked <- readRDS("./failure_sums_blocked.rds")
+tree <- attributes(tr_sums_blocked)$tree
+
+
+E(tree)$type <- edge_types(tree)
+V(tree)$type <- node_types(tree)
+V(tree)$failure <- failure_sums_blocked[[2000]]
+
+ggraph::ggraph(tree, layout = adjust_layout(tree)) + 
+  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2)), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
+  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
+  scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") + 
+  scale_edge_color_manual(values = c("black", "firebrick", "cornflowerblue"), guide = "none") +
+  geom_node_point(size = 7, aes(color = type)) + 
+  geom_node_text(aes(label = failure), color = "red") +
+  scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
+  ggtitle("B) Similarity-Based Learning") +
+  theme(text = element_text(family = "Times New Roman"), panel.background = element_blank()) 
+
+
 

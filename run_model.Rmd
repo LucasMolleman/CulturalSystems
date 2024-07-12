@@ -76,10 +76,10 @@ For debugging and testing
 set.seed(1)
 tree <- generate_rooted_tree()
 
-res <- expand.grid(learningStrategy = c(1),
-            numSteps = c(2),
-            blockedLayer = c(2),
-            propBlocked = c(0.2),
+res <- expand.grid(learningStrategy = c(2),
+            numSteps = c(3),
+            blockedLayer = c(1),
+            propBlocked = c(0.5),
             repl = 1) %>%
   run_all_simulations(params, tree) #%>%
   saveRDS("strategySuccess_3.rds")
