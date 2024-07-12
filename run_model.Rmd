@@ -53,7 +53,6 @@ params <- list(
 ```{r}
 set.seed(1)
 tree <- generate_rooted_tree()
-attr(tree, "requirements") <- trRequirements(tree)
 future::plan(future::multisession, workers = (parallel::detectCores() - 1))
 
 start_time <- Sys.time()
@@ -76,7 +75,6 @@ For debugging and testing
 ```{r}
 set.seed(1)
 tree <- generate_rooted_tree()
-attr(tree, "requirements") <- trRequirements(tree)
 
 res <- expand.grid(learningStrategy = c(1),
             numSteps = c(2),

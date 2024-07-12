@@ -1,3 +1,5 @@
+source("simFunctions.R")
+
 runsimulation <- function(params, blockedLearningStrategy, repl, tree){ 
   ### define the cultural system ###
   ## Total payoffs are stored in column 1, payoffs for unblocked individuals in
@@ -12,15 +14,13 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   blockedTraits <- which(colSums(blockers) > 0)
   blockedInds <- which(rowSums(blockers) > 0)
   tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
-  attr(tree, "requirements") <- augmentTrRequirements(tree) #add alternative routes around blocked traits
+  attr(tree, "requirements") <- get_requirements(tree) #add alternative routes around blocked traits
   attr(tree, "blockedTraits") <- blockedTraits
   repertoires<-initializePopulation(params, blockers, tree)
-  if (ncol(repertoires) !=  gorder(tree)) {
+  if (ncol(repertoires) !=  igraph::gorder(tree)) {
     stop("Number of nodes in the tree does not match the number of nodes in the repertoires")
   }
-  popAge<-assignAges(repertoires)
-  probabilities <- rep(NA, params$timesteps)
-  probabilitiesBlocked <- rep(NA, params$timesteps)
+  popAge <- assignAges(repertoires)
   failed_learning_count <- 0
   failed_learning_count_blocked <- 0
   tr_sums <- vector("list", params$timesteps)
@@ -33,9 +33,6 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   
   ### population is now initialized... start running the model
   for (t in 1:params$timesteps){
-    #probabilities[t] <- getEnvironmentalLearnability(params, 1:params$N, repertoires, tree, blockers)
-    #probabilitiesBlocked[t] <- getEnvironmentalLearnability(params, blockedInds, repertoires, tree, blockers)
-    
     ind<-sample(1:params$N,1)
     if (ind %in% blockedInds){
       learningStrategy <- blockedLearningStrategy
@@ -73,7 +70,8 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
                                          popAge,
                                          tree,
                                          observedTraits,
-                                         observedModels)														
+                                         observedModels)
+        
         learnedTrait <- learning_result$learned
         failed_trait <- learning_result$failed
         if (length(learnedTrait) == 1) {
@@ -117,17 +115,8 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
 
     }
     
-
-    
-    #trait_dist[t] <- bookkeep_traits(repertoires, blockedInds)
-    
-    # if (ind == blockedInds[1]){
-    #   print(paste("time step:", t))
-    #   print(repertoires[ind,])
-    # }
-    
     ## each time step the agent was sampled, their age increases by 1
-    popAge[ind]<-popAge[ind]+1
+    popAge[ind] <- popAge[ind] + 1
     
     ## replace an individual with a naive one at random
     ## NB this is not appropriate for evolutionary sims
@@ -148,16 +137,8 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
     saveRDS(failure_sums_blocked, paste0(params$data_path,"failure_sums_blocked.rds"))
   }
   
-  # png("probabilities.png")	
-  # plot(probabilities, type = "l", ylim = c(0,1))	
-  # dev.off()	
-  #  	
-  # png("probabilities_blocked.png")	
-  # plot(probabilitiesBlocked, type = "l", ylim = c(0,1))	
-  # dev.off()
-  #trim <- (0.8 * params$timesteps):params$timesteps
   trim <- 1:params$timesteps
-  sumThisSimulation<-c(gorder(tree), 
+  sumThisSimulation<-c(igraph::gorder(tree), 
                         blockedLearningStrategy,
                         repl,
                         params$payoff_scaling,
@@ -171,9 +152,6 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
                         failed_learning_count/params$timesteps,
                         failed_learning_count_blocked/sum(!is.na(SLpay[,3])))
   
-  #trait_dist <- do.call(rbind, trait_dist)
-  
-  #saveRDS(trait_dist, paste(params$data_path,"trait_dist.rds"))
   
   return(sumThisSimulation)
 }

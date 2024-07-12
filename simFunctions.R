@@ -27,6 +27,12 @@ generate_rooted_tree <- function() {
   return(g)
 }
 
+
+
+
+
+
+
 generate_skewed_tree <- function() {
   g <- igraph::graph.empty(directed = TRUE)
   g <- igraph::add_vertices(g, 2)
@@ -106,7 +112,6 @@ addDetours <- function(params, tree, blockedTraits, type = "serial") {
   root_node <- params$root_node
   numSteps <- params$numSteps
   num_nodes <- params$num_nodes
-  requirements <- attributes(tree)$requirements
   
   if (type == "serial") {
     rootDistances <- igraph::distances(tree, v = root_node, mode = "out")
@@ -150,7 +155,6 @@ addDetours <- function(params, tree, blockedTraits, type = "serial") {
       }
     }
   }
-  attributes(tree)$requirements <- requirements
   attributes(tree)$aux_nodes <- setdiff(seq_along(igraph::V(tree)), seq_len(num_nodes))
   attributes(tree)$payoffs <- payoffs
   return(tree)
@@ -164,15 +168,9 @@ getTraitLearningProbability_R <- function(repertoires, ind, requirements, learna
   pList <- rep(0, length(learnableTraits))
   for (i in 1:length(learnableTraits)) {
     targetTrait <- learnableTraits[i]
-    if (length(requirements[[targetTrait]]) >= 2) {
-      if (all(requirements[[targetTrait]][[1]] %in% knownTraits) | all(unlist(requirements[[targetTrait]][[2]]) %in% knownTraits)) {
+      if (all(requirements[[targetTrait]][[1]] %in% knownTraits) | all(requirements[[targetTrait]][[2]] %in% knownTraits)) {
         pList[i] <- 1
-      }
-    } else if (length(requirements[targetTrait]) >= 1) {
-      if (all(requirements[targetTrait][[1]][[1]] %in% knownTraits)) {
-        pList[i] <- 1
-      }
-    }
+    } 
   }
   
   if (length(pList) != length(learnableTraits)) {
@@ -254,34 +252,6 @@ getDistances <- function(learnableTraits, knownTraits, tree) {
   return(trDistances)
 }
 
-getEnvironmentalLearnability <- function(params, inds, repertoires, adj_matrix, tree, blockers){
-  requirements <- attributes(tree)$requirements
-  p <- c()
-  for(ind in inds){
-    knownTraits <- which(repertoires[ind,] == 1)
-    unknownTraits <- which(repertoires[ind,] == 0)
-    if(length(unknownTraits) == 0){
-      p[ind] <- NA 
-      next
-    }
-    blockedTraits <- which(blockers[ind,] == 1)
-    learnableTraits <- unknownTraits[which(!unknownTraits %in% blockedTraits)]
-    pList <- getTraitLearningProbability_R(repertoires, ind, attributes(tree)$requirements, learnableTraits)
-    learnableTraits <- learnableTraits[which(pList == 1)]
-    freqLearnable <- 0
-    popOthers <- repertoires[-ind,]
-    for(trait in learnableTraits){
-      freqLearnable <- freqLearnable + sum(popOthers[,trait])
-    }
-    freqUnknown <- 0
-    for(trait in unknownTraits){
-      freqUnknown <- freqUnknown + sum(popOthers[,trait])
-    }
-    p[ind] <- freqLearnable / freqUnknown
-  }
-  return(mean(p, na.rm=T))
-}
-
 getPayoffs <- function(tree, params) {
   numBlocked <- params$numBlocked
   num_nodes <- params$num_nodes
@@ -301,37 +271,28 @@ getPayoffs <- function(tree, params) {
   return(adjusted_payoffs)
 }
 
-trRequirements <- function(tree) {
-  numTraits <- igraph::gorder(tree)
-  # Initialize the list to store prerequisites for each trait
-  requirements <- vector("list", numTraits)
-  # Loop through each trait to find its prerequisites
-  for (trait in 1:numTraits) {
-    # Find direct predecessors (parents) of the trait
-    predecessors <- igraph::neighbors(tree, trait, mode = "in")
-    # Store the ids (or any other identifier) of required traits for the bonus
-    requirements[[trait]] <- list(as.numeric(predecessors))
-  }
-
-  return(requirements)
-}
-
-augmentTrRequirements <- function(tree) {
-  requirements <- attr(tree, "requirements")
-  num_nodes <- length(requirements)
-  unreachableTraits <- which(igraph::degree(tree, mode = "in") > 1)
-  aux_nodes <- attributes(tree)$aux_nodes
-  for (trait in unreachableTraits) {
-    # Find parents that are auxiliary nodes
-    parents <- igraph::neighbors(tree, trait, mode = "in")[which(igraph::neighbors(tree, trait, mode = "in") > num_nodes)]
-    requirements[[trait]][[2]] <- list(as.numeric(parents))
+get_requirements <- function(tree) {
+  adj_mat <- igraph::as_adjacency_matrix(tree)
+  aux_traits <- attributes(tree)$aux_nodes
+  num_traits <- ncol(adj_mat)
+  split_traits <- function(traits, aux_traits) {
+    traits_in_aux <- traits[traits %in% aux_traits]
+    traits_not_in_aux <- traits[!traits %in% aux_traits]
+    list(traits_not_in_aux, traits_in_aux)
   }
   
-  for (aux_node in aux_nodes) {
-    parents <- igraph::neighbors(tree, aux_node, mode = "in")
-    requirements[[aux_node]] <- list(as.numeric(parents))
-  }
-  return(requirements)
+  parents <- lapply(1:num_traits, function(x) {
+    trait_parents <- which(adj_mat[, x] == 1)
+    
+    # Check and split if necessary
+    if (any(trait_parents %in% aux_traits)) {
+      split_traits(trait_parents, aux_traits)
+    } else {
+      list(trait_parents, NA_integer_)  # No aux traits present
+    }
+  })
+  
+  return(parents)
 }
 
 try_learning <- function(selectedTrait, p){
