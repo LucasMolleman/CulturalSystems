@@ -32,19 +32,21 @@ params <- list(
   root_node = 1,                  # root node of the tree
   N = 100,                        # population size
   M = 10,                         # number of demonstrators
-  timesteps =  5000,              # number of time steps in the simulation
+  timesteps =  2000,              # number of time steps in the simulation
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
-  reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
-  payoff_scaling = 0,             # Constant that is added/subtracted for each step away from the root node
-  payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
+  reset_rate = 0.05,             # probability that an individual is replaced by a naive individual
+  payoff_scaling = 1,             # Constant that is added/subtracted for each step away from the root node
+  payoff_weight = 0.5,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
-  propBlocked = 0.1,              # proportion of individuals that have blocked traits
+  propBlocked = 0.0,              # proportion of individuals that have blocked traits
   numSteps = 3,                   # number of auxiliary traits necessary for overcoming a block
   detourType = "parallel",        # type of detour (parallel or serial)
   typical_learning_strategy = 1,  # social learning strategy used by unblocked learners
   get_tr_sums = TRUE,             # save trait distributions (Only do this if when running one simulation at a time)
-  data_path = "./data/"
+  data_path = "./data/",
+  age_bias = 0.5, 
+  tree_func = "flat"
 )
 ``` 
 
@@ -59,10 +61,13 @@ start_time <- Sys.time()
 expand.grid(learningStrategy = c(0:2, 4),
             numSteps = c(1, 2, 3),
             blockedLayer = c(1, 2, 3),
-            propBlocked = round(seq(0.02, 1, length.out = 50),2),
-            repl = 1:10) %>%
+            propBlocked = 0.02,
+            #propBlocked = round(seq(0.02, 1, length.out = 50),2),
+            repl = 1:3,
+            age_bias = round(seq(0, 1, length.out = 25),2),
+            tree_func = c("flat", "constrained")) %>% 
 run_all_simulations_parallel(params, tree) %>% 
-saveRDS("strategySuccess_2.rds")
+saveRDS("./data/age_biased.rds")
 end_time <- Sys.time()
 future::plan(future::sequential)
 
@@ -76,11 +81,14 @@ For debugging and testing
 set.seed(1)
 tree <- generate_rooted_tree()
 
-res <- expand.grid(learningStrategy = c(2),
-            numSteps = c(3),
-            blockedLayer = c(1),
-            propBlocked = c(0.5),
-            repl = 1) %>%
+res <- expand.grid(learningStrategy = c(0:2, 4),
+            numSteps = c(1, 2, 3),
+            blockedLayer = c(1, 2, 3),
+            propBlocked = 0.02,
+            #propBlocked = round(seq(0.02, 1, length.out = 50),2),
+            repl = 1:3,
+            age_bias = round(seq(0, 1, length.out = 25),2),
+            tree_func = c("flat")) %>%
   run_all_simulations(params, tree) #%>%
   saveRDS("strategySuccess_3.rds")
 ```
@@ -88,17 +96,18 @@ res <- expand.grid(learningStrategy = c(2),
 
 
 ```{r}
-strategySuccess <- readRDS("strategySuccess_2.rds")
+strategySuccess <- readRDS("./data/age_biased.rds")
 #strategySuccess <- read.csv("../CulturalSystemscpp/SimulationResults.csv", na.strings = "nan")
 data <- as.data.frame(strategySuccess)
 library(data.table)
 setDT(data)
-setnames(data, c("numNodes", "blockedLearningStrat", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked", "failed_learning_prop", "failed_learning_prop_blocked"))
+setnames(data, c("numNodes", "blockedLearningStrat", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked", "failed_learning_prop", "failed_learning_prop_blocked", "age_bias", "tree_func"))
 
 #set first 8 columns to factor
 data[ , (1:5) := lapply(.SD, factor), .SDcols = 1:5]
 
 data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,2,3,4,7), labels = c("Random", "Payoff", "Similarity", "Age-Based", "Conformity", "Similarity2"))] # nolint
+data[ , tree_func := factor(tree_func, levels = c(1,2), labels = c("flat", "constrained"))]
 
 summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked , data = data))
 
@@ -122,9 +131,9 @@ prepare_aggregated_data <- function(data, dependent_var, independent_vars) {
   return(aggregated_data)
 }
 
-dependent_var <- "sumPayoffBlocked"
+dependent_var <- "sumPayoffUnblocked"
 independent_vars <- c("blockedLearningStrat", "numSteps", "blockedLayer", "propBlocked")
-
+independent_vars <- c("blockedLearningStrat", "age_bias", "tree_func")
 aggregated_data2 <- prepare_aggregated_data(data, dependent_var, independent_vars)
 
 # Plotting the aggregated means
@@ -155,6 +164,41 @@ p2 <- ggplot(aggregated_data2, aes(x = propBlocked, y = mean_value, group = inte
   theme(axis.text.x = element_text(angle = 45, hjust = 1), strip.text.x = element_text(size = 12, face = "bold"), legend.position = "top")
 print(p2)
 ```
+```{r}
+p <- ggplot(aggregated_data2, aes(x = age_bias, y = mean_value, group = tree_func, color = as.factor(tree_func), fill = as.factor(tree_func))) +
+  geom_smooth(method = "loess", span = 4, alpha = 0.2, se = TRUE) +
+  scale_color_manual(name = "Environment", values = c('turquoise','salmon')) +
+  scale_fill_manual(name = "Environment", values = c('turquoise','salmon')) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "A) Random", Payoff = "B) Payoff", Similarity = "C) Similarity", Similarity2 = "Strategy: Similiarity 2", Conformity = "D) Conformity")), nrow = 1) +
+  labs(x = "Age Bias", y = "Average Payoff per Learning Attempt", color = "Environment", fill = "Environment") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), strip.text.x = element_text(size = 12, face = "bold"), legend.position = "none")
+p
+
+library(ggraph)
+constrained_tree <- generate_rooted_tree()
+constrained_plot <- ggraph::ggraph(constrained_tree, layout = layout.reingold.tilford(tree)) + 
+  ggraph::geom_edge_link(arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) +
+  ggraph::geom_node_point(size = 5, color = "salmon") +
+  ggtitle("Constrained Environment") +
+  theme_void()
+
+flat_tree <- generate_flat_tree()
+flat_plot <- ggraph::ggraph(flat_tree, layout = layout_as_tree(tree)) + 
+  ggraph::geom_edge_link(arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) +
+  ggraph::geom_node_point(size = 5, color = "turquoise") + 
+  ggtitle("Unconstrained Environment ") +
+  theme_void()
+flat_plot
+
+library(patchwork)
+p2 <- p + (constrained_plot / flat_plot) + plot_layout(widths = c(2, 1))
+p2
+
+```
+
+
+
 
 ```{r}
 p <-ggplot(aggregated_data2, aes(x = propBlocked, y = mean_value, group = interaction(blockedLayer, numSteps), color = as.factor(blockedLayer))) +

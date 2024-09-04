@@ -29,6 +29,48 @@ node_types <- function(tree) {
 }
 
 
+# Base Tree ---------------------------------------------------------------
+
+params <- list(
+  num_nodes = 16,                 # size of the cultural systems (number of nodes)
+  root_node = 1,                  # root node of the tree
+  N = 100,                        # population size
+  M = 10,                         # number of demonstrators
+  timesteps =  2000,              # number of time steps in the simulation
+  S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
+  reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
+  payoff_scaling = 1,             # Constant that is added/subtracted for each step away from the root node
+  payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
+  blockedLayer = 1,               # layer at which tree blockages occur
+  numBlocked = 1,                 # number of blocked traits in the model
+  propBlocked = 0.1,              # proportion of individuals that have blocked traits
+  numSteps = 3,                   # number of auxiliary traits necessary for overcoming a block
+  detourType = "parallel",        # type of detour (parallel or serial)
+  typical_learning_strategy = 1,  # social learning strategy used by unblocked learners
+  get_tr_sums = TRUE              # save trait distributions (Only do this if when running one simulation at a time)
+)
+
+tree <- generate_rooted_tree()
+
+
+### SYSTEM AND NODE PAYOFFS ARE SET
+####### INITIALIZE POPULATION #####
+
+
+
+V(tree)$payoff <- getPayoffs(tree, params)[1:16]
+V(tree)$type <- factor(c(rep(0, 3), rep(1, 13)))
+
+ggraph::ggraph(tree, layout = layout.reingold.tilford(tree)) +
+  geom_edge_link(alpha = 1, arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) +
+  geom_node_point(size = 7, aes(color = type)) +
+  scale_color_manual(name = "Trait Type", values = c("forestgreen", "firebrick")) +
+  geom_node_text(aes(label = payoff), color = "white") + 
+  theme(text = element_text(family = "Times New Roman"), panel.background = element_blank(), legend.position = "none")
+
+
+
+
 # Layer 1 -----------------------------------------------------------------
 
 
@@ -40,11 +82,11 @@ params <- list(
   timesteps =  2000,              # number of time steps in the simulation
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
-  payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
+  payoff_scaling = 1,             # Constant that is added/subtracted for each step away from the root node
   payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 1,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
-  propBlocked = 0.1,              # proportion of individuals that have blocked traits
+  propBlocked = 0.5,              # proportion of individuals that have blocked traits
   numSteps = 3,                   # number of auxiliary traits necessary for overcoming a block
   detourType = "parallel",        # type of detour (parallel or serial)
   typical_learning_strategy = 1,  # social learning strategy used by unblocked learners
@@ -78,16 +120,18 @@ adjust_layout <- function(tree) {
 
 E(tree)$type <- edge_types(tree)
 V(tree)$type <- node_types(tree)
+V(tree)$payoff <- getPayoffs(tree, params)
 
-layer1 <- ggraph::ggraph(tree, layout = adjust_layout(tree)) + 
-  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2)), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
-  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
-  scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") + 
+
+layer1 <- ggraph::ggraph(tree, layout = adjust_layout(tree)) +
+  geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2)), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) +
+  geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) +
+  scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") +
   scale_edge_color_manual(values = c("black", "firebrick", "cornflowerblue"), guide = "none") +
-  geom_node_point(size = 7, aes(color = type)) + 
-  scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
+  geom_node_point(size = 7, aes(color = type)) +
+  scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) +
+  geom_node_text(aes(label = payoff), color = "white") + 
   theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
-
 
 # Layer 2 -----------------------------------------------------------------
 
@@ -100,7 +144,7 @@ params <- list(
   timesteps =  2000,              # number of time steps in the simulation
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
-  payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
+  payoff_scaling = 1,             # Constant that is added/subtracted for each step away from the root node
   payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 2,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
@@ -112,7 +156,7 @@ params <- list(
 )
 
 tree <- generate_rooted_tree()
-attr(tree, "requirements") <- trRequirements(tree)
+
 
 ### SYSTEM AND NODE PAYOFFS ARE SET
 ####### INITIALIZE POPULATION #####
@@ -121,14 +165,13 @@ blockers <- initializeBlockers(params, tree)
 blockedTraits <- which(colSums(blockers) > 0)
 blockedInds <- which(rowSums(blockers) > 0)
 tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
-attr(tree, "requirements") <- augmentTrRequirements(tree) #add alternative routes around blocked traits
 attr(tree, "blockedTraits") <- blockedTraits
 
-requirements <- attributes(tree)$requirements
 aux_nodes <- attributes(tree)$aux_nodes
 
 E(tree)$type <- edge_types(tree)
 V(tree)$type <- node_types(tree)
+V(tree)$payoff <- getPayoffs(tree, params)
 
 adjust_layout_2 <- function(tree) {
   #assumes trait 3 is blocked with numSteps = 3 and detourType = "parallel"
@@ -145,7 +188,8 @@ layer2 <- ggraph(tree, layout = adjust_layout_2(tree)) +
   scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") + 
   scale_edge_color_manual(values = c("black", "firebrick", "cornflowerblue"), guide = "none") +
   geom_node_point(size = 7, aes(color = type)) + 
-  scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
+  scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) +
+  geom_node_text(aes(label = payoff), color = "white") + 
   theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
 
 
@@ -161,7 +205,7 @@ params <- list(
   timesteps =  2000,              # number of time steps in the simulation
   S = 0.99,                       # reliance on social learning; (1-S) is innovation rate
   reset_rate = 0.05,              # probability that an individual is replaced by a naive individual
-  payoff_scaling = 2,             # Constant that is added/subtracted for each step away from the root node
+  payoff_scaling = 1,             # Constant that is added/subtracted for each step away from the root node
   payoff_weight = 1,              # How much payoff depends on randomness vs distance from the root node (0=random, 1=deterministic))
   blockedLayer = 3,               # layer at which tree blockages occur
   numBlocked = 1,                 # number of blocked traits in the model
@@ -173,21 +217,19 @@ params <- list(
 )
 
 tree <- generate_rooted_tree()
-attr(tree, "requirements") <- trRequirements(tree)
 
 set.seed(1)
 blockers <- initializeBlockers(params, tree)
 blockedTraits <- which(colSums(blockers) > 0)
 blockedInds <- which(rowSums(blockers) > 0)
 tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
-attr(tree, "requirements") <- augmentTrRequirements(tree) #add alternative routes around blocked traits
 attr(tree, "blockedTraits") <- blockedTraits
 
-requirements <- attributes(tree)$requirements
 aux_nodes <- attributes(tree)$aux_nodes
 
 E(tree)$type <- edge_types(tree)
 V(tree)$type <- node_types(tree)
+V(tree)$payoff <- getPayoffs(tree, params)
 
 adjust_layout_3 <- function(tree) {
   #assumes trait 3 is blocked with numSteps = 3 and detourType = "parallel"
@@ -198,14 +240,15 @@ adjust_layout_3 <- function(tree) {
   layout[20:22,1] <- layout[20:22,1] + 0.25
   layout
 }
-adjust_layout_3(tree)
-ggraph(tree, layout = adjust_layout_3(tree)) + 
+
+layer3 <- ggraph(tree, layout = adjust_layout_3(tree)) + 
   geom_edge_link(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = type %in% c(0, 2)), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
   geom_edge_diagonal(alpha = 1, aes(lty = as.factor(type), color = as.factor(type), filter = E(tree)$type == 1), arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) + 
   scale_edge_linetype_manual(values = c("solid", "dashed", "solid"), guide = "none") + 
   scale_edge_color_manual(values = c("black", "firebrick", "cornflowerblue"), guide = "none") +
   geom_node_point(size = 7, aes(color = type)) + 
   scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
+  geom_node_text(aes(label = payoff), color = "white") + 
   theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
 
 library(cowplot)

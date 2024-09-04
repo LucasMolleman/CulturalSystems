@@ -39,6 +39,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
     } else {
       learningStrategy <- params$typical_learning_strategy
     }
+    
     ## will they learn individually or socially?
     r<-runif(1)
     unknownTraits <- which(repertoires[ind,] == 0) 
@@ -48,10 +49,10 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
       if (r<params$S) {  # social learning
         ## sample M random other individuals
         poolOthers <- setdiff(1:nrow(repertoires), ind) # agents do not sample themselves
-        models<-sample(poolOthers, params$M, replace=FALSE)
-        
+          #models <- sample_age_biased(ind, popAge,params$age_bias, params$M)
+        models <- sample(poolOthers, params$M)
         ## randomly pick 1 trait from each model
-        ## only consider traits the learning agent do not know yet
+        ## only consider traits the learning agent does not know yet
         observedTraits<-c()
         observedModels<-c()
         for (model in models){
@@ -150,7 +151,9 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
                         mean(SLpay[trim,2], na.rm=TRUE),
                         mean(SLpay[trim,3], na.rm=TRUE),
                         failed_learning_count/params$timesteps,
-                        failed_learning_count_blocked/sum(!is.na(SLpay[,3])))
+                        failed_learning_count_blocked/sum(!is.na(SLpay[,3])),
+                        params$age_bias,
+                        params$tree_func)
   
   
   return(sumThisSimulation)
@@ -166,11 +169,18 @@ run_all_simulations_parallel <- function(iterations, params, tree) {
   print(paste("starting", nrow(iterations), "simulations in parallel..."))
   simulation_results <- furrr::future_pmap(
     iterations,
-    function(learningStrategy, numSteps, blockedLayer, propBlocked, repl) {
+    function(learningStrategy, numSteps, blockedLayer, propBlocked, repl, age_bias, tree_func) {
       params$numSteps <- numSteps
       params$blockedLayer <- blockedLayer
       params$propBlocked <- propBlocked
-      
+      params$typical_learning_strategy <- learningStrategy
+      params$age_bias <- age_bias
+      params$tree_func <- tree_func
+      if (tree_func == "flat") {
+        tree <- generate_flat_tree()
+      } else {
+        tree <- generate_rooted_tree()
+      }
       run_result <- runsimulation(params, learningStrategy, repl, tree)
       return(run_result)
     },
@@ -192,12 +202,44 @@ run_all_simulations <- function(iterations, params, tree) {
   
   print(paste("starting", nrow(iterations), "simulations..."))
   
-  results <-  purrr::pmap(iterations, function(learningStrategy, numSteps, blockedLayer, propBlocked, repl) {
+
+  results <-  purrr::pmap(iterations, function(learningStrategy, numSteps, blockedLayer, propBlocked, repl, age_bias, tree_func) {
     params$numSteps <- numSteps
     params$blockedLayer <- blockedLayer
     params$propBlocked <- propBlocked
+    params$typical_learning_strategy <- learningStrategy
+    params$age_bias <- age_bias
+    params$tree_func <- tree_func
+    if (tree_func == "flat") {
+      tree <- generate_flat_tree()
+    } else {
+      tree <- generate_rooted_tree()
+    }
     print(paste("Learning Strategy:", learningStrategy))
     sumThisSimulation <- runsimulation(params, learningStrategy, repl, tree)
   })
   do.call(rbind, results)
 }
+
+get_obj_seed <- function(object) {
+  as.numeric(sapply(serialize(object, NULL), function(x) as.integer(x) %% .Machine$integer.max)) %>% sum() %% .Machine$integer.max
+}
+
+get_obj_seed(data.frame(x = 1:10, y = as.double(1:10)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

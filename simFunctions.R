@@ -1,4 +1,4 @@
-generate_rooted_tree <- function() {
+  generate_rooted_tree <- function() {
   g <- igraph::graph.empty(directed = TRUE)
   g <- igraph::add_vertices(g, 2)
   g <- igraph::add_edges(g, c(1, 2))
@@ -28,7 +28,27 @@ generate_rooted_tree <- function() {
 }
 
 
+generate_flat_tree <- function() {
+  edges <- c()
+  for (i in 2:(16)) {
+    edges <- c(edges, 1, i)
+  }
+  
+  g <- igraph::graph(edges, directed = TRUE)
+  
+  return(g)
+}
 
+sample_age_biased <- function(ind, popAge, age_bias, M) {
+  age_ind <- popAge[ind]
+  pool_idx <- which(1:length(popAge) != ind)
+  pool_ages <- popAge[pool_idx]
+  prob_weights <- outer(pool_ages, age_ind, function(x, y) (1 - age_bias) * (1 / length(pool_ages)) + age_bias * (1 / (1 + abs(x - y))))
+  prob_weights <- prob_weights / sum(prob_weights)
+  
+  sampled <- sample(pool_idx, M, replace = FALSE, prob = prob_weights)
+  return(sampled)
+}
 
 
 
@@ -79,10 +99,12 @@ initializeBlockers <- function(params, tree) {
   blockedLayer <- params$blockedLayer
   numBlocked <- params$numBlocked
   propBlocked <- params$propBlocked
-
   blockedTraits <- matrix(0, nrow = N, ncol = num_nodes)
-
-  blockedInds <- sample(1:N, round(N * propBlocked))
+  if (propBlocked == 0) {
+    blockedInds <- c()
+  } else {
+  blockedInds <-sample(1:N, round(N * propBlocked))
+  }
   trDistances <- igraph::distances(tree, v = root_node, mode = "out")
 
   possibleBlockableTraits <- which(trDistances == blockedLayer)
@@ -90,10 +112,11 @@ initializeBlockers <- function(params, tree) {
   blockableTraits <- possibleBlockableTraits[which(igraph::degree(tree, v = possibleBlockableTraits, mode = "out") > 0)]
   if (length(blockableTraits) == 1) {
     blockedTraitIndices <- blockableTraits
-  } else {
+    blockedTraits[blockedInds, blockedTraitIndices] <- 1
+  } else if (length(blockableTraits) > 1){
     blockedTraitIndices <- sample(blockableTraits, numBlocked)
+    blockedTraits[blockedInds, blockedTraitIndices] <- 1
   }
-  blockedTraits[blockedInds, blockedTraitIndices] <- 1
   blockedTraits
 }
 
