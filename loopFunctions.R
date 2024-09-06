@@ -31,13 +31,16 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   failure_sums_blocked <- vector("list", params$timesteps)
   failures <- matrix(0, nrow = params$N, ncol = ncol(repertoires))
   
+  payoff_IDs <- rep(NA, params$timesteps)
+  
   ### population is now initialized... start running the model
   for (t in 1:params$timesteps){
     ind<-sample(1:params$N,1)
+    payoff_IDs[[t]] <- ind
     if (ind %in% blockedInds){
       learningStrategy <- blockedLearningStrategy
     } else {
-      learningStrategy <- params$typical_learning_strategy
+      learningStrategy <- blockedLearningStrategy
     }
     
     ## will they learn individually or socially?
@@ -71,8 +74,10 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
                                          popAge,
                                          tree,
                                          observedTraits,
-                                         observedModels)
-        
+                                         observedModels,
+                                         SLpay,
+                                         payoff_IDs)
+
         learnedTrait <- learning_result$learned
         failed_trait <- learning_result$failed
         if (length(learnedTrait) == 1) {
@@ -113,7 +118,6 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
         tr_sums_blocked[[t]] <- colSums(repertoires[blockedInds, ], na.rm =T)
         failure_sums_blocked[[t]] <- colSums(failures[blockedInds, ], na.rm =T)
       }
-
     }
     
     ## each time step the agent was sampled, their age increases by 1
@@ -124,6 +128,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
     if (runif(1) < params$reset_rate) {
       repertoires[ind,]<-c(1,rep(0,ncol(repertoires) - 1))
       popAge[ind]<-0  ## reset the age of the agent to 0
+      payoff_IDs[payoff_IDs == ind] <- NA #reset so agents don't use information from dead agents
     }
   }
 
@@ -176,7 +181,7 @@ run_all_simulations_parallel <- function(iterations, params, tree) {
       params$typical_learning_strategy <- learningStrategy
       params$age_bias <- age_bias
       params$tree_func <- tree_func
-      if (tree_func == "flat") {
+      if (tree_func == 0) {
         tree <- generate_flat_tree()
       } else {
         tree <- generate_rooted_tree()
@@ -210,7 +215,7 @@ run_all_simulations <- function(iterations, params, tree) {
     params$typical_learning_strategy <- learningStrategy
     params$age_bias <- age_bias
     params$tree_func <- tree_func
-    if (tree_func == "flat") {
+    if (tree_func == 0) {
       tree <- generate_flat_tree()
     } else {
       tree <- generate_rooted_tree()
@@ -225,7 +230,7 @@ get_obj_seed <- function(object) {
   as.numeric(sapply(serialize(object, NULL), function(x) as.integer(x) %% .Machine$integer.max)) %>% sum() %% .Machine$integer.max
 }
 
-get_obj_seed(data.frame(x = 1:10, y = as.double(1:10)))
+
 
 
 

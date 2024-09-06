@@ -330,7 +330,7 @@ try_learning <- function(selectedTrait, p){
   return(traits)
 }
 
-learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, popAge, tree, observedTraits, observedModels) {
+learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, popAge, tree, observedTraits, observedModels, SLpay, payoff_IDs) {
   payoffs <- attributes(tree)$payoffs
   unknownTraits <- which(repertoires[ind, ] == 0)
   blockedTraits <- which(blockers[ind, ] == 1)
@@ -354,7 +354,8 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       learning_result <- try_learning(learnableTraits, pList)
       return(learning_result)
     }
-    ##### STRATEGY 1: payoff-based social learning #####
+    
+    ##### STRATEGY 1: public payoff-based social learning #####
     if (learningStrategy == 1) {
         wList <- payoffs[learnableTraits] / sum(payoffs[learnableTraits])
     }
@@ -380,6 +381,15 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       modelRepertoires <- repertoires[observedModels, learnableTraits]
       traitCounts <- colSums(modelRepertoires == 1)
       wList <- if (sum(traitCounts) > 0) traitCounts / sum(traitCounts) else rep(1 / length(learnableTraits), length(learnableTraits))
+    }
+    ###### STRATEGY 5: individual payoff-based social learning #####
+    ## Weigh traits by payoffs of observed models 
+    else if (learningStrategy == 5) {
+      usefulModels <- observedModels[observedTraits %in% learnableTraits]
+      for (model in usefulModels) {
+        modelIndex <- which(usefulModels == model)
+        wList[modelIndex] <- sum(SLpay[payoff_IDs[payoff_IDs == model], 1], na.rm = T)
+      }
     }
     ###### STRATEGY 0: random learning benchmark
     ## Randomly select a trait that is not yet learned
