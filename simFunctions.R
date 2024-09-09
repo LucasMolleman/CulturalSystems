@@ -50,9 +50,6 @@ sample_age_biased <- function(ind, popAge, age_bias, M) {
   return(sampled)
 }
 
-
-
-
 generate_skewed_tree <- function() {
   g <- igraph::graph.empty(directed = TRUE)
   g <- igraph::add_vertices(g, 2)

@@ -10,10 +10,16 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
   attr(tree, "payoffs") <- getPayoffs(tree, params)
   ### SYSTEM AND NODE PAYOFFS ARE SET
   ####### INITIALIZE POPULATION #####
-  blockers <- initializeBlockers(params, tree)
-  blockedTraits <- which(colSums(blockers) > 0)
-  blockedInds <- which(rowSums(blockers) > 0)
-  tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
+  if (params$propBlocked > 0) {
+    blockers <- initializeBlockers(params, tree)
+    blockedTraits <- which(colSums(blockers) > 0)
+    blockedInds <- which(rowSums(blockers) > 0)
+    tree <- addDetours(params, tree, blockedTraits, type = params$detourType)
+  } else {
+    blockers <- matrix(0, nrow = params$N, ncol = params$num_nodes)
+    blockedTraits <- c()
+    blockedInds <- c()
+  }
   attr(tree, "requirements") <- get_requirements(tree) #add alternative routes around blocked traits
   attr(tree, "blockedTraits") <- blockedTraits
   repertoires<-initializePopulation(params, blockers, tree)
@@ -60,6 +66,9 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
         observedModels<-c()
         for (model in models){
           newTraits<-which(repertoires[model,] == 1 & repertoires[ind,] == 0)
+          if (!ind %in% blockedInds) {
+            newTraits <- setdiff(newTraits, attributes(tree)$aux_nodes)
+          }
           if(length(newTraits)>0){
             tr<-sample(newTraits,1)
             observedTraits<-c(observedTraits, tr)
@@ -131,7 +140,6 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
       payoff_IDs[payoff_IDs == ind] <- NA #reset so agents don't use information from dead agents
     }
   }
-
   
   if (params$get_tr_sums) {
     for(i in 2:length(tr_sums_blocked)){
@@ -165,7 +173,7 @@ runsimulation <- function(params, blockedLearningStrategy, repl, tree){
 }
 
 
-run_all_simulations_parallel <- function(iterations, params, tree) {
+run_all_simulations_parallel <- function(iterations, params) {
   if (nrow(iterations) > 1 & params$get_tr_sums) {
     warning("get_tr_sums is not supported when running multiple simulations\nsetting get_tr_sums to FALSE")
     params$get_tr_sums <- FALSE
@@ -198,7 +206,6 @@ run_all_simulations_parallel <- function(iterations, params, tree) {
   return(strategySuccess)
 }
 
-
 run_all_simulations <- function(iterations, params, tree) {
   if (nrow(iterations) > 1 & params$get_tr_sums) {
     warning("get_tr_sums is not supported when running multiple simulations\nsetting get_tr_sums to FALSE")
@@ -207,7 +214,6 @@ run_all_simulations <- function(iterations, params, tree) {
   
   print(paste("starting", nrow(iterations), "simulations..."))
   
-
   results <-  purrr::pmap(iterations, function(learningStrategy, numSteps, blockedLayer, propBlocked, repl, age_bias, tree_func) {
     params$numSteps <- numSteps
     params$blockedLayer <- blockedLayer
@@ -229,22 +235,3 @@ run_all_simulations <- function(iterations, params, tree) {
 get_obj_seed <- function(object) {
   as.numeric(sapply(serialize(object, NULL), function(x) as.integer(x) %% .Machine$integer.max)) %>% sum() %% .Machine$integer.max
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

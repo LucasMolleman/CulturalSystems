@@ -18,6 +18,7 @@ library(matrixStats)
 library(Rcpp)
 library(dplyr)
 library(ggplot2)
+library(ggraph)
 
 source("simFunctions.R")
 source("loopFunctions.R")
@@ -50,11 +51,56 @@ params <- list(
 )
 ``` 
 
+## Experiment 1
+
+```{r}
+set.seed(1)
+num_cores <- parallel::detectCores()
+future::plan(future::multisession, workers = ifelse(num_cores > 1, num_cores - 1, 1))
+
+start_time <- Sys.time()
+expand.grid(learningStrategy = c(0:2,4,5),
+            numSteps = 1,
+            blockedLayer = 1,
+            propBlocked = 0,
+            repl = 1:20,
+            age_bias = 0,
+            tree_func = 0:1 
+            ) %>%
+run_all_simulations_parallel(params) %>%
+saveRDS("./data/strategySuccess_flat.rds")
+end_time <- Sys.time()
+future::plan(future::sequential)
+
+end_time - start_time
+beepr::beep()
+
+```
+```{r}
+set.seed(1)
+start_time <- Sys.time()
+expand.grid(learningStrategy = c(0:2,4,5),
+            numSteps = 1,
+            blockedLayer = 1,
+            propBlocked = 0,
+            repl = 1:3,
+            age_bias = 0,
+            tree_func = 0:1
+            ) %>%
+run_all_simulations(params) %>%
+saveRDS("./data/strategySuccess_flat.rds")
+end_time <- Sys.time()
+
+
+end_time - start_time
+beepr::beep()
+
+```
+
 ## Run Simulation
 
 ```{r}
 set.seed(1)
-tree <- generate_rooted_tree()
 num_cores <- parallel::detectCores()
 future::plan(future::multisession, workers = ifelse(num_cores > 1, num_cores - 1, 1))
 
@@ -64,16 +110,16 @@ expand.grid(learningStrategy = c(0:2, 4,5),
             blockedLayer = c(1, 2, 3),
             #propBlocked = 0.02,
             propBlocked = round(seq(0.02, 1, length.out = 50),2),
-            repl = 1,
-            age_bias = round(seq(0, 1, length.out = 25),2),
-            tree_func = 0) %>% 
-run_all_simulations_parallel(params, tree) %>% 
+            repl = 1:3,
+            age_bias = 0,
+            tree_func = 1) %>% 
+run_all_simulations_parallel(params) %>% 
 saveRDS("./data/strategySuccess.rds")
 end_time <- Sys.time()
 future::plan(future::sequential)
 
 end_time - start_time
-beepr::beep(3)
+beepr::beep()
 ```
 
 ## Sequential Execution
@@ -91,8 +137,8 @@ res <- expand.grid(learningStrategy = c(0:2, 4,5),
             repl = 1,
             age_bias = 0,
             #age_bias = round(seq(0, 1, length.out = 25),2),
-            tree_func = c(0)) %>%
-  run_all_simulations(params, tree) #%>%
+            tree_func = 1) %>%
+  run_all_simulations(params) #%>%
   saveRDS("strategySuccess_3.rds")
 ```
 
@@ -104,13 +150,13 @@ strategySuccess <- readRDS("./data/strategySuccess.rds")
 data <- as.data.frame(strategySuccess)
 library(data.table)
 setDT(data)
-setnames(data, c("numNodes", "blockedLearningStrat", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked", "failed_learning_prop", "failed_learning_prop_blocked"))
+setnames(data, c("numNodes", "blockedLearningStrat", "repl", "payoff_scaling", "blockedLayer", "numBlocked", "numSteps",'propBlocked', "sumPayoff", "sumPayoffUnblocked", "sumPayoffBlocked", "failed_learning_prop", "failed_learning_prop_blocked", "age_bias", "tree_func"))
 
 #set first 8 columns to factor
 data[ , (1:5) := lapply(.SD, factor), .SDcols = 1:5]
 
-data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,2,3,4,7), labels = c("Random", "Payoff", "Similarity", "Age-Based", "Conformity", "Similarity2"))] 
-data[ , tree_func := factor(tree_func, levels = c(1,2), labels = c("flat", "constrained"))]
+data[ , blockedLearningStrat := factor(blockedLearningStrat, levels = c(0,1,2,3,4,5), labels = c("Random", "Payoff", "Similarity", "Age-Based", "Conformity", "Prestige"))] 
+data[ , tree_func := factor(tree_func, levels = c(0,1), labels = c("flat", "constrained"))]
 
 summary(mod1 <- lm(sumPayoffBlocked ~ blockedLearningStrat + numSteps + blockedLayer + propBlocked , data = data))
 
@@ -134,8 +180,9 @@ prepare_aggregated_data <- function(data, dependent_var, independent_vars) {
   return(aggregated_data)
 }
 
-dependent_var <- "sumPayoffUnblocked"
-independent_vars <- c("blockedLearningStrat", "numSteps", "blockedLayer", "propBlocked")
+dependent_var <- "sumPayoff"
+#independent_vars <- c("blockedLearningStrat", "numSteps", "blockedLayer", "propBlocked")
+independent_vars <- c("blockedLearningStrat", "tree_func")
 #independent_vars <- c("blockedLearningStrat", "age_bias", "tree_func")
 aggregated_data2 <- prepare_aggregated_data(data, dependent_var, independent_vars)
 
@@ -153,7 +200,98 @@ p <- ggplot(aggregated_data2, aes(x = propBlocked, y = mean_value, group = inter
 p
 ```
 
+# Experiment 1 Plot
 
+```{r}
+dependent_var <- "sumPayoff"
+independent_vars <- c("blockedLearningStrat", "tree_func")
+aggregated_data <- prepare_aggregated_data(data, dependent_var, independent_vars)
+
+p <- ggplot(aggregated_data, aes(x = tree_func, y = mean_value, fill = blockedLearningStrat)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.9), width = 0.8) +
+  geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper), position = position_dodge(width = 0.9), width = 0.25) +
+  labs(title = "A) Average Payoff by Trait Structure and Learning Strategy",
+       x = "Trait Structure",
+       y = "Average Payoff per Learning Attempt",
+       fill = "Learning Strategy") +
+  scale_fill_brewer(palette = "Set2") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5),
+        legend.position = "top")
+p
+
+flat_tree <- generate_flat_tree()
+constrained_tree <- generate_rooted_tree()
+
+p2 <- ggraph(flat_tree, layout = layout_as_tree(flat_tree)) + 
+  geom_edge_link(arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) +
+  geom_node_point(size = 5) +
+  theme_void() +
+  ggtitle("B) Flat Trait structure")
+p2  
+
+p3 <- ggraph(constrained_tree, layout = layout_as_tree(constrained_tree)) + 
+  geom_edge_link(arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) +
+  geom_node_point(size = 7) +
+  theme_void() +
+  ggtitle("C) Constrained Trait structure")
+p3
+
+library(cowplot)
+combined_plot <- plot_grid(p, plot_grid(p2, p3, ncol = 1), ncol = 2, rel_widths = c(2,1))
+combined_plot
+```
+
+## Experiment 2 without numSteps
+```{r}
+dependent_var <- "sumPayoffBlocked"
+independent_vars <- c("blockedLearningStrat", "blockedLayer", "propBlocked")
+aggregated_data <- prepare_aggregated_data(data, dependent_var, independent_vars)
+
+p <- ggplot(aggregated_data, aes(x = propBlocked, y = mean_value, group = blockedLayer, color = as.factor(blockedLayer))) +
+  geom_smooth(aes(fill = as.factor(blockedLayer)), method = "loess", span = 4, alpha = 0.2, se = TRUE) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "A) Random", Payoff = "B) Payoff", Similarity = "C) Similarity", Similarity2 = "Strategy: Similiarity 2", Conformity = "D) Conformity")), nrow = 1) +
+  labs(title = "Average Payoff for Individuals with no Learning Difficulties (LD)", 
+       x = "Proportion of Population with LD", 
+       y = "Average Payoff per Learning Attempt", 
+       color = "Depth of Learning Difficulty", 
+       fill = "Depth of Learning Difficulty") +
+  scale_color_manual(labels = c('1' = 'Layer 1', '2' = 'Layer 2', '3' = 'Layer 3'), 
+                     values = c('1' = 'red2', '2' = 'gold1', '3' = 'green3')) +
+  scale_fill_manual(labels = c('1' = 'Layer 1', '2' = 'Layer 2', '3' = 'Layer 3'), 
+                    values = c('1' = 'red2', '2' = 'gold1', '3' = 'green3')) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        strip.text.x = element_text(size = 12, face = "bold"), 
+        legend.position = "top")
+
+p
+```
+## Experiment 2 without blockedLayer
+
+```{r}
+dependent_var <- "sumPayoffBlocked"
+independent_vars <- c("blockedLearningStrat", "numSteps", "propBlocked")
+aggregated_data <- prepare_aggregated_data(data, dependent_var, independent_vars)
+
+p <- ggplot(aggregated_data, aes(x = propBlocked, y = mean_value, group = numSteps, color = as.factor(numSteps))) +
+  geom_smooth(aes(fill = as.factor(numSteps)), method = "loess", span = 4, alpha = 0.2, se = TRUE) +
+  facet_wrap(~blockedLearningStrat, labeller = labeller(blockedLearningStrat = c(Random = "A) Random", Payoff = "B) Payoff", Similarity = "C) Similarity", Similarity2 = "Strategy: Similarity 2", Conformity = "D) Conformity")), nrow = 1) +
+  labs(title = "Average Payoff for Individuals with Learning Difficulties (LD)", 
+       x = "Proportion of Population with LD", 
+       y = "Average Payoff per Learning Attempt", 
+       color = "Number of Learning Steps", 
+       fill = "Number of Learning Steps") +
+  scale_color_manual(values = c('1' = 'red2', '2' = 'gold1', '3' = 'green3')) +
+  scale_fill_manual(values = c('1' = 'red2', '2' = 'gold1', '3' = 'green3')) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), 
+        strip.text.x = element_text(size = 12, face = "bold"), 
+        legend.position = "top")
+
+p
+
+```
 
 ```{r}
 data_long <- melt(data, 
@@ -177,6 +315,41 @@ forward_model <- step(model,
 # Summary of the final model after forward selection
 summary(forward_model)
 ```
+
+```{r}
+# Separate the data into blocked and unblocked groups
+data_blocked <- subset(data_long, group == "sumPayoffBlocked")
+data_unblocked <- subset(data_long, group == "sumPayoffUnblocked")
+
+# Define the full models
+full_model_blocked <- lm(payoff ~ (blockedLayer + numSteps + propBlocked + 
+                         blockedLearningStrat)^2, data = data_blocked)
+
+full_model_unblocked <- lm(payoff ~ (blockedLayer + numSteps + propBlocked)^2, 
+                           data = data_unblocked)
+
+# Define the null models (intercept only)
+null_model_blocked <- lm(payoff ~ 1, data = data_blocked)
+null_model_unblocked <- lm(payoff ~ 1, data = data_unblocked)
+
+# Perform forward selection
+forward_model_blocked <- step(null_model_blocked, 
+                              scope = list(lower = formula(null_model_blocked), 
+                                           upper = formula(full_model_blocked)),
+                              direction = "forward")
+
+forward_model_unblocked <- step(null_model_unblocked, 
+                                scope = list(lower = formula(null_model_unblocked), 
+                                             upper = formula(full_model_unblocked)),
+                                direction = "forward")
+
+# Summary of forward selection models
+summary(forward_model_blocked)
+summary(forward_model_unblocked)
+
+```
+
+
 ## Plot Results without payoff-scaling
 
 ```{r}
