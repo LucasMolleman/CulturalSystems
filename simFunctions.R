@@ -379,7 +379,7 @@ learnSocially <- function(params, repertoires, blockers, ind, learningStrategy, 
       traitCounts <- colSums(modelRepertoires == 1)
       wList <- if (sum(traitCounts) > 0) traitCounts / sum(traitCounts) else rep(1 / length(learnableTraits), length(learnableTraits))
     }
-    ###### STRATEGY 5: individual payoff-based social learning #####
+    ###### STRATEGY 5: prestige-based social learning #####
     ## Weigh traits by payoffs of observed models 
     else if (learningStrategy == 5) {
       usefulModels <- observedModels[observedTraits %in% learnableTraits]

@@ -25,7 +25,7 @@ node_types <- function(tree) {
   node_colors <- rep(0, vcount(tree))
   node_colors[aux_nodes] <- 1
   node_colors[blockedTraits] <- 2
-  factor(node_colors, labels = c("Regular", "Auxiliary", "Blocked"))
+  factor(node_colors, labels = c("Regular", "Compensatory", "Blocked"))
 }
 
 
@@ -66,7 +66,7 @@ ggraph::ggraph(tree, layout = layout.reingold.tilford(tree)) +
   geom_node_point(size = 7, aes(color = type)) +
   scale_color_manual(name = "Trait Type", values = c("forestgreen", "firebrick")) +
   geom_node_text(aes(label = payoff), color = "white") + 
-  theme(text = element_text(family = "Times New Roman"), panel.background = element_blank(), legend.position = "none")
+  theme(text = element_text(family = "Arial"), panel.background = element_blank(), legend.position = "none")
 
 
 
@@ -131,7 +131,7 @@ layer1 <- ggraph::ggraph(tree, layout = adjust_layout(tree)) +
   geom_node_point(size = 7, aes(color = type)) +
   scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) +
   geom_node_text(aes(label = payoff), color = "white") + 
-  theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
+  theme(text = element_text(family = "Arial"), panel.background = element_blank())
 
 # Layer 2 -----------------------------------------------------------------
 
@@ -190,7 +190,7 @@ layer2 <- ggraph(tree, layout = adjust_layout_2(tree)) +
   geom_node_point(size = 7, aes(color = type)) + 
   scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) +
   geom_node_text(aes(label = payoff), color = "white") + 
-  theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
+  theme(text = element_text(family = "Arial"), panel.background = element_blank())
 
 
 # Layer 3 -----------------------------------------------------------------
@@ -249,15 +249,15 @@ layer3 <- ggraph(tree, layout = adjust_layout_3(tree)) +
   geom_node_point(size = 7, aes(color = type)) + 
   scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
   geom_node_text(aes(label = payoff), color = "white") + 
-  theme(text = element_text(family = "Times New Roman"), panel.background = element_blank())
+  theme(text = element_text(family = "Arial"), panel.background = element_blank())
 
 library(cowplot)
 combined_plot <- plot_grid(
   layer1 + theme(legend.position = "none"),
   layer2 + theme(legend.position = "none"),
   layer3 + theme(legend.position = "none"),
-  labels = c("A", "B", "C"), 
-  label_size = 20,
+  labels = c("Layer 1 blocked", "Layer 2 blocked", "Layer 3 blocked"), 
+  label_size = 12,
   align = 'v', ncol = 1
 )
 
@@ -298,7 +298,7 @@ ggraph(tree, layout = igraph::layout.reingold.tilford(tree)) +
   geom_edge_link(alpha = 1, arrow = arrow(type = "closed", length = unit(2, "mm")), start_cap = circle(3, 'mm'), end_cap = circle(3, 'mm')) +
   geom_node_point(size = 7, aes(color = type, shape = type)) +  
   geom_node_text(aes(label = label), color = "black") + 
-  theme(text = element_text(family = "Times New Roman"), panel.background = element_blank(), legend.position = "none")
+  theme(text = element_text(family = "Arial"), panel.background = element_blank(), legend.position = "none")
 
 
 
@@ -321,7 +321,7 @@ ggraph::ggraph(tree, layout = adjust_layout(tree)) +
   geom_node_text(aes(label = failure), color = "red") +
   scale_color_manual(name = "Trait Type", values = c("black", "cornflowerblue", "firebrick")) + 
   ggtitle("B) Similarity-Based Learning") +
-  theme(text = element_text(family = "Times New Roman"), panel.background = element_blank()) 
+  theme(text = element_text(family = "Arial"), panel.background = element_blank()) 
 
 
 
